@@ -1,0 +1,994 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "fullName": "Nguyễn Văn An",
+      "email": "farmer@example.com",
+      "phoneNumber": "0900000001",
+      "passwordHash": "$2b$10$mockedPasswordHash",
+      "role": "FARMER",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "u2",
+      "fullName": "Trần Minh Kỹ",
+      "email": "technician@example.com",
+      "phoneNumber": "0900000002",
+      "passwordHash": "$2b$10$mockedPasswordHash",
+      "role": "TECHNICIAN",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "u3",
+      "fullName": "Admin",
+      "email": "admin@example.com",
+      "phoneNumber": "0900000003",
+      "passwordHash": "$2b$10$mockedPasswordHash",
+      "role": "ADMIN",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    }
+  ],
+  "ponds": [
+    {
+      "id": "p1",
+      "userId": "u1",
+      "name": "Vuông Tôm Thẻ 01",
+      "areaM2": 2500,
+      "depthM": 1.5,
+      "location": "Cà Mau",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "p2",
+      "userId": "u1",
+      "name": "Vuông Tôm Thẻ 02",
+      "areaM2": 3000,
+      "depthM": 1.5,
+      "location": "Cà Mau",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "p3",
+      "userId": "u1",
+      "name": "Vuông Tôm Sú 01",
+      "areaM2": 2800,
+      "depthM": 1.6,
+      "location": "Bạc Liêu",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "p4",
+      "userId": "u1",
+      "name": "Vuông Tôm Sú 02",
+      "areaM2": 2200,
+      "depthM": 1.5,
+      "location": "Bạc Liêu",
+      "createdAt": "2026-08-01T08:00:00Z",
+      "updatedAt": "2026-08-01T08:00:00Z"
+    }
+  ],
+  "devices": [
+    {
+      "id": "d1",
+      "pondId": "p1",
+      "serialNumber": "ESP32-P1-001",
+      "macAddress": "AA:BB:CC:DD:EE:01",
+      "status": "ACTIVE",
+      "lastActiveAt": "2026-08-11T09:30:00Z",
+      "createdAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "d2",
+      "pondId": "p2",
+      "serialNumber": "ESP32-P2-001",
+      "macAddress": "AA:BB:CC:DD:EE:02",
+      "status": "ACTIVE",
+      "lastActiveAt": "2026-08-11T09:15:00Z",
+      "createdAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "d3",
+      "pondId": "p3",
+      "serialNumber": "ESP32-P3-001",
+      "macAddress": "AA:BB:CC:DD:EE:03",
+      "status": "ACTIVE",
+      "lastActiveAt": "2026-08-11T09:15:00Z",
+      "createdAt": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "d4",
+      "pondId": "p4",
+      "serialNumber": "ESP32-P4-001",
+      "macAddress": "AA:BB:CC:DD:EE:04",
+      "status": "ACTIVE",
+      "lastActiveAt": "2026-08-11T09:00:00Z",
+      "createdAt": "2026-08-01T08:00:00Z"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "pH",
+      "name": "pH",
+      "unit": ""
+    },
+    {
+      "id": "temperature",
+      "name": "Nhiệt độ",
+      "unit": "°C"
+    },
+    {
+      "id": "salinity",
+      "name": "Độ mặn",
+      "unit": "ppt"
+    },
+    {
+      "id": "dissolvedOxygen",
+      "name": "Oxy hòa tan",
+      "unit": "mg/L"
+    },
+    {
+      "id": "turbidity",
+      "name": "Độ đục",
+      "unit": "NTU"
+    },
+    {
+      "id": "waterLevel",
+      "name": "Mực nước",
+      "unit": "m"
+    }
+  ],
+  "thresholdConfigs": [
+    {
+      "id": "t1",
+      "pondId": "p1",
+      "parameterId": "pH",
+      "normalMin": 7,
+      "normalMax": 8.5,
+      "dangerMin": 6.5,
+      "dangerMax": 9
+    },
+    {
+      "id": "t2",
+      "pondId": "p1",
+      "parameterId": "temperature",
+      "normalMin": 26,
+      "normalMax": 32,
+      "dangerMin": 24,
+      "dangerMax": 34
+    },
+    {
+      "id": "t3",
+      "pondId": "p1",
+      "parameterId": "salinity",
+      "normalMin": 10,
+      "normalMax": 25,
+      "dangerMin": 5,
+      "dangerMax": 30
+    },
+    {
+      "id": "t4",
+      "pondId": "p1",
+      "parameterId": "dissolvedOxygen",
+      "normalMin": 4,
+      "normalMax": 8,
+      "dangerMin": 3,
+      "dangerMax": 9
+    },
+    {
+      "id": "t5",
+      "pondId": "p1",
+      "parameterId": "turbidity",
+      "normalMin": 0,
+      "normalMax": 40,
+      "dangerMin": 0,
+      "dangerMax": 45
+    },
+    {
+      "id": "t6",
+      "pondId": "p1",
+      "parameterId": "waterLevel",
+      "normalMin": 1,
+      "normalMax": 1.6,
+      "dangerMin": 0.9,
+      "dangerMax": 1.7
+    },
+    {
+      "id": "t7",
+      "pondId": "p2",
+      "parameterId": "pH",
+      "normalMin": 7,
+      "normalMax": 8.5,
+      "dangerMin": 6.5,
+      "dangerMax": 9
+    },
+    {
+      "id": "t8",
+      "pondId": "p2",
+      "parameterId": "temperature",
+      "normalMin": 26,
+      "normalMax": 32,
+      "dangerMin": 24,
+      "dangerMax": 34
+    },
+    {
+      "id": "t9",
+      "pondId": "p2",
+      "parameterId": "salinity",
+      "normalMin": 10,
+      "normalMax": 25,
+      "dangerMin": 5,
+      "dangerMax": 30
+    },
+    {
+      "id": "t10",
+      "pondId": "p2",
+      "parameterId": "dissolvedOxygen",
+      "normalMin": 4,
+      "normalMax": 8,
+      "dangerMin": 3,
+      "dangerMax": 9
+    },
+    {
+      "id": "t11",
+      "pondId": "p2",
+      "parameterId": "turbidity",
+      "normalMin": 0,
+      "normalMax": 40,
+      "dangerMin": 0,
+      "dangerMax": 45
+    },
+    {
+      "id": "t12",
+      "pondId": "p2",
+      "parameterId": "waterLevel",
+      "normalMin": 1,
+      "normalMax": 1.6,
+      "dangerMin": 0.9,
+      "dangerMax": 1.7
+    },
+    {
+      "id": "t13",
+      "pondId": "p3",
+      "parameterId": "pH",
+      "normalMin": 7,
+      "normalMax": 8.5,
+      "dangerMin": 6.5,
+      "dangerMax": 9
+    },
+    {
+      "id": "t14",
+      "pondId": "p3",
+      "parameterId": "temperature",
+      "normalMin": 26,
+      "normalMax": 32,
+      "dangerMin": 24,
+      "dangerMax": 34
+    },
+    {
+      "id": "t15",
+      "pondId": "p3",
+      "parameterId": "salinity",
+      "normalMin": 10,
+      "normalMax": 25,
+      "dangerMin": 5,
+      "dangerMax": 30
+    },
+    {
+      "id": "t16",
+      "pondId": "p3",
+      "parameterId": "dissolvedOxygen",
+      "normalMin": 4,
+      "normalMax": 8,
+      "dangerMin": 3,
+      "dangerMax": 9
+    },
+    {
+      "id": "t17",
+      "pondId": "p3",
+      "parameterId": "turbidity",
+      "normalMin": 0,
+      "normalMax": 40,
+      "dangerMin": 0,
+      "dangerMax": 45
+    },
+    {
+      "id": "t18",
+      "pondId": "p3",
+      "parameterId": "waterLevel",
+      "normalMin": 1,
+      "normalMax": 1.6,
+      "dangerMin": 0.9,
+      "dangerMax": 1.7
+    },
+    {
+      "id": "t19",
+      "pondId": "p4",
+      "parameterId": "pH",
+      "normalMin": 7,
+      "normalMax": 8.5,
+      "dangerMin": 6.5,
+      "dangerMax": 9
+    },
+    {
+      "id": "t20",
+      "pondId": "p4",
+      "parameterId": "temperature",
+      "normalMin": 26,
+      "normalMax": 32,
+      "dangerMin": 24,
+      "dangerMax": 34
+    },
+    {
+      "id": "t21",
+      "pondId": "p4",
+      "parameterId": "salinity",
+      "normalMin": 10,
+      "normalMax": 25,
+      "dangerMin": 5,
+      "dangerMax": 30
+    },
+    {
+      "id": "t22",
+      "pondId": "p4",
+      "parameterId": "dissolvedOxygen",
+      "normalMin": 4,
+      "normalMax": 8,
+      "dangerMin": 3,
+      "dangerMax": 9
+    },
+    {
+      "id": "t23",
+      "pondId": "p4",
+      "parameterId": "turbidity",
+      "normalMin": 0,
+      "normalMax": 40,
+      "dangerMin": 0,
+      "dangerMax": 45
+    },
+    {
+      "id": "t24",
+      "pondId": "p4",
+      "parameterId": "waterLevel",
+      "normalMin": 1,
+      "normalMax": 1.6,
+      "dangerMin": 0.9,
+      "dangerMax": 1.7
+    }
+  ],
+  "sensorReadings": [
+    {
+      "id": "r1",
+      "pondId": "p1",
+      "deviceId": "d1",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 7.8,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 29.4,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 15.2,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 5.6,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 22,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.2,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:00:00Z"
+    },
+    {
+      "id": "r2",
+      "pondId": "p1",
+      "deviceId": "d1",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 7.9,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 29.6,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 15.1,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 5.5,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 23,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.2,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "r3",
+      "pondId": "p1",
+      "deviceId": "d1",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 7.9,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 29.8,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 15,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 5.4,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 24,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.19,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:30:00Z"
+    },
+    {
+      "id": "r4",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 8.6,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 31.2,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 18.4,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 3.9,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 46,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.05,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:00:00Z"
+    },
+    {
+      "id": "r5",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 8.7,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 31.5,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 18.6,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 3.7,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 49,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.04,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "r6",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 6.2,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 33.1,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 22.8,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 2.1,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 68,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 0.82,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:00:00Z"
+    },
+    {
+      "id": "r7",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 6,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 33.4,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 23.1,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 1.9,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 71,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 0.8,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "r8",
+      "pondId": "p4",
+      "deviceId": "d4",
+      "metrics": [
+        {
+          "name": "pH",
+          "value": 7.6,
+          "unit": ""
+        },
+        {
+          "name": "temperature",
+          "value": 28.9,
+          "unit": "°C"
+        },
+        {
+          "name": "salinity",
+          "value": 14.5,
+          "unit": "ppt"
+        },
+        {
+          "name": "dissolvedOxygen",
+          "value": 5.8,
+          "unit": "mg/L"
+        },
+        {
+          "name": "turbidity",
+          "value": 19,
+          "unit": "NTU"
+        },
+        {
+          "name": "waterLevel",
+          "value": 1.31,
+          "unit": "m"
+        }
+      ],
+      "timestamp": "2026-08-11T09:00:00Z"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "a1",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "thresholdId": "t7",
+      "parameterId": "pH",
+      "value": 8.7,
+      "alertLevel": "WARNING",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "pH cao hơn ngưỡng an toàn",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a2",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "thresholdId": "t11",
+      "parameterId": "turbidity",
+      "value": 49,
+      "alertLevel": "DANGER",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "Độ đục vượt ngưỡng nguy hiểm",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a3",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t13",
+      "parameterId": "pH",
+      "value": 6,
+      "alertLevel": "DANGER",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "pH thấp hơn ngưỡng nguy hiểm",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a4",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t16",
+      "parameterId": "dissolvedOxygen",
+      "value": 1.9,
+      "alertLevel": "DANGER",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "Oxy hòa tan thấp hơn ngưỡng nguy hiểm",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a5",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t17",
+      "parameterId": "turbidity",
+      "value": 71,
+      "alertLevel": "DANGER",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "Độ đục vượt ngưỡng nguy hiểm",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a6",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t18",
+      "parameterId": "waterLevel",
+      "value": 0.8,
+      "alertLevel": "DANGER",
+      "source": "SENSOR",
+      "predictionId": null,
+      "message": "Mực nước thấp hơn ngưỡng nguy hiểm",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a7",
+      "pondId": "p1",
+      "deviceId": "d1",
+      "thresholdId": "t4",
+      "parameterId": "dissolvedOxygen",
+      "value": 4.2,
+      "alertLevel": "WARNING",
+      "source": "AI",
+      "predictionId": "pred001",
+      "message": "AI dự đoán oxy hòa tan có thể giảm xuống 4.2 mg/L trong 3 giờ tới",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:30:00Z"
+    },
+    {
+      "id": "a8",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "thresholdId": "t10",
+      "parameterId": "dissolvedOxygen",
+      "value": 2.8,
+      "alertLevel": "DANGER",
+      "source": "AI",
+      "predictionId": "pred003",
+      "message": "AI dự đoán oxy hòa tan có thể giảm xuống 2.8 mg/L trong 3 giờ tới",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a9",
+      "pondId": "p2",
+      "deviceId": "d2",
+      "thresholdId": "t11",
+      "parameterId": "turbidity",
+      "value": 56,
+      "alertLevel": "DANGER",
+      "source": "AI",
+      "predictionId": "pred004",
+      "message": "AI dự đoán độ đục có thể tăng lên 56 NTU trong 3 giờ tới",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a10",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t16",
+      "parameterId": "dissolvedOxygen",
+      "value": 1.5,
+      "alertLevel": "DANGER",
+      "source": "AI",
+      "predictionId": "pred005",
+      "message": "AI dự đoán oxy hòa tan có thể giảm xuống 1.5 mg/L trong 3 giờ tới",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "a11",
+      "pondId": "p3",
+      "deviceId": "d3",
+      "thresholdId": "t14",
+      "parameterId": "temperature",
+      "value": 34.1,
+      "alertLevel": "DANGER",
+      "source": "AI",
+      "predictionId": "pred006",
+      "message": "AI dự đoán nhiệt độ có thể tăng lên 34.1°C trong 3 giờ tới",
+      "isRead": false,
+      "createdAt": "2026-08-11T09:15:00Z"
+    }
+  ],
+  "aiPredictions": [
+    {
+      "id": "pred001",
+      "pondId": "p1",
+      "parameterId": "dissolvedOxygen",
+      "currentValue": 5.4,
+      "predictedValue": 4.2,
+      "unit": "mg/L",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:30:00Z",
+      "confidence": 0.91,
+      "riskLevel": "WARNING",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:30:00Z"
+    },
+    {
+      "id": "pred002",
+      "pondId": "p1",
+      "parameterId": "temperature",
+      "currentValue": 29.8,
+      "predictedValue": 31.5,
+      "unit": "°C",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:30:00Z",
+      "confidence": 0.88,
+      "riskLevel": "NORMAL",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:30:00Z"
+    },
+    {
+      "id": "pred003",
+      "pondId": "p2",
+      "parameterId": "dissolvedOxygen",
+      "currentValue": 3.7,
+      "predictedValue": 2.8,
+      "unit": "mg/L",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:15:00Z",
+      "confidence": 0.94,
+      "riskLevel": "DANGER",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "pred004",
+      "pondId": "p2",
+      "parameterId": "turbidity",
+      "currentValue": 49,
+      "predictedValue": 56,
+      "unit": "NTU",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:15:00Z",
+      "confidence": 0.89,
+      "riskLevel": "DANGER",
+      "model": "XGBoost",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "pred005",
+      "pondId": "p3",
+      "parameterId": "dissolvedOxygen",
+      "currentValue": 1.9,
+      "predictedValue": 1.5,
+      "unit": "mg/L",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:15:00Z",
+      "confidence": 0.96,
+      "riskLevel": "DANGER",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "pred006",
+      "pondId": "p3",
+      "parameterId": "temperature",
+      "currentValue": 33.4,
+      "predictedValue": 34.1,
+      "unit": "°C",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:15:00Z",
+      "confidence": 0.9,
+      "riskLevel": "DANGER",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "pred007",
+      "pondId": "p4",
+      "parameterId": "dissolvedOxygen",
+      "currentValue": 5.8,
+      "predictedValue": 5.2,
+      "unit": "mg/L",
+      "predictionHorizon": 3,
+      "predictionTime": "2026-08-11T12:00:00Z",
+      "confidence": 0.87,
+      "riskLevel": "NORMAL",
+      "model": "LSTM",
+      "createdAt": "2026-08-11T09:00:00Z"
+    }
+  ],
+  "aiRecommendations": [
+    {
+      "id": "rec001",
+      "pondId": "p1",
+      "predictionId": "pred001",
+      "parameterId": "dissolvedOxygen",
+      "title": "Theo dõi oxy hòa tan",
+      "content": "AI dự đoán oxy hòa tan có xu hướng giảm. Nên theo dõi DO thường xuyên và tăng cường sục khí nếu giá trị tiếp tục giảm.",
+      "priority": "MEDIUM",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:30:00Z"
+    },
+    {
+      "id": "rec002",
+      "pondId": "p2",
+      "predictionId": "pred003",
+      "parameterId": "dissolvedOxygen",
+      "title": "Tăng cường sục khí",
+      "content": "Oxy hòa tan có nguy cơ giảm xuống dưới ngưỡng an toàn. Nên tăng cường hoạt động của hệ thống sục khí và kiểm tra tình trạng oxy trong ao.",
+      "priority": "HIGH",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "rec003",
+      "pondId": "p2",
+      "predictionId": "pred004",
+      "parameterId": "turbidity",
+      "title": "Kiểm tra độ đục",
+      "content": "Độ đục có xu hướng tiếp tục tăng. Nên kiểm tra chất lượng nước và nguyên nhân gây tăng độ đục trong ao.",
+      "priority": "HIGH",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "rec004",
+      "pondId": "p3",
+      "predictionId": "pred005",
+      "parameterId": "dissolvedOxygen",
+      "title": "Xử lý oxy hòa tan thấp",
+      "content": "Oxy hòa tan đang ở mức nguy hiểm và có khả năng tiếp tục giảm. Cần tăng cường sục khí và theo dõi DO liên tục.",
+      "priority": "HIGH",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "rec005",
+      "pondId": "p3",
+      "predictionId": "pred006",
+      "parameterId": "temperature",
+      "title": "Theo dõi nhiệt độ ao",
+      "content": "Nhiệt độ có xu hướng tăng cao. Nên theo dõi nhiệt độ thường xuyên và kiểm tra các yếu tố môi trường có thể làm nhiệt độ tiếp tục tăng.",
+      "priority": "HIGH",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:15:00Z"
+    },
+    {
+      "id": "rec006",
+      "pondId": "p4",
+      "predictionId": "pred007",
+      "parameterId": "dissolvedOxygen",
+      "title": "Duy trì chất lượng nước",
+      "content": "Các chỉ số hiện tại vẫn trong vùng an toàn. Tiếp tục duy trì hệ thống sục khí và theo dõi xu hướng oxy hòa tan.",
+      "priority": "LOW",
+      "status": "PENDING",
+      "createdAt": "2026-08-11T09:00:00Z"
+    }
+  ]
+}

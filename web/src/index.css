@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+:root {
+  /* ================================
+     BACKGROUND - DARK TEAL
+     ================================ */
+  --bg-primary: #061c24;
+  --bg-deep: #04151c;
+
+  --bg-gradient-top: #0a303b;
+  --bg-gradient-middle: #082832;
+  --bg-gradient-bottom: #041920;
+
+  --bg-overlay: rgba(3, 27, 35, 0.86);
+
+  /* ================================
+     PANEL
+     ================================ */
+  --panel-bg: rgba(8, 39, 49, 0.64);
+  --panel-bg-dark: rgba(4, 25, 32, 0.74);
+  --panel-highlight: rgba(77, 190, 190, 0.08);
+  --panel-border: rgba(45, 212, 195, 0.22);
+  --panel-border-strong: rgba(45, 212, 195, 0.38);
+
+  /* ================================
+     ACCENT & PRIMARY
+     ================================ */
+  --accent: #2dd4c3;
+  --accent-bright: #35e1d0;
+  --accent-dark: #159d96;
+  --primary: #2dd4c3;
+  --primary-hover: rgba(45, 212, 195, 0.2);
+
+  /* ================================
+     STATUS
+     ================================ */
+  --success: #2dd4bf;
+  --success-bg: rgba(45, 212, 191, 0.14);
+
+  --warning: #f6b94c;
+  --warning-bg: rgba(246, 185, 76, 0.16);
+
+  --critical: #ff6678;
+  --critical-bg: rgba(255, 102, 120, 0.16);
+
+  /* ================================
+     TEXT
+     ================================ */
+  --text-primary: #e8f5f7;
+  --text-heading: #e5f3f5;
+  --text-body: #b2cbd0;
+  --text-muted: #86a5ad;
+  --text-subtle: #64838b;
+  --text-on-accent: #062621;
+
+  /* ================================
+     CHART
+     ================================ */
+  --chart-primary: #2dd4c3;
+  --chart-secondary: #f6b94c;
+  --chart-critical: #ff6678;
+  --chart-grid: rgba(153, 199, 207, 0.12);
+
+  /* ================================
+     OTHER
+     ================================ */
+  --progress-track: rgba(100, 160, 170, 0.18);
+  --divider: rgba(100, 160, 170, 0.16);
+
+  --leaf-highlight: #35e1d0;
+  --leaf-shadow: #159d96;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  background-color: var(--bg-primary);
+
+  /*
+    Background ảnh + lớp phủ xanh đen.
+    Giúp ảnh nền vẫn nhìn thấy nhưng không làm
+    ảnh hưởng khả năng đọc nội dung dashboard.
+  */
+  background-image:
+    linear-gradient(rgba(3, 27, 35, 0.86), rgba(3, 27, 35, 0.92)),
+    url("./assets/background.png");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  color: var(--text-primary);
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+
+  border-inline: 1px solid var(--panel-border);
+
+  min-height: 100svh;
+
+  display: flex;
+  flex-direction: column;
+
+  box-sizing: border-box;
+
+  background: transparent;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--heading);
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  h1 {
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    margin: 8px 0;
+
+    @media (max-width: 1024px) {
+      font-size: 22px;
+      margin: 6px 0;
+    }
+  }
+
+  h2 {
+    font-size: 18px;
+    line-height: 125%;
+    letter-spacing: -0.2px;
+    margin: 0 0 4px;
+
+    @media (max-width: 1024px) {
+      font-size: 16px;
+    }
+  }
+
+  h3 {
+    font-size: 15px;
+    line-height: 125%;
+    margin: 0 0 2px;
+  }
+
+  h4 {
+    font-size: 14px;
+    line-height: 125%;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  code,
+  .counter {
+    font-family: var(--mono);
+    display: inline-flex;
+    border-radius: 4px;
+    color: var(--text-heading);
+  }
+
+  code {
+    font-size: 13px;
+    line-height: 135%;
+    padding: 2px 6px;
+
+    background: rgba(4, 25, 32, 0.8);
+  }
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(8, 39, 49, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 195, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 195, 0.6);
+}
+
