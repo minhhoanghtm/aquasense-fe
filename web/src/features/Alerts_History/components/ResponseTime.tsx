@@ -15,7 +15,7 @@ export const ResponseTime: React.FC<ResponseTimeProps> = ({
 }) => {
   return (
     <div
-      className={`bg-(--bg-gradient-top) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 shadow-lg flex flex-col justify-between text-left min-h-[140px] ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col justify-between text-left min-h-[140px] ${className}`}
     >
       <h3 className="text-sm sm:text-base font-bold text-(--text-heading)">
         {title}

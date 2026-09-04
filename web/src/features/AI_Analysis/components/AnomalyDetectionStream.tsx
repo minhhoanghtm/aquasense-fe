@@ -44,7 +44,7 @@ export const AnomalyDetectionStream: React.FC<AnomalyDetectionStreamProps> = ({
 }) => {
   return (
     <div
-      className={`bg-(--bg-gradient-top) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 shadow-lg flex flex-col gap-3 text-left ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col gap-4 text-left ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">

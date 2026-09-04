@@ -34,10 +34,10 @@ const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = ({
   metrics = defaultMetrics,
 }) => {
   return (
-    <div className="flex flex-col gap-4 rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-5 shadow-lg">
+    <div className="flex flex-col gap-4 rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-base text-left md:text-lg font-bold text-(--text-heading)">
-          Thiết bị gắn cho vuông
+          Tóm tắt chất lượng nước
         </h2>
         <Bubbles className="h-6 w-6 text-(--accent)" />
       </div>

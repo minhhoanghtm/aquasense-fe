@@ -12,10 +12,12 @@ import {
 
 import { Navigation, MobileNavigation } from "./Navigation";
 import { useNavigate, Link } from "react-router-dom";
+import { getCurrentUser, logout } from "../services/authApi";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const navigate = useNavigate();
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -23,6 +25,12 @@ const Header = () => {
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleStorageUpdate = () => {
+      setCurrentUser(getCurrentUser());
+    };
+
+    window.addEventListener("storage", handleStorageUpdate);
+
     const handleClickOutside = (event: MouseEvent) => {
       // Click outside profile dropdown
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
@@ -55,6 +63,7 @@ const Header = () => {
     document.addEventListener("mousedown", handleClickOutside);
     window.addEventListener("scroll", handleScroll, true);
     return () => {
+      window.removeEventListener("storage", handleStorageUpdate);
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScroll, true);
     };
@@ -77,7 +86,7 @@ const Header = () => {
         </Link>
 
         {/* ================= SEARCH DESKTOP ================= */}
-        <div className="ml-3 hidden h-8.5 w-[200px] shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-2.5 lg:flex xl:w-[230px]">
+        <div className="ml-3 hidden h-8.5 w-[200px] shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-2.5 lg:flex xl:w-[230px]">
           <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
 
           <input type="text" placeholder="Tìm vuông, cảm biến, cảnh báo..."
@@ -94,7 +103,7 @@ const Header = () => {
           {/* ================= NOTIFICATION BELL ================= */}
           <button
             type="button"
-            className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
+            className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
             <Bell size={15} />
             <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ff6678] text-[8px] font-bold text-white border border-[var(--bg-primary)]">
               2
@@ -106,33 +115,43 @@ const Header = () => {
             <button
               type="button"
               onClick={() => setIsProfileOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-[var(--panel-highlight)]"
+              className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-[var(--panel-highlight)] cursor-pointer"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] font-semibold text-[var(--text-on-accent)] text-xs">
-                NT
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] font-semibold text-[var(--text-on-accent)] text-xs uppercase">
+                {currentUser?.fullName
+                  ? currentUser.fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(-2)
+                      .join("")
+                  : "ND"}
               </div>
 
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">
-                  Nguyễn Thành
+                  {currentUser?.fullName || "Nguyễn Văn An"}
                 </p>
                 <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                  Kỹ thuật viên
+                  {currentUser?.role === "ADMIN"
+                    ? "Quản trị viên"
+                    : currentUser?.role === "TECHNICIAN"
+                    ? "Kỹ thuật viên"
+                    : "Nông dân"}
                 </p>
               </div>
             </button>
             {/* Profile Dropdown */}
             {isProfileOpen && (
               <div
-                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] shadow-xl backdrop-blur-xl">
+                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-xl backdrop-blur-xl text-left">
                 {/* User Info */}
                 <div className="border-b border-[var(--divider)] px-4 py-3">
                   <p className="text-sm font-semibold text-[var(--text-primary)]">
-                    Nguyễn Thành
+                    {currentUser?.fullName || "Nguyễn Văn An"}
                   </p>
 
                   <p className="text-xs text-[var(--text-muted)]">
-                    Kỹ thuật viên
+                    {currentUser?.email || "farmer@example.com"}
                   </p>
                 </div>
 
@@ -160,11 +179,9 @@ const Header = () => {
                 {/* Logout */}
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 transition hover:bg-red-500/10"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 transition hover:bg-red-500/10 cursor-pointer"
                   onClick={() => {
-                    // Xóa token/session
-                    localStorage.removeItem("accessToken");
-                    // Chuyển về Login
+                    logout();
                     navigate("/login");
                   }}
                 >
@@ -180,7 +197,7 @@ const Header = () => {
             ref={mobileButtonRef}
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--panel-bg-dark)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)] lg:hidden" aria-label="Menu">
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)] lg:hidden" aria-label="Menu">
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
@@ -188,7 +205,7 @@ const Header = () => {
 
       {/* ================= MOBILE SEARCH ================= */}
       <div className="px-4 pb-3 sm:px-5 lg:hidden">
-        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-3">
+        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3">
           <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
           <input type="text" placeholder="Tìm vuông, cảm biến, cảnh báo..." className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
         </div>
@@ -196,7 +213,7 @@ const Header = () => {
 
       {/* ================= MOBILE NAVIGATION ================= */}
       {isOpen && (
-        <div ref={mobileNavRef} className="absolute left-0 right-0 top-full z-50 border-y border-[var(--panel-border)] bg-[var(--panel-bg-dark)] p-3 shadow-xl lg:hidden">
+        <div ref={mobileNavRef} className="absolute left-0 right-0 top-full z-50 border-y border-[var(--panel-border)] bg-[var(--panel-bg)] p-3 shadow-xl lg:hidden">
           <MobileNavigation onClose={() => setIsOpen(false)} />
         </div>
       )}

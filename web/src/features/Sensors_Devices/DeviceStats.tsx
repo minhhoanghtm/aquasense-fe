@@ -62,7 +62,7 @@ export const DeviceStats: React.FC<DeviceStatsProps> = ({
       {stats.map((item) => (
         <div
           key={item.id}
-          className="flex flex-col justify-between rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/40"
+          className="flex flex-col justify-between rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/40"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-(--text-muted)">

@@ -38,14 +38,16 @@ const defaultProbeMetrics: ReadingMetric[] = [
 export const LatestReading: React.FC<LatestReadingProps> = ({
   deviceCode = "DO-PROBE-004",
   deviceName = "Mẫu DO A1-04",
-  metrics = defaultProbeMetrics,
+  metrics,
   className = "",
 }) => {
+  const displayMetrics = metrics && metrics.length > 0 ? metrics : defaultProbeMetrics;
+
   return (
     <LatestReadingCard
       deviceCode={deviceCode}
       title={deviceName}
-      metrics={metrics}
+      metrics={displayMetrics}
       className={className}
     />
   );

@@ -7,11 +7,12 @@ export type Pond = {
   createdAt?: string;
   updatedAt?: string;
   area: number;
+  density?: string;
   stockingDate: string;
   growthStage: string;
   status: string;
-  managerId: string
-}
+  managerId: string;
+};
 
 export type PondWithDevices = Pond & {
   devices: Devices[];

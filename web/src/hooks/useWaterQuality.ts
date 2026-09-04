@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react"; import { getCurrentWaterQuality } from "../services/pondApi";
-;
+import { useEffect, useState } from "react";
+import { getCurrentWaterQuality } from "../services/pondApi";
 
 export const useWaterQuality = (pondId: string) => {
-    const [waterQuality, setWaterQuality] = useState(null);
+    const [waterQuality, setWaterQuality] = useState<any>(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {

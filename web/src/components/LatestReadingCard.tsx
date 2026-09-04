@@ -85,7 +85,7 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
 
   return (
     <div
-      className={`w-full rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-6 shadow-lg transition-all duration-300 ${className}`}
+      className={`w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 shadow-lg transition-all duration-300 ${className}`}
     >
       {/* Header: Subtitle & Title */}
       <div className="mb-5 flex flex-col items-start gap-1">

@@ -22,7 +22,8 @@ export const usePond = (pondId: string) => {
                 const data = await getPondDashboard(pondId);
 
                 setPond(data.pond);
-                setDevice(data.devices && data.devices.length > 0 ? data.devices[0] : null);
+                const devicesList = Array.isArray(data.devices) ? data.devices : [];
+                setDevice(devicesList.length > 0 ? (devicesList[0] as Devices) : null);
             } catch (error) {
                 console.error("Lỗi lấy thông tin ao:", error);
             } finally {

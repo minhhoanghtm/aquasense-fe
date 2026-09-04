@@ -88,7 +88,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
 
   return (
     <div
-      className={`w-full rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/50 ${className}`}
+      className={`w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/50 ${className}`}
     >
       {/* Header: Icon Box + Status Badge */}
       <div className="flex items-start justify-between">

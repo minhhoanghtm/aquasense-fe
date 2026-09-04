@@ -176,8 +176,6 @@ export const StepProgress: React.FC<StepProgressProps> = ({
 
                 {/* Các bước tròn */}
                 {normalizedSteps.map((step, index) => {
-                    const isCompleted = index < activeIndex;
-                    const isCurrent = index === activeIndex;
                     const isPassed = index <= activeIndex;
 
                     return (

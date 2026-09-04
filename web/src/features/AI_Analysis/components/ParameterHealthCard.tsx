@@ -45,7 +45,7 @@ export const ParameterHealthCard: React.FC<ParameterHealthCardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-(--bg-gradient-top) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 shadow-lg flex flex-col justify-between text-left ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col justify-between text-left ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-1">

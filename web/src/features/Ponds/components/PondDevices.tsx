@@ -1,5 +1,6 @@
 import { Radio, Wind, Activity, Cpu } from "lucide-react";
 import DeviceItem from "../../../components/DeviceItem";
+import type { Devices } from "../../../types/Devices";
 
 export type PondDevice = {
   id: string;
@@ -8,7 +9,7 @@ export type PondDevice = {
   icon: "gateway" | "oxygen" | "ultrasonic";
 };
 
-const pondDevices: PondDevice[] = [
+const defaultPondDevices: PondDevice[] = [
   {
     id: "GW-ESP32-A1",
     name: "Gateway ESP32-A1",
@@ -35,11 +36,35 @@ const deviceIcons = {
   ultrasonic: <Activity className="w-5 h-5" />,
 };
 
-const PondDevices = () => {
+interface PondDevicesProps {
+  devices?: Devices[];
+}
+
+const PondDevices = ({ devices = [] }: PondDevicesProps) => {
+  const displayDevices =
+    devices.length > 0
+      ? devices.map((d) => {
+          const nameLower = (d.name || d.serialNumber).toLowerCase();
+          const iconType: "gateway" | "oxygen" | "ultrasonic" =
+            nameLower.includes("do") || nameLower.includes("oxygen") || nameLower.includes("oxy")
+              ? "oxygen"
+              : nameLower.includes("ultra") || nameLower.includes("siêu âm") || nameLower.includes("mực")
+              ? "ultrasonic"
+              : "gateway";
+
+          return {
+            id: d.id,
+            name: d.name || d.serialNumber,
+            subtitle: `${d.sensors?.length || 1} cảm biến · ${d.connection_type || "Wi-Fi"}`,
+            icon: iconType,
+          };
+        })
+      : defaultPondDevices;
+
   return (
-    <div className="w-full rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-5 shadow-lg">
+    <div className="w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg">
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-base text-left md:text-lg font-bold text-(--text-heading)">
           Thiết bị gắn cho vuông
         </h2>
@@ -48,7 +73,7 @@ const PondDevices = () => {
 
       {/* Devices List */}
       <div className="divide-y divide-(--divider)">
-        {pondDevices.map((device) => (
+        {displayDevices.map((device) => (
           <DeviceItem
             key={device.id}
             icon={deviceIcons[device.icon]}

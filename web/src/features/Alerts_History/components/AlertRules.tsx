@@ -4,44 +4,55 @@ import DeviceItem from "../../../components/DeviceItem";
 
 export interface AlertRuleItem {
   id: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
+  iconType?: string;
   title: string;
   subtitle: string;
 }
 
-const DEFAULT_RULES: AlertRuleItem[] = [
+export const DEFAULT_RULES: AlertRuleItem[] = [
   {
     id: "rule-do",
-    icon: <Wind size={22} />,
+    iconType: "oxygen",
     title: "Ngưỡng DO",
     subtitle: "Nguy hiểm dưới 3.5 mg/L",
   },
   {
     id: "rule-ph",
-    icon: <Droplets size={22} />,
+    iconType: "ph",
     title: "Khoảng pH",
     subtitle: "Cảnh báo ngoài 7.5–8.5",
   },
   {
     id: "rule-water-level",
-    icon: <Activity size={22} />,
+    iconType: "waterLevel",
     title: "Mực nước",
     subtitle: "Cảnh báo dưới 1.05 m",
   },
 ];
 
-interface AlertRulesProps {
+export interface AlertRulesProps {
   rules?: AlertRuleItem[];
   className?: string;
 }
+
+const getRuleIcon = (rule: AlertRuleItem) => {
+  if (rule.icon) return rule.icon;
+  if (rule.iconType === "oxygen" || rule.id.includes("do")) return <Wind size={22} />;
+  if (rule.iconType === "ph" || rule.id.includes("ph")) return <Droplets size={22} />;
+  if (rule.iconType === "waterLevel" || rule.id.includes("water")) return <Activity size={22} />;
+  return <Activity size={22} />;
+};
 
 const AlertRules: React.FC<AlertRulesProps> = ({
   rules = DEFAULT_RULES,
   className = "",
 }) => {
+  const displayRules = rules.length > 0 ? rules : DEFAULT_RULES;
+
   return (
     <div
-      className={`bg-(--bg-gradient-top) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 shadow-lg flex flex-col text-left ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col text-left ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-1.5">
@@ -53,10 +64,10 @@ const AlertRules: React.FC<AlertRulesProps> = ({
 
       {/* Rules list using existing DeviceItem */}
       <div className="divide-y divide-(--panel-border)">
-        {rules.map((rule) => (
+        {displayRules.map((rule) => (
           <DeviceItem
             key={rule.id}
-            icon={rule.icon}
+            icon={getRuleIcon(rule)}
             title={rule.title}
             subtitle={rule.subtitle}
           />

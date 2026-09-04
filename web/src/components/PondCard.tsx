@@ -11,7 +11,7 @@ interface PondCardProps {
 
 const PondCard = ({ pond, alerts, onClick }: PondCardProps) => {
     const title = pond.name;
-    const lastUpdated = pond.updatedAt ?? pond.createdAt;
+    const lastUpdated = pond.updatedAt || pond.createdAt || new Date().toISOString();
 
     // Determine status badge based on alerts
     let statusText = "Bình thường";

@@ -63,7 +63,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-(--bg-gradient-middle) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 shadow-lg flex flex-col justify-between gap-3 text-left transition-all duration-200 hover:border-(--panel-border-strong) ${
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl p-4 sm:p-4.5 shadow-lg flex flex-col justify-between gap-3 text-left transition-all duration-200 hover:border-(--panel-border-strong) ${
         onClick ? "cursor-pointer" : ""
       } ${className}`}
     >

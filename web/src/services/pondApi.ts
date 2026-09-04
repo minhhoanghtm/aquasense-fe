@@ -1,6 +1,6 @@
 // services/pondApi.ts
 
-import type { Pond } from "../types/Pond";
+import type { Pond, PondWithDevices } from "../types/Pond";
 import type { SensorReading } from "../types/SensorReading";
 import type { Threshold } from "../types/Threshold";
 import { api } from "./api";
@@ -12,16 +12,17 @@ export const getPonds = async (): Promise<Pond[]> => {
 };
 
 //get pond with devices
-export const getPondsWithDevices = async () => {
+export const getPondsWithDevices = async (): Promise<PondWithDevices[]> => {
   const ponds = await getPonds();
 
   return Promise.all(
     ponds.map(async (pond) => {
       const devices = await getDevicesByPondId(pond.id);
-      return { ...pond, devices }
+      return { ...pond, devices: devices || [] };
     })
-  )
-}
+  );
+};
+
 //get pond dashboard data
 export const getPondDashboard = async (pondId: string) => {
   const [pond, thresholds, sensorReadings, alerts, devices] =
@@ -67,3 +68,18 @@ export const getCurrentWaterQuality = async (
     thresholds,
   };
 };
+
+export interface FeedingScheduleItem {
+  id: string;
+  pondId: string;
+  time: string;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
+export const getFeedingSchedules = async (pondId?: string): Promise<FeedingScheduleItem[]> => {
+  const endpoint = pondId ? `/feedingSchedules?pondId=${pondId}` : "/feedingSchedules";
+  return await api<FeedingScheduleItem[]>(endpoint);
+};
+

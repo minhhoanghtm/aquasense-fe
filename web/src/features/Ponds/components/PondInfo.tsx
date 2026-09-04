@@ -2,15 +2,19 @@ import { FlowingWave } from "../../../components/FlowingWave";
 import PondStatus from "../../../components/PondStatus";
 import { SensorCard } from "../../../components/SensorCard";
 import StepProgress from "../../../components/StepProgress";
-const data = [
-    { id: 1, label: "Nhiệt độ", value: 29, unit: "°C" },
-    { id: 2, label: "Độ pH", value: 7.5, unit: "pH" },
-    { id: 3, label: "Độ mặn", value: 30, unit: "‰" },
-    { id: 4, label: "Độ kiềm", value: 120, unit: "mg/L" },
-    { id: 5, label: "Oxy hòa tan", value: 5, unit: "mg/L" },
-    { id: 6, label: "Độ đục", value: 25, unit: "NTU" },
-]
-const feedingSchedule = [
+import type { Pond } from "../../../types/Pond";
+import type { FeedingScheduleItem } from "../../../services/pondApi";
+
+const defaultSensorData = [
+    { id: "1", label: "Nhiệt độ", value: 29.4, unit: "°C" },
+    { id: "2", label: "Độ pH", value: 7.8, unit: "pH" },
+    { id: "3", label: "Độ mặn", value: 15.2, unit: "ppt" },
+    { id: "4", label: "Oxy hòa tan", value: 5.4, unit: "mg/L" },
+    { id: "5", label: "Độ đục", value: 24, unit: "NTU" },
+    { id: "6", label: "Mực nước", value: 1.22, unit: "m" },
+];
+
+const defaultFeedingSchedule = [
     {
         time: "10:30",
         title: "Cho ăn buổi sáng · 42 kg",
@@ -28,34 +32,73 @@ const feedingSchedule = [
     },
 ];
 
-export const PondInfo = () => {
+interface PondInfoProps {
+    pond?: Pond | null;
+    sensorReadings?: any[];
+    feedingSchedules?: FeedingScheduleItem[];
+}
+
+export const PondInfo = ({
+    pond,
+    sensorReadings = [],
+    feedingSchedules = [],
+}: PondInfoProps) => {
+    // Extract sensor data from latest reading
+    const latestReading = sensorReadings && sensorReadings.length > 0
+        ? sensorReadings[sensorReadings.length - 1]
+        : null;
+
+    const sensorCardsData = latestReading?.metrics && latestReading.metrics.length > 0
+        ? latestReading.metrics.map((m: any, idx: number) => ({
+            id: String(idx + 1),
+            label: m.name === "temperature" ? "Nhiệt độ" : m.name === "pH" ? "Độ pH" : m.name === "dissolvedOxygen" ? "Oxy hòa tan" : m.name === "salinity" ? "Độ mặn" : m.name === "turbidity" ? "Độ đục" : m.name === "waterLevel" ? "Mực nước" : m.name,
+            value: m.value,
+            unit: m.unit || "",
+        }))
+        : defaultSensorData;
+
+    const displaySchedules = feedingSchedules.length > 0
+        ? feedingSchedules.map((s) => ({
+            time: s.time,
+            title: s.title,
+            description: s.description,
+        }))
+        : defaultFeedingSchedule;
+
+    const currentGrowthStage = pond?.growthStage || "Tôm tăng trưởng";
+    const pondStatus = (pond?.status?.toUpperCase() === "DANGER"
+        ? "DANGER"
+        : pond?.status?.toUpperCase() === "WARNING"
+        ? "WARNING"
+        : "NORMAL") as "NORMAL" | "WARNING" | "DANGER";
+
     return (
-        <div className="w-full rounded-3xl border border-(--panel-border) bg-(--bg-primary) p-6 shadow-lg flex flex-col gap-6">
+        <div className="w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 shadow-lg flex flex-col gap-6">
             {/* Title & Status */}
             <div className="flex items-center justify-between">
                 <div className="flex flex-col items-start gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-(--text-muted) leading-none">
-                        Vuông đang chọn · PND-A1
+                        Vuông đang chọn · {pond?.id || "PND-A1"}
                     </span>
                     <h1 className="text-2xl font-bold text-(--text-heading) m-0 leading-tight">
-                        Vuông A1 - Cà Mau
+                        {pond?.name || "Vuông A1 - Cà Mau"}
                     </h1>
                 </div>
 
-                <PondStatus status="NORMAL" />
+                <PondStatus status={pondStatus} />
             </div>
 
             {/* Growth Stage Progress */}
             <div>
                 <StepProgress
                     steps={["Thả giống", "Tôm giống", "Tôm tăng trưởng", "Thu hoạch"]}
-                    currentStep="Tôm tăng trưởng"
+                    currentStep={currentGrowthStage}
                 />
             </div>
 
             {/* Sensor Cards Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                {data.map((item) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {sensorCardsData.map((item: any) => (
                     <SensorCard key={item.id} label={item.label} value={item.value} unit={item.unit} />
                 ))}
             </div>
@@ -70,11 +113,12 @@ export const PondInfo = () => {
                 <div className="w-full">
                     <StepProgress 
                         orientation="vertical"
-                        steps={feedingSchedule}
+                        steps={displaySchedules}
                         currentStep={0}
                     />
                 </div>
             </div>
         </div>
     );
-};
+};
+

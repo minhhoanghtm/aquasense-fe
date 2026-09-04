@@ -4,6 +4,8 @@ import Monitoring from "../pages/Monitoring";
 import Alerts from "../pages/Alerts_History";
 import Devices from "../pages/Sensors_Devices";
 import AIAnalysis from "../pages/AI_Analysis";
+import Login from "../pages/Login";
+import Profile from "../pages/Profile";
 
 export interface RouteConfig {
     path: string;
@@ -11,6 +13,14 @@ export interface RouteConfig {
 }
 
 export const routes: RouteConfig[] = [
+    {
+        path: "/login",
+        element: Login,
+    },
+    {
+        path: "/profile",
+        element: Profile,
+    },
     {
         path: "/dashboard",
         element: Dashboard,

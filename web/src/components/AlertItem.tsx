@@ -84,7 +84,7 @@ const AlertItem: React.FC<AlertItemProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`w-full bg-(--bg-gradient-middle) border border-(--panel-border) rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-200 hover:border-(--panel-border-strong) text-left ${
+      className={`w-full bg-(--panel-bg) border border-(--panel-border) rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-200 hover:border-(--panel-border-strong) text-left ${
         onClick ? "cursor-pointer" : ""
       } ${className}`}
     >

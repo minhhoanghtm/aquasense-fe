@@ -107,7 +107,7 @@ const AlertList: React.FC<AlertListProps> = ({
 
   return (
     <div
-      className={`bg-(--bg-gradient-top) border border-(--panel-border) rounded-xl p-4 sm:p-4.5 flex flex-col gap-3.5 text-left shadow-lg ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 flex flex-col gap-3.5 text-left shadow-lg ${className}`}
     >
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 flex-wrap">

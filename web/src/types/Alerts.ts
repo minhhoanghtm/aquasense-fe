@@ -1,12 +1,20 @@
 export type Alerts = {
   id: string;
   pondId: string;
-  deviceId: string;
-  thresholdId: string;
-  parameterId: string;
-  value: number;
+  deviceId?: string;
+  thresholdId?: string;
+  parameterId?: string;
+  title?: string;
+  pondName?: string;
+  value: number | string;
+  unit?: string;
   alertLevel: "NORMAL" | "WARNING" | "DANGER";
+  level?: "NORMAL" | "WARNING" | "DANGER";
+  status?: string;
   message: string;
   isRead: boolean;
-  createdAt: string
-}
+  time?: string;
+  source?: string;
+  predictionId?: string | null;
+  createdAt: string;
+};

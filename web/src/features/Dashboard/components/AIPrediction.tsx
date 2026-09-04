@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Bell, Lightbulb, TrendingUp, AlertTriangle, Info } from 'lucide-react';
 import type { Pond } from '../../../types/Pond';
+import { useAIAnalysis } from '../../../hooks/useAIAnalysis';
 
 interface AIPredictionProps {
     pond?: Pond | null;
@@ -9,22 +10,27 @@ interface AIPredictionProps {
 
 const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
     const [activeTab, setActiveTab] = useState<'prediction' | 'alerts' | 'recommendations'>('prediction');
+    const { predictions, recommendations } = useAIAnalysis(pond?.id);
 
     // Mặc định hoặc khi chưa tải xong dữ liệu
-    let predictionText = "Điều kiện dự kiến ổn định. DO có thể giảm nhẹ trước bình minh.";
+    const pondPrediction = predictions.find((p) => p.pondId === pond?.id) || predictions[0];
+
+    let predictionText = pondPrediction?.description || "Điều kiện dự kiến ổn định. DO có thể giảm nhẹ trước bình minh.";
     let trendText = "Ổn định";
-    let riskText = "Rủi ro thấp";
-    let confidenceScore = 94;
+    let riskText = pondPrediction?.riskLabel || (pondPrediction?.riskLevel === "LOW" ? "Rủi ro thấp" : pondPrediction?.riskLevel === "MEDIUM" ? "Trung bình" : "Cao");
+    let confidenceScore = pondPrediction?.confidenceScore || (pondPrediction?.confidence ? Math.round(pondPrediction.confidence * 100) : 94);
 
     let aiAlerts = [
         "Độ pH có xu hướng giảm nhẹ dưới 7.2 trong 6 giờ tới.",
         "Nhiệt độ nước tăng cao vào buổi trưa, cần theo dõi sát chỉ số oxy."
     ];
 
-    let aiRecommendations = [
-        "Vận hành máy quạt nước từ 02:00 - 05:00 để duy trì hàm lượng DO ổn định.",
-        "Hạn chế cho ăn quá mức vào cữ trưa để tránh ô nhiễm hữu cơ khi nhiệt độ cao."
-    ];
+    let aiRecommendations = recommendations.length > 0
+        ? recommendations.map((r) => r.content)
+        : [
+            "Vận hành máy quạt nước từ 02:00 - 05:00 để duy trì hàm lượng DO ổn định.",
+            "Hạn chế cho ăn quá mức vào cữ trưa để tránh ô nhiễm hữu cơ khi nhiệt độ cao."
+        ];
 
     // Tạo các cảnh báo và khuyến nghị động dựa trên chất lượng nước thực tế
     if (waterQuality?.sensorReadings && waterQuality.sensorReadings.length > 0) {
