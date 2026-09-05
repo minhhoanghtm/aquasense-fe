@@ -122,11 +122,10 @@ export default function SecurityTab({ user }: SecurityTabProps) {
         {/* Message Banner */}
         {message && (
           <div
-            className={`mt-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm transition-all animate-in fade-in slide-in-from-top-2 ${
-              message.type === "success"
+            className={`mt-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm transition-all animate-in fade-in slide-in-from-top-2 ${message.type === "success"
                 ? "bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/30"
                 : "bg-[var(--critical-bg)] text-[var(--critical)] border border-[var(--critical)]/30"
-            }`}
+              }`}
           >
             {message.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
             <span>{message.text}</span>
@@ -204,13 +203,12 @@ export default function SecurityTab({ user }: SecurityTabProps) {
               {passwordData.newPassword && (
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80 mt-1">
                   <div
-                    className={`h-full transition-all duration-300 ${
-                      strengthScore === 1
+                    className={`h-full transition-all duration-300 ${strengthScore === 1
                         ? "bg-[var(--critical)]"
                         : strengthScore === 2
-                        ? "bg-[var(--warning)]"
-                        : "bg-[var(--success)]"
-                    }`}
+                          ? "bg-[var(--warning)]"
+                          : "bg-[var(--success)]"
+                      }`}
                     style={{ width: strength.width }}
                   ></div>
                 </div>
@@ -226,9 +224,8 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                 </span>
                 {passwordData.confirmPassword && (
                   <span
-                    className={`text-[11px] flex items-center gap-1 ${
-                      isMatching ? "text-[var(--success)]" : "text-[var(--critical)]"
-                    }`}
+                    className={`text-[11px] flex items-center gap-1 ${isMatching ? "text-[var(--success)]" : "text-[var(--critical)]"
+                      }`}
                   >
                     {isMatching ? <Check size={11} /> : <AlertCircle size={11} />}
                     {isMatching ? "Trùng khớp" : "Chưa khớp"}
@@ -244,13 +241,12 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   }
                   placeholder="Nhập lại mật khẩu mới"
                   required
-                  className={`w-full rounded-xl border bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:ring-2 group-hover:border-[var(--panel-border-strong)] ${
-                    passwordData.confirmPassword
+                  className={`w-full rounded-xl border bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:ring-2 group-hover:border-[var(--panel-border-strong)] ${passwordData.confirmPassword
                       ? isMatching
                         ? "border-emerald-500/50 focus:border-emerald-500 focus:ring-emerald-500/20"
                         : "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
                       : "border-[var(--panel-border)] focus:border-[var(--accent)] focus:ring-[var(--accent)]/20"
-                  }`}
+                    }`}
                 />
                 <button
                   type="button"
@@ -364,21 +360,19 @@ export default function SecurityTab({ user }: SecurityTabProps) {
               Xác thực 2 yếu tố (2FA)
             </h3>
             <p className="text-xs text-[var(--text-muted)] pl-10.5">
-              Tăng cường bảo vệ tài khoản bằng mã xác thực gửi qua SMS hoặc ứng dụng Authenticator
+              Tăng cường bảo vệ tài khoản bằng mã xác thực gửi qua SMS
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setIs2FAEnabled(!is2FAEnabled)}
-            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              is2FAEnabled ? "bg-[var(--accent)]" : "bg-slate-700"
-            }`}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${is2FAEnabled ? "bg-[var(--accent)]" : "bg-slate-700"
+              }`}
           >
             <span
-              className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                is2FAEnabled ? "translate-x-5" : "translate-x-0"
-              }`}
+              className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${is2FAEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
             />
           </button>
         </div>
@@ -386,11 +380,10 @@ export default function SecurityTab({ user }: SecurityTabProps) {
         <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-body)]">
           <span className="text-[var(--text-muted)]">Trạng thái bảo mật 2 lớp:</span>
           <span
-            className={`font-semibold px-2.5 py-0.5 rounded-full text-xs border ${
-              is2FAEnabled
+            className={`font-semibold px-2.5 py-0.5 rounded-full text-xs border ${is2FAEnabled
                 ? "bg-[var(--success-bg)] text-[var(--success)] border-[var(--success)]/30"
                 : "bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning)]/30"
-            }`}
+              }`}
           >
             {is2FAEnabled ? "Đang kích hoạt (An toàn)" : "Chưa kích hoạt"}
           </span>

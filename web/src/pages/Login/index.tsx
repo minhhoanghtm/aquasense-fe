@@ -53,12 +53,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = (email: string, pass: string) => {
-    setIdentifier(email);
-    setPassword(pass);
-    setErrorMessage(null);
-  };
-
   return (
     <div className="h-screen max-h-screen w-full flex items-center justify-center p-3 sm:p-5 lg:p-6 relative overflow-hidden bg-(--bg-primary)">
       {/* Dynamic Background Glows */}
@@ -203,49 +197,6 @@ export const Login: React.FC = () => {
               </button>
             </form>
 
-            {/* Quick Demo Credentials */}
-            <div className="mt-4 pt-3.5 border-t border-(--divider)">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-(--text-muted) mb-2">
-                Hoặc chọn nhanh tài khoản mẫu:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("farmer@example.com", "password123")}
-                  className="flex items-center gap-2 p-1.5 px-2.5 rounded-xl border border-cyan-900/40 bg-[#082a33]/60 hover:bg-cyan-950 hover:border-cyan-400/60 transition-all text-left cursor-pointer group"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">Nông dân</p>
-                    <p className="text-[10px] text-(--text-muted) font-mono truncate">farmer@...</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("technician@example.com", "password123")}
-                  className="flex items-center gap-2 p-1.5 px-2.5 rounded-xl border border-cyan-900/40 bg-[#082a33]/60 hover:bg-cyan-950 hover:border-cyan-400/60 transition-all text-left cursor-pointer group"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">Kỹ thuật</p>
-                    <p className="text-[10px] text-(--text-muted) font-mono truncate">technician@...</p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("admin@example.com", "admin")}
-                  className="flex items-center gap-2 p-1.5 px-2.5 rounded-xl border border-cyan-900/40 bg-[#082a33]/60 hover:bg-cyan-950 hover:border-cyan-400/60 transition-all text-left cursor-pointer group"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">Quản trị</p>
-                    <p className="text-[10px] text-(--text-muted) font-mono truncate">admin@...</p>
-                  </div>
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Footer note */}
