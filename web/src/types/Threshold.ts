@@ -1,9 +1,16 @@
-export type Threshold = {
-  id: string;
+export interface ThresholdConfig {
+  configId?: string;
+  id?: string;
   pondId: string;
-  parameterId: string;
-  normalMin: number;
-  normalMax: number;
-  dangerMin: number;
-  dangerMax: number;
-};
+  metricName: string;
+  minValue: number;
+  maxValue: number;
+  isActive: boolean;
+  normalMin?: number;
+  normalMax?: number;
+  dangerMin?: number;
+  dangerMax?: number;
+  parameterId?: string;
+}
+
+export type Threshold = ThresholdConfig;

@@ -15,17 +15,17 @@ export const ResponseTime: React.FC<ResponseTimeProps> = ({
 }) => {
   return (
     <div
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col justify-between text-left min-h-[140px] ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl lg:rounded-3xl p-3.5 sm:p-4 shadow-lg flex flex-col justify-between text-left ${className}`}
     >
       <h3 className="text-sm sm:text-base font-bold text-(--text-heading)">
         {title}
       </h3>
 
-      <div className="my-2.5 flex flex-col items-center justify-center text-center">
-        <span className="text-3xl sm:text-4xl font-bold font-mono tracking-widest text-(--text-primary)">
+      <div className="my-1.5 sm:my-2 flex flex-col items-center justify-center text-center">
+        <span className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-(--text-primary)">
           {time}
         </span>
-        <p className="text-xs text-(--text-muted) mt-1">
+        <p className="text-[11px] sm:text-xs text-(--text-muted) mt-0.5">
           {subtitle}
         </p>
       </div>

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { Pond } from "../types/Pond";
 import { Droplet, MapPin, Calendar } from "lucide-react";
 import { formatVietnamDateTime } from "../utils/date";
@@ -12,7 +13,7 @@ interface TitleProps {
   device?: Devices | null;
 }
 
-const Title = ({
+const Title = memo(({
   title,
   description,
   pond,
@@ -20,16 +21,12 @@ const Title = ({
   className = "",
   device
 }: TitleProps) => {
-  if (!pond) {
-    return <div className="text-slate-300 text-sm">Đang tải...</div>;
-  }
-
-  const updatedAt = pond.updatedAt ?? pond.createdAt;
+  const updatedAt = pond?.updatedAt ?? pond?.createdAt;
   const isConnected = !!(device && device.status && device.status.toUpperCase() === "ACTIVE");
   const statusText = isConnected ? "Đã kết nối" : "Mất kết nối";
 
   return (
-    <div className={`flex flex-col w-full ${className}`}>
+    <div className={`flex flex-col w-full min-h-[58px] ${className}`}>
       {/* Top Row: Title*/}
       <div className="flex items-center justify-between w-full">
         <h1 className="m-0 text-left text-xl sm:text-2xl font-bold tracking-tight text-white">
@@ -43,39 +40,43 @@ const Title = ({
           {description}
         </span>
 
-        <div className="flex flex-wrap items-center gap-x-4 md:ml-auto md:justify-end text-slate-300 text-xs">
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <Droplet size={13} className="text-[var(--accent)]" />
-            <span>{pond.name}</span>
-            <span className="text-slate-600">-</span>
-            <span>{pond.id.toUpperCase()}</span>
-          </div>
+        {pond ? (
+          <div className="flex flex-wrap items-center gap-x-4 md:ml-auto md:justify-end text-slate-300 text-xs">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Droplet size={13} className="text-[var(--accent)]" />
+              <span>{pond.name}</span>
+              <span className="text-slate-600">-</span>
+              <span>{pond.id.toUpperCase()}</span>
+            </div>
 
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <MapPin size={13} className="text-[var(--accent)]" />
-            <span>{pond.location}</span>
-          </div>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <MapPin size={13} className="text-[var(--accent)]" />
+              <span>{pond.location}</span>
+            </div>
 
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <Calendar size={13} className="text-[var(--accent)]" />
-            <span>
-              {updatedAt ? formatVietnamDateTime(updatedAt) : "-"}
-            </span>
-          </div>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <Calendar size={13} className="text-[var(--accent)]" />
+              <span>
+                {updatedAt ? formatVietnamDateTime(updatedAt) : "-"}
+              </span>
+            </div>
 
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"} opacity-75`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"}`}></span>
-            </span>
-            <span className={`${isConnected ? "text-[var(--success)]" : "text-[var(--critical)]"} font-medium`}>
-              {statusText}
-            </span>
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"} opacity-75`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"}`}></span>
+              </span>
+              <span className={`${isConnected ? "text-[var(--success)]" : "text-[var(--critical)]"} font-medium`}>
+                {statusText}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="h-4 w-32 bg-white/5 rounded animate-pulse md:ml-auto" />
+        )}
       </div>
     </div>
   );
-};
+});
 
 export default Title;

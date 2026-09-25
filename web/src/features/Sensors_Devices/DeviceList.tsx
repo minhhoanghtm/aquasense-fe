@@ -2,6 +2,7 @@ import { useState } from "react";
 import DeviceCard from "../../components/DeviceCard";
 import Dropdown, { type DropdownOption } from "../../components/Dropdown";
 import type { Devices as DeviceType } from "../../types/Devices";
+import { Plus } from "lucide-react";
 
 const statusOptions: DropdownOption[] = [
   { label: "Tất cả trạng thái", value: "ALL" },
@@ -12,9 +13,17 @@ const statusOptions: DropdownOption[] = [
 
 interface DeviceListProps {
   devices?: DeviceType[];
+  onAddNew?: () => void;
+  onEditDevice?: (device: DeviceType) => void;
+  onDeleteDevice?: (device: DeviceType) => void;
 }
 
-const DeviceList = ({ devices = [] }: DeviceListProps) => {
+const DeviceList = ({
+  devices = [],
+  onAddNew,
+  onEditDevice,
+  onDeleteDevice,
+}: DeviceListProps) => {
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
   const filteredDevices = devices.filter((device) => {
@@ -27,7 +36,7 @@ const DeviceList = ({ devices = [] }: DeviceListProps) => {
   });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 text-left">
       {/* Header & Filter Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -39,14 +48,27 @@ const DeviceList = ({ devices = [] }: DeviceListProps) => {
           </p>
         </div>
 
-        {/* Dropdown lọc theo trạng thái */}
-        <div className="w-full sm:w-60">
-          <Dropdown
-            value={selectedStatus}
-            options={statusOptions}
-            onChange={setSelectedStatus}
-            placeholder="Lọc theo trạng thái"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          {/* Dropdown lọc theo trạng thái */}
+          <div className="w-full sm:w-56">
+            <Dropdown
+              value={selectedStatus}
+              options={statusOptions}
+              onChange={setSelectedStatus}
+              placeholder="Lọc theo trạng thái"
+            />
+          </div>
+
+          {onAddNew && (
+            <button
+              type="button"
+              onClick={onAddNew}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#2dd4c3] to-[#159d96] text-[#041920] text-xs font-bold hover:brightness-110 shadow-lg shadow-[#2dd4c3]/20 transition cursor-pointer whitespace-nowrap"
+            >
+              <Plus size={14} />
+              <span>Thêm thiết bị</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -59,18 +81,20 @@ const DeviceList = ({ devices = [] }: DeviceListProps) => {
               statusUpper === "ONLINE" || statusUpper === "ACTIVE" || device.status === "Trực tuyến"
                 ? "ONLINE"
                 : statusUpper === "OFFLINE" || device.status === "Ngoại tuyến"
-                ? "OFFLINE"
-                : "WARNING";
+                  ? "OFFLINE"
+                  : "WARNING";
 
             return (
               <DeviceCard
                 key={device.id}
-                code={device.node_code || device.serialNumber}
-                name={device.name || device.serialNumber}
+                code={device.node_code || device.serialNumber || device.macAddress || device.id}
+                name={device.name || device.deviceName || device.serialNumber || "Thiết bị cảm biến"}
                 status={statusNorm}
                 sensors={device.sensors || ["Cảm biến IoT"]}
                 connector={device.connection_type || "Wi-Fi · MQTT"}
                 signal={device.signal_strength ?? 85}
+                onEdit={onEditDevice ? () => onEditDevice(device) : undefined}
+                onDelete={onDeleteDevice ? () => onDeleteDevice(device) : undefined}
               />
             );
           })}

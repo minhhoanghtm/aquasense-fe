@@ -15,11 +15,13 @@ type MetricCardProps = {
   parameter: string;
   value: number;
   unit: string;
-  threshold: {
-    normalMin: number;
-    normalMax: number;
-    dangerMin: number;
-    dangerMax: number;
+  threshold?: {
+    normalMin?: number;
+    normalMax?: number;
+    dangerMin?: number;
+    dangerMax?: number;
+    minValue?: number;
+    maxValue?: number;
   };
 };
 
@@ -30,7 +32,19 @@ const MetricCard = ({
   unit,
   threshold,
 }: MetricCardProps) => {
-  const level = getMetricStatus(value, threshold);
+  const normalMin = threshold?.normalMin ?? threshold?.minValue ?? 0;
+  const normalMax = threshold?.normalMax ?? threshold?.maxValue ?? 100;
+  const dangerMin = threshold?.dangerMin ?? (normalMin > 0 ? normalMin * 0.8 : 0);
+  const dangerMax = threshold?.dangerMax ?? (normalMax * 1.2);
+
+  const safeThreshold = {
+    normalMin,
+    normalMax,
+    dangerMin,
+    dangerMax,
+  };
+
+  const level = getMetricStatus(value, safeThreshold);
 
   const iconMap: Record<string, React.ReactNode> = {
     pH: <DropletsIcon size={20} />,
@@ -84,8 +98,8 @@ const MetricCard = ({
           value={value}
           title={unit}
           threshold={{
-            min: threshold.normalMin,
-            max: threshold.normalMax,
+            min: safeThreshold.normalMin,
+            max: safeThreshold.normalMax,
           }}
           size={120}
           strokeWidth={10}
@@ -97,7 +111,7 @@ const MetricCard = ({
       <div className="py-1 text-center text-xs text-(--text-muted)">
         Ngưỡng an toàn:{" "}
         <span className="text-(--text-body)">
-          {threshold.normalMin} - {threshold.normalMax} {unit}
+          {safeThreshold.normalMin} - {safeThreshold.normalMax} {unit}
         </span>
       </div>
 

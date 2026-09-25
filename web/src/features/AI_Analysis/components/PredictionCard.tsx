@@ -63,13 +63,13 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl p-4 sm:p-4.5 shadow-lg flex flex-col justify-between gap-3 text-left transition-all duration-200 hover:border-(--panel-border-strong) ${
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl p-3 sm:p-3.5 shadow-lg flex flex-col justify-between gap-2.5 text-left transition-all duration-200 hover:border-(--panel-border-strong) ${
         onClick ? "cursor-pointer" : ""
       } ${className}`}
     >
       {/* Header: Pond Name + Risk Badge */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm sm:text-base font-bold text-(--text-heading)">
+        <h3 className="text-sm sm:text-[15px] font-bold text-(--text-heading)">
           {pondName}
         </h3>
 
@@ -82,7 +82,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       </div>
 
       {/* Description */}
-      <p className="text-xs text-(--text-body) leading-relaxed min-h-[36px]">
+      <p className="text-xs text-(--text-body) leading-relaxed line-clamp-2 min-h-[32px]">
         {description}
       </p>
 

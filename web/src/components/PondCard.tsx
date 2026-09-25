@@ -19,7 +19,7 @@ const PondCard = ({ pond, alerts, onClick }: PondCardProps) => {
     let dotClass = "bg-teal-400";
 
     if (alerts.length > 0) {
-        const hasDanger = alerts.some(a => a.alertLevel === "DANGER");
+        const hasDanger = alerts.some(a => a.alertLevel === "DANGER" || a.alertLevel === "CRITICAL" || a.level === "DANGER" || a.level === "CRITICAL");
         if (hasDanger) {
             statusText = "Nguy hiểm";
             badgeClass = "bg-red-500/10 text-red-400 border-red-500/20";

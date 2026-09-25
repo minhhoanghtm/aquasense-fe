@@ -1,41 +1,113 @@
-import { api } from "./api";
 import type { User, AuthResponse } from "../types/User";
+import { api } from "./api";
 
 const AUTH_USER_KEY = "aquasense_user";
 const AUTH_TOKEN_KEY = "accessToken";
+const AUTH_REFRESH_TOKEN_KEY = "refreshToken";
 
+export interface BackendLoginResponse {
+  userId: string;
+  fullName: string;
+  phoneNumber: string;
+  role: string;
+  tokenVersion?: number;
+  accessToken: string;
+  refreshToken?: string;
+}
+
+/**
+ * Login
+ * POST /auth/login
+ */
 export const login = async (
-  emailOrPhone: string,
-  password?: string
+  phoneNumber: string,
+  password: string,
 ): Promise<AuthResponse> => {
-  const users = await api<User[]>("/users");
+  const res = await api<BackendLoginResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      phoneNumber,
+      password,
+    }),
+  });
 
-  const normalizedInput = emailOrPhone.trim().toLowerCase();
-
-  const matchedUser = users.find(
-    (u) =>
-      u.email?.toLowerCase() === normalizedInput ||
-      u.phoneNumber?.trim() === emailOrPhone.trim()
-  );
-
-  if (!matchedUser) {
-    throw new Error("Tài khoản hoặc số điện thoại không tồn tại.");
+  localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
+  if (res.refreshToken) {
+    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
   }
 
-  if (matchedUser.password && password && matchedUser.password !== password) {
-    throw new Error("Mật khẩu không chính xác.");
-  }
+  const user: User = {
+    id: res.userId,
+    userId: res.userId,
+    fullName: res.fullName,
+    phoneNumber: res.phoneNumber,
+    role: res.role,
+    isActive: true,
+  };
 
-  const token = `mock_jwt_token_${matchedUser.id}_${Date.now()}`;
-
-  // Store in localStorage
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(matchedUser));
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event("storage"));
 
   return {
-    user: matchedUser,
-    token,
+    user,
+    token: res.accessToken,
   };
+};
+
+/**
+ * Get current profile
+ * GET /auth/me
+ */
+export const getProfile = async (): Promise<User | null> => {
+  try {
+    const res = await api<any>("/auth/me");
+
+    if (res?.userId) {
+      const user: User = {
+        id: res.userId,
+        userId: res.userId,
+        fullName: res.fullName,
+        phoneNumber: res.phoneNumber,
+        role: res.role,
+        isActive: res.isActive,
+      };
+
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      window.dispatchEvent(new Event("storage"));
+      return user;
+    }
+  } catch (err) {
+    console.warn("Không thể lấy dữ liệu /auth/me:", err);
+  }
+
+  return getCurrentUser();
+};
+
+/**
+ * Refresh JWT token
+ * POST /auth/refresh
+ */
+export const refreshToken = async (): Promise<string | null> => {
+  const currentRefresh = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
+  if (!currentRefresh) return null;
+
+  try {
+    const res = await api<{ accessToken?: string; refreshToken?: string }>("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: currentRefresh }),
+    });
+
+    if (res?.accessToken && res?.refreshToken) {
+      localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
+      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
+      return res.accessToken;
+    }
+  } catch (err) {
+    console.error("Làm mới token thất bại:", err);
+    logout();
+  }
+
+  return null;
 };
 
 export const getCurrentUser = (): User | null => {
@@ -47,76 +119,121 @@ export const getCurrentUser = (): User | null => {
   }
 };
 
+export interface BackendUpdateProfileResponse {
+  message: string;
+  user: {
+    userId: string;
+    fullName: string;
+    phoneNumber: string;
+    role: string;
+    isActive: boolean;
+    fcmToken?: string | null;
+    tokenVersion?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+}
+
+/**
+ * Cập nhật thông tin cá nhân (Profile)
+ * PATCH /users/profile
+ */
 export const updateProfile = async (
-  userId: string,
-  updatedData: Partial<User>
+  _userId: string,
+  updatedData: { fullName?: string; phoneNumber?: string; fcmToken?: string }
 ): Promise<User> => {
+  const payload: Record<string, string> = {};
+  if (updatedData.fullName !== undefined && updatedData.fullName !== "") {
+    payload.fullName = updatedData.fullName.trim();
+  }
+  if (updatedData.phoneNumber !== undefined && updatedData.phoneNumber !== "") {
+    payload.phoneNumber = updatedData.phoneNumber.trim();
+  }
+
+  const res = await api<BackendUpdateProfileResponse>("/users/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+  if (updatedData.fcmToken !== undefined) {
+    try {
+      await api("/users/fcm-token", {
+        method: "PATCH",
+        body: JSON.stringify({ fcmToken: updatedData.fcmToken.trim() || null }),
+      });
+    } catch (e) {
+      console.warn("Cập nhật FCM Token:", e);
+    }
+  }
+
   const current = getCurrentUser();
-  const updatedUser: User = {
-    ...(current || { id: userId, fullName: "", email: "", role: "FARMER" }),
-    ...updatedData,
-    updatedAt: new Date().toISOString(),
+  const rawUser = res.user;
+  const user: User = {
+    ...(current || {}),
+    id: rawUser.userId,
+    userId: rawUser.userId,
+    fullName: rawUser.fullName,
+    phoneNumber: rawUser.phoneNumber,
+    role: rawUser.role,
+    isActive: rawUser.isActive,
+    fcmToken: updatedData.fcmToken !== undefined ? updatedData.fcmToken : rawUser.fcmToken || undefined,
   };
 
-  try {
-    // Attempt to update backend DB via json-server
-    await api<User>(`/users/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedUser),
-    });
-  } catch (err) {
-    console.warn("Could not patch user on backend, saving locally:", err);
-  }
-
-  // Update local storage
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
-  // Dispatch custom storage event for header update
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
   window.dispatchEvent(new Event("storage"));
 
-  return updatedUser;
+  return user;
 };
 
+export interface BackendChangePasswordResponse {
+  message: string;
+  userId: string;
+  fullName: string;
+  phoneNumber: string;
+  role: string;
+  tokenVersion: number;
+  accessToken: string;
+  refreshToken?: string;
+}
+
+/**
+ * Đổi mật khẩu tài khoản
+ * POST /auth/change-password
+ */
 export const changePassword = async (
-  userId: string,
-  oldPassword: string,
-  newPassword: string
-): Promise<boolean> => {
-  const users = await api<User[]>("/users");
-  const user = users.find((u) => u.id === userId);
+  currentPasswordOrUserId: string,
+  newOrCurrentPassword: string,
+  possibleNewPassword?: string
+): Promise<{ success: boolean; message: string }> => {
+  const currentPassword = possibleNewPassword ? newOrCurrentPassword : currentPasswordOrUserId;
+  const newPassword = possibleNewPassword ? possibleNewPassword : newOrCurrentPassword;
+  const refreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || undefined;
 
-  if (!user) {
-    throw new Error("Không tìm thấy thông tin tài khoản.");
+  const res = await api<BackendChangePasswordResponse>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+      refreshToken,
+    }),
+  });
+
+  if (res?.accessToken) {
+    localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
+    if (res.refreshToken) {
+      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
+    }
   }
 
-  if (user.password && user.password !== oldPassword) {
-    throw new Error("Mật khẩu hiện tại không chính xác.");
-  }
-
-  try {
-    await api<User>(`/users/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        password: newPassword,
-        updatedAt: new Date().toISOString(),
-      }),
-    });
-  } catch (err) {
-    console.warn("Could not patch password on backend:", err);
-  }
-
-  const currentUser = getCurrentUser();
-  if (currentUser && currentUser.id === userId) {
-    currentUser.password = newPassword;
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser));
-  }
-
-  return true;
+  return {
+    success: true,
+    message: res?.message || "Thay đổi mật khẩu thành công!",
+  };
 };
 
 export const logout = () => {
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_KEY);
   window.dispatchEvent(new Event("storage"));
 };
@@ -125,3 +242,159 @@ export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem(AUTH_TOKEN_KEY);
 };
 
+export interface SendOtpResponse {
+  message: string;
+  phoneNumber: string;
+  otp: string;
+  expiresIn?: string;
+}
+
+export interface VerifyOtpResponse {
+  message: string;
+  phoneNumber: string;
+  isValid: boolean;
+}
+
+export interface BackendRegisterResponse {
+  message?: string;
+  userId: string;
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  role: string;
+  tokenVersion?: number;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+/**
+ * Gửi mã OTP xác thực (qua SĐT hoặc Email)
+ * POST /auth/send-otp
+ */
+export const sendOtp = async (identifier: string): Promise<SendOtpResponse> => {
+  const clean = identifier.trim();
+  const isEmail = clean.includes("@");
+  const payload: Record<string, any> = isEmail
+    ? { email: clean, identifier: clean }
+    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, "") };
+
+  const res = await api<SendOtpResponse>("/auth/send-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res;
+};
+
+/**
+ * Xác thực mã OTP
+ * POST /auth/verify-otp
+ */
+export const verifyOtp = async (
+  identifier: string,
+  otp: string
+): Promise<VerifyOtpResponse> => {
+  const clean = identifier.trim();
+  const isEmail = clean.includes("@");
+  const payload: Record<string, any> = isEmail
+    ? { email: clean, identifier: clean, otp }
+    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), otp };
+
+  const res = await api<VerifyOtpResponse>("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res;
+};
+
+/**
+ * Đăng ký tài khoản (Dành cho Quản trị viên khởi tạo tài khoản nhân viên / nông hộ)
+ * POST /auth/register
+ */
+export const register = async (
+  fullName: string,
+  phoneNumber: string,
+  email: string,
+  role: string = "FARMER"
+): Promise<{ message: string; user: Partial<User> }> => {
+  const res = await api<BackendRegisterResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      fullName,
+      phoneNumber,
+      email,
+      role,
+    }),
+  });
+
+  const user: User = {
+    id: res.userId,
+    userId: res.userId,
+    fullName: res.fullName,
+    phoneNumber: res.phoneNumber,
+    email: res.email,
+    role: res.role as any,
+    isActive: true,
+  };
+
+  return {
+    message: res.message || "Đăng ký tài khoản thành công. Mật khẩu đã được gửi về email.",
+    user,
+  };
+};
+
+export interface RegisterData {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  role?: string;
+}
+
+export const registerUser = async (
+  data: RegisterData
+): Promise<{ success: boolean; message: string }> => {
+  const res = await register(data.fullName, data.phoneNumber, data.email, data.role || "FARMER");
+  return {
+    success: true,
+    message: res.message,
+  };
+};
+
+/**
+ * Đặt lại mật khẩu tài khoản
+ * POST /auth/reset-password hoặc POST /auth/forgot-password
+ */
+export const resetPassword = async (
+  identifier: string,
+  newPassword: string,
+  otp?: string
+): Promise<{ success: boolean; message: string }> => {
+  const clean = identifier.trim();
+  const isEmail = clean.includes("@");
+  const payload: Record<string, any> = isEmail
+    ? { email: clean, identifier: clean, newPassword, otp }
+    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), newPassword, otp };
+
+  try {
+    const res = await api<{ message?: string }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return {
+      success: true,
+      message: res?.message || "Đặt lại mật khẩu thành công!",
+    };
+  } catch (err: any) {
+    try {
+      const res = await api<{ message?: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return {
+        success: true,
+        message: res?.message || "Đặt lại mật khẩu thành công!",
+      };
+    } catch {
+      throw err;
+    }
+  }
+};

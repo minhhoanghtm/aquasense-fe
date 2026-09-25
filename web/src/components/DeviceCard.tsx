@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio } from "lucide-react";
+import { Radio, Edit3, Trash2 } from "lucide-react";
 
 export interface DeviceCardProps {
   icon?: React.ReactNode;
@@ -19,6 +19,8 @@ export interface DeviceCardProps {
   connector?: string;
   signal?: number;
   className?: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const SignalBars = ({ value }: { value: number }) => {
@@ -50,6 +52,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   connector = "Wi-Fi · MQTT",
   signal = 94,
   className = "",
+  onEdit,
+  onDelete,
 }) => {
   // Chuẩn hóa trạng thái
   const normalizedStatus = status.toUpperCase();
@@ -90,17 +94,41 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     <div
       className={`w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/50 ${className}`}
     >
-      {/* Header: Icon Box + Status Badge */}
+      {/* Header: Icon Box + Status Badge + Actions */}
       <div className="flex items-start justify-between">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0d2e38] text-(--accent)">
           {icon || <Radio className="h-6 w-6" />}
         </div>
 
-        <div
-          className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-md ${statusBadgeClass}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
-          <span>{statusLabel}</span>
+        <div className="flex items-center gap-1.5">
+          <div
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-md ${statusBadgeClass}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
+            <span>{statusLabel}</span>
+          </div>
+
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="p-1.5 rounded-xl border border-cyan-800/80 bg-[#07252f] text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition cursor-pointer"
+              title="Chỉnh sửa thiết bị"
+            >
+              <Edit3 size={13} />
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="p-1.5 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 hover:text-rose-200 transition cursor-pointer"
+              title="Xóa thiết bị"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
 

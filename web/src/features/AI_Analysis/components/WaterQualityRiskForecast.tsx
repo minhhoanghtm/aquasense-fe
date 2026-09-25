@@ -44,7 +44,7 @@ export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> =
 }) => {
   return (
     <div
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col gap-4 text-left ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-4 sm:p-5 shadow-lg flex flex-col gap-3 text-left ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -56,13 +56,13 @@ export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> =
         </div>
 
         {/* AI Sparkles badge */}
-        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-950/70 text-teal-400 shadow-[0_0_10px_rgba(45,212,195,0.2)]">
+        <div className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-950/70 text-teal-400 shadow-[0_0_10px_rgba(45,212,195,0.2)]">
           <Sparkles className="h-4 w-4 animate-pulse" />
         </div>
       </div>
 
       {/* 3-Column Grid of PredictionCards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map((item, index) => (
           <PredictionCard
             key={item.pondName || index}

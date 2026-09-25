@@ -44,7 +44,8 @@ const PondDevices = ({ devices = [] }: PondDevicesProps) => {
   const displayDevices =
     devices.length > 0
       ? devices.map((d) => {
-          const nameLower = (d.name || d.serialNumber).toLowerCase();
+          const devName = d.name || d.deviceName || d.serialNumber || d.macAddress || "Thiết bị";
+          const nameLower = devName.toLowerCase();
           const iconType: "gateway" | "oxygen" | "ultrasonic" =
             nameLower.includes("do") || nameLower.includes("oxygen") || nameLower.includes("oxy")
               ? "oxygen"
@@ -54,7 +55,7 @@ const PondDevices = ({ devices = [] }: PondDevicesProps) => {
 
           return {
             id: d.id,
-            name: d.name || d.serialNumber,
+            name: devName,
             subtitle: `${d.sensors?.length || 1} cảm biến · ${d.connection_type || "Wi-Fi"}`,
             icon: iconType,
           };

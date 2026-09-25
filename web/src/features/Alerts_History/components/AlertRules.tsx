@@ -52,10 +52,10 @@ const AlertRules: React.FC<AlertRulesProps> = ({
 
   return (
     <div
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 shadow-lg flex flex-col text-left ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl lg:rounded-3xl p-3.5 sm:p-4 shadow-lg flex flex-col text-left ${className}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm sm:text-base font-bold text-(--text-heading)">
           Quy tắc cảnh báo
         </h3>

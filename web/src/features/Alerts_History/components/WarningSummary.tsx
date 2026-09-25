@@ -20,7 +20,7 @@ const WarningSummary = ({
 
   return (
     <div
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-3xl p-5 sm:p-6 flex flex-col gap-3 text-left shadow-lg ${className}`}
+      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl lg:rounded-3xl p-3.5 sm:p-4.5 flex flex-col gap-2.5 text-left shadow-lg ${className}`}
     >
       {/* Title + Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

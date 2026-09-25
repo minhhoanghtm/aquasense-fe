@@ -1,17 +1,28 @@
-export type UserRole = "FARMER" | "TECHNICIAN" | "ADMIN" | string;
+export type Role = "MANAGER" | "FARMER";
+export type UserRole = Role | string;
+
+export type UserStatus = "ACTIVE" | "ON_LEAVE" | "INACTIVE" | "PENDING_APPROVAL";
 
 export interface User {
+  userId?: string;
   id: string;
   fullName: string;
-  email: string;
   phoneNumber?: string;
-  role: UserRole;
+  email?: string;
+  passwordHash?: string;
   password?: string;
+  role: Role | string;
+  fcmToken?: string;
+  isActive?: boolean;
+  status?: UserStatus;
   avatar?: string;
+  avatarColor?: string;
   address?: string;
   bio?: string;
   department?: string;
-  status?: string;
+  position?: string;
+  assignedPondIds?: string[];
+  joinDate?: string;
   createdAt?: string;
   updatedAt?: string;
 }

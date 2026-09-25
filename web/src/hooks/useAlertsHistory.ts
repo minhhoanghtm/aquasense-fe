@@ -28,24 +28,26 @@ export const useAlertsHistory = () => {
         fetchAlertsData();
     }, []);
 
-    const dangerCount = alerts.filter(
-        (a) => a.alertLevel === "DANGER" || a.level === "DANGER"
+    const safeAlerts = Array.isArray(alerts) ? alerts : [];
+
+    const dangerCount = safeAlerts.filter(
+        (a) => a.alertLevel === "CRITICAL" || a.alertLevel === "DANGER" || a.level === "DANGER" || a.level === "CRITICAL"
     ).length;
 
-    const warningCount = alerts.filter(
+    const warningCount = safeAlerts.filter(
         (a) => a.alertLevel === "WARNING" || a.level === "WARNING"
     ).length;
 
-    const resolvedCount = alerts.filter(
+    const resolvedCount = safeAlerts.filter(
         (a) =>
             a.status === "RESOLVED" ||
-            a.status === "ĐÃ XỬ LÝ" ||
-            a.status === "Đã xử lý" ||
+            String(a.status).toUpperCase() === "RESOLVED" ||
+            String(a.status).toUpperCase() === "ĐÃ XỬ LÝ" ||
             a.isRead
     ).length;
 
     return {
-        alerts,
+        alerts: safeAlerts,
         rules,
         summary: {
             danger: dangerCount,

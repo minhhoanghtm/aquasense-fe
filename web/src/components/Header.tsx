@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import {
   WavesHorizontal,
   Search,
@@ -13,11 +13,13 @@ import {
 import { Navigation, MobileNavigation } from "./Navigation";
 import { useNavigate, Link } from "react-router-dom";
 import { getCurrentUser, logout } from "../services/authApi";
+import { api } from "../services/api";
+import type { User as UserType } from "../types/User";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<UserType | null>(getCurrentUser());
   const navigate = useNavigate();
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -25,6 +27,25 @@ const Header = () => {
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const initUser = async () => {
+      const stored = getCurrentUser();
+      if (stored) {
+        setCurrentUser(stored);
+      } else {
+        try {
+          const res = await api<any>("/users");
+          const usersList = Array.isArray(res) ? res : (res?.data ?? []);
+          if (usersList && usersList.length > 0) {
+            setCurrentUser(usersList[0]);
+            localStorage.setItem("aquasense_user", JSON.stringify(usersList[0]));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+    initUser();
+
     const handleStorageUpdate = () => {
       setCurrentUser(getCurrentUser());
     };
@@ -32,31 +53,28 @@ const Header = () => {
     window.addEventListener("storage", handleStorageUpdate);
 
     const handleClickOutside = (event: MouseEvent) => {
-      // Click outside profile dropdown
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
+      const target = event.target as Node;
+      if (profileRef.current && !profileRef.current.contains(target)) {
+        setIsProfileOpen((prev) => (prev ? false : prev));
       }
-      // Click outside mobile menu (both button and nav panel)
       if (
-        mobileButtonRef.current && !mobileButtonRef.current.contains(event.target as Node) &&
-        (!mobileNavRef.current || !mobileNavRef.current.contains(event.target as Node))
+        mobileButtonRef.current && !mobileButtonRef.current.contains(target) &&
+        (!mobileNavRef.current || !mobileNavRef.current.contains(target))
       ) {
-        setIsOpen(false);
+        setIsOpen((prev) => (prev ? false : prev));
       }
     };
 
     const handleScroll = (event: Event) => {
       const target = event.target as Node;
-      // Close profile dropdown if scrolled outside
       if (profileRef.current && !profileRef.current.contains(target)) {
-        setIsProfileOpen(false);
+        setIsProfileOpen((prev) => (prev ? false : prev));
       }
-      // Close mobile menu if scrolled outside
       if (
         (!mobileNavRef.current || !mobileNavRef.current.contains(target)) &&
         (!mobileButtonRef.current || !mobileButtonRef.current.contains(target))
       ) {
-        setIsOpen(false);
+        setIsOpen((prev) => (prev ? false : prev));
       }
     };
 
@@ -69,12 +87,12 @@ const Header = () => {
     };
   }, []);
   return (
-    <header className="sticky top-0 z-50 w-full bg-[var(--bg-primary)]/85 backdrop-blur-md border-b border-[var(--panel-border)]/40 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-[var(--bg-primary)]/90 backdrop-blur-md border-b border-[var(--panel-border)]/40 shadow-sm transform-gpu">
       {/* ================= HEADER ================= */}
       <div
-        className="flex h-14 sm:h-16 w-full max-w-7xl mx-auto items-center gap-3 px-4 sm:px-6">
+        className="flex h-14 sm:h-16 w-full max-w-[1440px] mx-auto items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
         {/* ================= LOGO ================= */}
-        <Link to="/">
+        <Link to="/" className="shrink-0">
           <div className="flex shrink-0 items-center gap-2">
             <WavesHorizontal
               className="h-5 w-5 text-[var(--leaf-highlight)]" />
@@ -85,25 +103,28 @@ const Header = () => {
           </div>
         </Link>
 
-        {/* ================= SEARCH DESKTOP ================= */}
-        <div className="ml-3 hidden h-8.5 w-[200px] shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-2.5 lg:flex xl:w-[230px]">
-          <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
-
-          <input type="text" placeholder="Tìm vuông, cảm biến, cảnh báo..."
-            className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
-        </div>
-
         {/* ================= DESKTOP NAVIGATION ================= */}
-        <div className="hidden flex-1 items-center justify-center lg:flex">
+        <div className="hidden flex-1 items-center justify-center lg:flex min-w-0 px-2">
           <Navigation />
         </div>
 
-        {/* ================= RIGHT SIDE ================= */}
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        {/* ================= RIGHT SIDE (SEARCH + NOTIFICATION + USER) ================= */}
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* ================= SEARCH DESKTOP (FIXED ON RIGHT) ================= */}
+          <div className="hidden h-8.5 w-36 2xl:w-48 shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-2.5 xl:flex focus-within:border-[var(--accent)]">
+            <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
+
+            <input
+              type="text"
+              placeholder="Tìm kiếm..."
+              className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] !border-none !shadow-none"
+            />
+          </div>
+
           {/* ================= NOTIFICATION BELL ================= */}
           <button
             type="button"
-            className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
+            className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)] cursor-pointer">
             <Bell size={15} />
             <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ff6678] text-[8px] font-bold text-white border border-[var(--bg-primary)]">
               2
@@ -111,7 +132,7 @@ const Header = () => {
           </button>
 
           {/* ================= USER PROFILE ================= */}
-          <div ref={profileRef} className="flex items-center gap-2">
+          <div ref={profileRef} className="relative flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -127,15 +148,13 @@ const Header = () => {
                   : "ND"}
               </div>
 
-              <div className="hidden sm:block text-left">
+              <div className="hidden 2xl:block text-left">
                 <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">
                   {currentUser?.fullName || "Nguyễn Văn An"}
                 </p>
                 <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                  {currentUser?.role === "ADMIN"
-                    ? "Quản trị viên"
-                    : currentUser?.role === "TECHNICIAN"
-                    ? "Kỹ thuật viên"
+                  {currentUser?.role === "MANAGER" || currentUser?.role === "ADMIN"
+                    ? "Quản lý"
                     : "Nông dân"}
                 </p>
               </div>
@@ -143,44 +162,58 @@ const Header = () => {
             {/* Profile Dropdown */}
             {isProfileOpen && (
               <div
-                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-xl backdrop-blur-xl text-left">
+                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-cyan-800 bg-[#0b3039] shadow-2xl text-left"
+              >
                 {/* User Info */}
-                <div className="border-b border-[var(--divider)] px-4 py-3">
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <div className="border-b border-cyan-800/80 px-4 py-3 bg-[#08262e]">
+                  <p className="text-sm font-semibold text-white">
                     {currentUser?.fullName || "Nguyễn Văn An"}
                   </p>
 
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {currentUser?.email || "farmer@example.com"}
+                  <p className="text-xs text-cyan-300/70">
+                    {currentUser?.phoneNumber || currentUser?.email || "farmer@example.com"}
                   </p>
                 </div>
 
                 {/* Profile */}
-                <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
-                  <User size={17} />
+                <Link
+                  to="/profile"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                >
+                  <User size={17} className="text-cyan-400" />
                   <span>Hồ sơ cá nhân</span>
                 </Link>
 
                 {/* Settings */}
-                <Link to="/settings" className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
-                  <Settings size={17} />
+                <Link
+                  to="/settings"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                >
+                  <Settings size={17} className="text-cyan-400" />
                   <span>Cài đặt</span>
                 </Link>
 
                 {/* Notifications */}
-                <Link to="/notifications" className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]">
-                  <Bell size={17} />
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                >
+                  <Bell size={17} className="text-cyan-400" />
                   <span>Thông báo</span>
                 </Link>
 
                 {/* Divider */}
-                <div className="border-t border-[var(--divider)]" />
+                <div className="border-t border-cyan-800/80" />
 
                 {/* Logout */}
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 transition hover:bg-red-500/10 cursor-pointer"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-rose-400 transition hover:bg-rose-500/10 cursor-pointer"
                   onClick={() => {
+                    setIsProfileOpen(false);
                     logout();
                     navigate("/login");
                   }}
@@ -192,12 +225,14 @@ const Header = () => {
             )}
           </div>
 
-          {/* ================= MOBILE MENU ================= */}
+          {/* ================= MOBILE MENU BUTTON ================= */}
           <button
             ref={mobileButtonRef}
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)] lg:hidden" aria-label="Menu">
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-800 bg-[#0b3039] text-cyan-300 transition hover:bg-cyan-900/50 hover:text-white lg:hidden cursor-pointer"
+            aria-label="Menu"
+          >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
@@ -205,15 +240,22 @@ const Header = () => {
 
       {/* ================= MOBILE SEARCH ================= */}
       <div className="px-4 pb-3 sm:px-5 lg:hidden">
-        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3">
-          <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Tìm vuông, cảm biến, cảnh báo..." className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
+        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-cyan-800 bg-[#0b3039] px-3">
+          <Search size={16} className="shrink-0 text-cyan-400" />
+          <input
+            type="text"
+            placeholder="Tìm vuông, cảm biến, cảnh báo..."
+            className="w-full bg-transparent text-xs text-white outline-none placeholder:text-[var(--text-muted)]"
+          />
         </div>
       </div>
 
       {/* ================= MOBILE NAVIGATION ================= */}
       {isOpen && (
-        <div ref={mobileNavRef} className="absolute left-0 right-0 top-full z-50 border-y border-[var(--panel-border)] bg-[var(--panel-bg)] p-3 shadow-xl lg:hidden">
+        <div
+          ref={mobileNavRef}
+          className="absolute left-0 right-0 top-full z-50 border-y border-cyan-800 bg-[#0b3039] p-3 shadow-2xl lg:hidden"
+        >
           <MobileNavigation onClose={() => setIsOpen(false)} />
         </div>
       )}
@@ -222,4 +264,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default memo(Header);

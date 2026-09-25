@@ -4,6 +4,7 @@ import WarningSummary from "../../features/Alerts_History/components/WarningSumm
 import AlertRules from "../../features/Alerts_History/components/AlertRules";
 import AlertList from "../../features/Alerts_History/components/AlertList";
 import ResponseTime from "../../features/Alerts_History/components/ResponseTime";
+import type { AlertLevel as AlertItemAlertLevel } from "../../components/AlertItem";
 import { usePonds } from "../../hooks/usePonds";
 import { usePond } from "../../hooks/usePond";
 import { useAlertsHistory } from "../../hooks/useAlertsHistory";
@@ -17,18 +18,18 @@ export default function Alerts() {
     const { alerts, rules, summary } = useAlertsHistory();
 
     const formattedAlerts = alerts.map((a) => ({
-        id: a.id,
-        time: a.time || new Date(a.createdAt).toLocaleDateString("vi-VN"),
-        title: a.title || a.message,
-        pondName: a.pondName || `Ao ${a.pondId}`,
-        value: a.value,
+        id: a.id || a.alertId || "ALT",
+        time: a.time || (a.createdAt ? new Date(a.createdAt).toLocaleDateString("vi-VN") : "Hôm nay"),
+        title: a.title || a.message || a.metricName || "Cảnh báo chất lượng nước",
+        pondName: a.pondName || `Vuông ${a.pondId}`,
+        value: a.triggeredValue ?? a.value ?? "0",
         unit: a.unit || "",
-        level: a.alertLevel || a.level || "WARNING",
-        status: (a.status || (a.isRead ? "Đã xử lý" : "Chưa xử lý")) as any,
+        level: (a.alertLevel === "CRITICAL" || a.alertLevel === "DANGER" || a.level === "DANGER" ? "DANGER" : "WARNING") as AlertItemAlertLevel,
+        status: (a.status === "RESOLVED" || a.status === "Đã xử lý" ? "Đã xử lý" : "Chưa xử lý") as any,
     }));
 
     return (
-        <div className="w-full mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col gap-4 sm:gap-5">
+        <div className="w-full mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4">
             <Title
                 title="Cảnh báo & Lịch sử"
                 description="Hệ thống giám sát chất lượng nước vuông nuôi tôm sử dụng IoT và AI"
@@ -44,11 +45,11 @@ export default function Alerts() {
             />
 
             {/* Bottom 2-Column Content: Alert List (Left) + Rules & Response Time (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
                 <div className="lg:col-span-8">
                     <AlertList alerts={formattedAlerts} />
                 </div>
-                <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-5">
+                <div className="lg:col-span-4 flex flex-col gap-3 sm:gap-4">
                     <AlertRules rules={rules} />
                     <ResponseTime />
                 </div>

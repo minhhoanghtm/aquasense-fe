@@ -39,7 +39,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Password criteria check
-  const hasMinLength = passwordData.newPassword.length >= 6;
+  const hasMinLength = passwordData.newPassword.length >= 8;
   const hasNumber = /\d/.test(passwordData.newPassword);
   const isMatching =
     passwordData.newPassword &&
@@ -50,7 +50,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
   const strengthScore = [
     hasMinLength,
     hasNumber,
-    passwordData.newPassword.length >= 8,
+    passwordData.newPassword.length >= 10,
   ].filter(Boolean).length;
 
   const getStrengthLabel = () => {
@@ -64,7 +64,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
 
   const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user?.id) {
+    if (!user?.id && !user?.userId) {
       setMessage({ type: "error", text: "Vui lòng đăng nhập để đổi mật khẩu." });
       return;
     }
@@ -74,8 +74,8 @@ export default function SecurityTab({ user }: SecurityTabProps) {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setMessage({ type: "error", text: "Mật khẩu mới phải có ít nhất 6 ký tự." });
+    if (passwordData.newPassword.length < 8) {
+      setMessage({ type: "error", text: "Mật khẩu mới phải có ít nhất 8 ký tự." });
       return;
     }
 
@@ -88,8 +88,8 @@ export default function SecurityTab({ user }: SecurityTabProps) {
     setMessage(null);
 
     try {
-      await changePassword(user.id, passwordData.currentPassword, passwordData.newPassword);
-      setMessage({ type: "success", text: "Đổi mật khẩu thành công!" });
+      const res = await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setMessage({ type: "success", text: res.message || "Đổi mật khẩu thành công!" });
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setTimeout(() => setMessage(null), 4000);
     } catch (err: any) {
@@ -185,7 +185,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                   }
-                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                  placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
                   required
                   className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 group-hover:border-[var(--panel-border-strong)]"
                 />
@@ -311,7 +311,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   <XCircle size={15} className="text-slate-500 shrink-0" />
                 )}
                 <span className={hasMinLength ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}>
-                  Độ dài tối thiểu 6 ký tự (khuyến nghị từ 8 ký tự)
+                  Độ dài tối thiểu 8 ký tự
                 </span>
               </li>
 

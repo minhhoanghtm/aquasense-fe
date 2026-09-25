@@ -8,9 +8,16 @@ export interface MetricThreshold {
 }
 export const getMetricStatus = (
   value: number,
-  threshold: MetricThreshold,
+  threshold?: Partial<MetricThreshold> | null,
 ): MertricsStatus => {
-  const { normalMin, normalMax, dangerMin, dangerMax } = threshold;
+  if (!threshold) {
+    return "normal";
+  }
+
+  const normalMin = threshold.normalMin ?? (threshold as any).minValue ?? 0;
+  const normalMax = threshold.normalMax ?? (threshold as any).maxValue ?? 100;
+  const dangerMin = threshold.dangerMin ?? (normalMin > 0 ? normalMin * 0.8 : 0);
+  const dangerMax = threshold.dangerMax ?? (normalMax * 1.2);
 
   if (value < dangerMin || value > dangerMax) {
     return "danger";

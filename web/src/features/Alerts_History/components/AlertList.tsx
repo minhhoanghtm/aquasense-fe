@@ -91,8 +91,9 @@ const AlertList: React.FC<AlertListProps> = ({
   className = "",
 }) => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
 
-  const filteredAlerts = alerts.filter((item) => {
+  const filteredAlerts = safeAlerts.filter((item) => {
     if (activeFilter === "ALL") return true;
     if (activeFilter === "DANGER") return item.level === "DANGER";
     if (activeFilter === "WARNING") return item.level === "WARNING";

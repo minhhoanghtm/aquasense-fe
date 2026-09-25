@@ -54,7 +54,7 @@ const Dropdown = ({
   return (
     <div
       ref={dropdownRef}
-      className={`relative ${className}`}
+      className={`relative ${open ? 'z-50' : 'z-10'} ${className}`}
     >
       {/* Selected value */}
       <button
@@ -81,6 +81,7 @@ const Dropdown = ({
           focus:border-cyan-400
           disabled:cursor-not-allowed
           disabled:opacity-50
+          cursor-pointer
         "
       >
         <span>
@@ -115,14 +116,16 @@ const Dropdown = ({
             absolute
             left-0
             right-0
-            z-50
+            z-[100]
             mt-2
-            overflow-hidden
+            max-h-60
+            overflow-y-auto
             rounded-lg
             border
             border-cyan-800
             bg-[#0b3039]
-            shadow-xl
+            shadow-2xl
+            backdrop-blur-md
           "
         >
           {options.map((option) => {
@@ -142,6 +145,7 @@ const Dropdown = ({
                   text-left
                   text-sm
                   transition
+                  cursor-pointer
                   ${
                     isSelected
                       ? 'bg-cyan-500/20 text-cyan-300'

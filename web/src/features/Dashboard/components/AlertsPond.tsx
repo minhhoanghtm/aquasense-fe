@@ -1,9 +1,8 @@
 import { TriangleAlert } from 'lucide-react';
 import { getTimeAgo } from '../../../utils/date';
 const AlertsPond = ({ alerts }: { alerts: any }) => {
-    // console.log("Alerts:", alerts);
-    const count = alerts.length;
-    // console.log("Messages:", messages);
+    const safeAlerts = Array.isArray(alerts) ? alerts : [];
+    const count = safeAlerts.length;
     return (
         <div className='border border-(--panel-border-strong) p-3 rounded-xl text-left'>
             {/* Title + icon  */}
@@ -19,7 +18,7 @@ const AlertsPond = ({ alerts }: { alerts: any }) => {
 
             {/* List alert */}
             <div className="flex flex-col w-full mt-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-2">
-                {alerts?.map((alert: any, index: number) => (
+                {safeAlerts.map((alert: any, index: number) => (
                     <div
                         key={alert.id ?? index}
                         className="relative flex flex-col w-full px-4 py-3 border-b border-(--panel-border-strong)"
@@ -27,11 +26,11 @@ const AlertsPond = ({ alerts }: { alerts: any }) => {
                         <span className="absolute left-0 top-3 bottom-3 w-[3px] bg-red-400 rounded-full" />
 
                         <p className="font-semibold">
-                            {alert.message}
+                            {alert.message || alert.title || "Cảnh báo"}
                         </p>
 
                         <p className="text-xs text-(--text-muted)">
-                            {getTimeAgo(alert.createdAt)}
+                            {getTimeAgo(alert.createdAt || alert.time)}
                         </p>
                     </div>
                 ))}

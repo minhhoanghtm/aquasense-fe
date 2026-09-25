@@ -1,17 +1,14 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from "react";
 import {
   User,
-  Mail,
   Phone,
-  MapPin,
-  Building,
-  FileText,
   CheckCircle2,
   AlertCircle,
   Save,
   RotateCcw,
   Sparkles,
   ShieldCheck,
+  Lock,
 } from "lucide-react";
 import type { User as UserType } from "../../types/User";
 import { updateProfile } from "../../services/authApi";
@@ -24,11 +21,9 @@ interface PersonalInfoTabProps {
 export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTabProps) {
   const [formData, setFormData] = useState({
     fullName: user?.fullName || "",
-    email: user?.email || "",
     phoneNumber: user?.phoneNumber || "",
-    address: user?.address || "Khu vực Cà Mau · Đồng bằng sông Cửu Long",
-    department: user?.department || "Bộ phận Quản lý & Nuôi trồng Thủy sản AquaSense",
-    bio: user?.bio || "Phụ trách theo dõi chất lượng nước, giám sát hệ thống cảm biến IoT và quy trình cấp khí ao tôm công nghệ cao.",
+    role: user?.role || "FARMER",
+    fcmToken: user?.fcmToken || "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -38,16 +33,14 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
     if (user) {
       setFormData({
         fullName: user.fullName || "",
-        email: user.email || "",
         phoneNumber: user.phoneNumber || "",
-        address: user.address || "Khu vực Cà Mau · Đồng bằng sông Cửu Long",
-        department: user.department || "Bộ phận Quản lý & Nuôi trồng Thủy sản AquaSense",
-        bio: user.bio || "Phụ trách theo dõi chất lượng nước, giám sát hệ thống cảm biến IoT và quy trình cấp khí ao tôm công nghệ cao.",
+        role: user.role || "FARMER",
+        fcmToken: user.fcmToken || "",
       });
     }
   }, [user]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -56,11 +49,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
     if (user) {
       setFormData({
         fullName: user.fullName || "",
-        email: user.email || "",
         phoneNumber: user.phoneNumber || "",
-        address: user.address || "Khu vực Cà Mau · Đồng bằng sông Cửu Long",
-        department: user.department || "Bộ phận Quản lý & Nuôi trồng Thủy sản AquaSense",
-        bio: user.bio || "Phụ trách theo dõi chất lượng nước, giám sát hệ thống cảm biến IoT và quy trình cấp khí ao tôm công nghệ cao.",
+        role: user.role || "FARMER",
+        fcmToken: user.fcmToken || "",
       });
       setMessage(null);
     }
@@ -68,7 +59,8 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user?.id) {
+    const currentUserId = user?.userId || user?.id;
+    if (!currentUserId) {
       setMessage({ type: "error", text: "Vui lòng đăng nhập để cập nhật thông tin." });
       return;
     }
@@ -78,26 +70,35 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       return;
     }
 
+    if (formData.phoneNumber.trim()) {
+      const phoneClean = formData.phoneNumber.trim();
+      const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+      if (!phoneRegex.test(phoneClean)) {
+        setMessage({
+          type: "error",
+          text: "Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).",
+        });
+        return;
+      }
+    }
+
     setIsSaving(true);
     setMessage(null);
 
     try {
-      const updated = await updateProfile(user.id, {
+      const updated = await updateProfile(currentUserId, {
         fullName: formData.fullName.trim(),
-        email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        address: formData.address.trim(),
-        department: formData.department.trim(),
-        bio: formData.bio.trim(),
+        fcmToken: formData.fcmToken.trim(),
       });
 
       onUserUpdated(updated);
-      setMessage({ type: "success", text: "Cập nhật hồ sơ cá nhân thành công!" });
+      setMessage({ type: "success", text: "Cập nhật thông tin tài khoản thành công!" });
       setTimeout(() => setMessage(null), 4000);
     } catch (err: any) {
       setMessage({
         type: "error",
-        text: err?.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại.",
+        text: err?.message || "Không thể cập nhật thông tin. Vui lòng thử lại.",
       });
     } finally {
       setIsSaving(false);
@@ -105,14 +106,12 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
   };
 
   const roleLabel =
-    user?.role === "ADMIN"
-      ? "Quản trị viên"
-      : user?.role === "TECHNICIAN"
-      ? "Kỹ thuật viên"
-      : "Chủ vuông / Nông dân";
+    formData.role === "MANAGER" || formData.role === "ADMIN"
+      ? "Quản lý"
+      : "Nông dân";
 
   return (
-    <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 sm:p-7 backdrop-blur-xl shadow-lg">
+    <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 sm:p-7 backdrop-blur-xl shadow-lg text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-[var(--divider)] gap-3">
         <div className="flex items-center gap-2.5">
@@ -120,9 +119,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
             <User size={18} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--text-heading)]">Thông tin cá nhân</h3>
+            <h3 className="text-lg font-bold text-[var(--text-heading)]">Thông tin tài khoản</h3>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">
-              Quản lý thông tin định danh và thông tin liên lạc của bạn trên AquaSense
+              Quản lý thông tin họ tên và số điện thoại liên hệ
             </p>
           </div>
         </div>
@@ -137,11 +136,10 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       {/* Alert Notification */}
       {message && (
         <div
-          className={`mt-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm transition-all animate-in fade-in slide-in-from-top-2 ${
-            message.type === "success"
-              ? "bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/30"
-              : "bg-[var(--critical-bg)] text-[var(--critical)] border border-[var(--critical)]/30"
-          }`}
+          className={`mt-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm transition-all animate-in fade-in slide-in-from-top-2 ${message.type === "success"
+            ? "bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/30"
+            : "bg-[var(--critical-bg)] text-[var(--critical)] border border-[var(--critical)]/30"
+            }`}
         >
           {message.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{message.text}</span>
@@ -149,15 +147,15 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {/* Section 1: Thông tin cơ bản */}
+        {/* Section: Thông tin cá nhân */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)] mb-3 flex items-center gap-1.5">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)] mb-3.5 flex items-center gap-1.5">
             <Sparkles size={13} />
-            Thông tin định danh & Liên lạc
+            Thông tin người dùng
           </h4>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            {/* Họ và tên */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {/* 1. Họ và tên */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
                 <User size={13} className="text-[var(--accent)]" />
@@ -174,98 +172,71 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
               />
             </div>
 
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
-                <Mail size={13} className="text-[var(--accent)]" />
-                Địa chỉ Email <span className="text-[var(--critical)]">*</span>
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="example@gmail.com"
-                required
-                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
-              />
-            </div>
-
-            {/* Số điện thoại */}
+            {/* 2. Số điện thoại */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
                 <Phone size={13} className="text-[var(--accent)]" />
-                Số điện thoại liên hệ
+                Số điện thoại
               </label>
               <input
                 type="tel"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                placeholder="0901234567"
+                placeholder="Ví dụ: 0912345678"
                 className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
               />
             </div>
 
-            {/* Địa chỉ / Khu vực */}
+            {/* 3. Vai trò (Cố định, không được thay đổi quyền) */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
-                <MapPin size={13} className="text-[var(--accent)]" />
-                Địa chỉ / Khu vực quản lý
+              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-[var(--accent)]" />
+                  Vai trò
+                </span>
+                <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                  <Lock size={10} /> Không thể thay đổi
+                </span>
               </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Tỉnh/Thành phố, Khu vực nuôi"
-                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
-              />
+              <div className="flex items-center justify-between rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)]/50 px-3.5 py-2.5">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  {roleLabel}
+                </span>
+                <span className="text-xs font-medium text-[var(--accent-bright)]">
+                  Cố định
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Đơn vị & Giới thiệu */}
+        {/* 
+        {/* ========================================================= */}
+        {/* THÔNG BÁO ĐẨY THIẾT BỊ DI ĐỘNG (FCM TOKEN) - TẠM THỜI ẨN   */}
+        {/* ========================================================= */}
+        {/* 
         <div className="pt-2 border-t border-[var(--divider)]">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)] mb-3 flex items-center gap-1.5">
-            <Building size={13} />
-            Đơn vị công tác & Mô tả
+            <BellRing size={13} />
+            Thông báo đẩy thiết bị di động
           </h4>
 
-          <div className="space-y-4">
-            {/* Đơn vị / Cơ sở */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
-                <Building size={13} className="text-[var(--accent)]" />
-                Cơ sở / Trang trại nuôi trồng
-              </label>
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="Tên trang trại / Cơ quan phụ trách"
-                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
-              />
-            </div>
-
-            {/* Giới thiệu / Ghi chú */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
-                <FileText size={13} className="text-[var(--accent)]" />
-                Mô tả công việc & Kinh nghiệm nuôi trồng
-              </label>
-              <textarea
-                name="bio"
-                rows={3}
-                value={formData.bio}
-                onChange={handleChange}
-                placeholder="Mô tả tóm tắt kinh nghiệm hoặc ghi chú quản lý..."
-                className="w-full resize-none rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-body)]">
+              Mã nhận cảnh báo tức thì
+            </label>
+            <input
+              type="text"
+              name="fcmToken"
+              value={formData.fcmToken}
+              onChange={handleChange}
+              placeholder="fcm_token_device_abc123xyz..."
+              className="w-full font-mono text-xs rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none"
+            />
           </div>
         </div>
+        */}
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-[var(--divider)]">

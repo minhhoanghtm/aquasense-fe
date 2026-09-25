@@ -25,7 +25,7 @@ export default function AIAnalysis() {
     }));
 
     return (
-        <div className="w-full mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-col gap-4 sm:gap-5 text-left">
+        <div className="w-full mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4 text-left">
             <Title
                 title="Phân tích AI"
                 description="Hệ thống phân tích và dự báo thông minh cho vuông nuôi tôm"
