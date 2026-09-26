@@ -15,26 +15,26 @@ const PondCard = ({ pond, alerts, onClick }: PondCardProps) => {
 
     // Determine status badge based on alerts
     let statusText = "Bình thường";
-    let badgeClass = "bg-teal-500/10 text-teal-400 border-teal-500/20";
-    let dotClass = "bg-teal-400";
+    let badgeClass = "bg-[var(--success-bg)] text-[var(--success)] border-transparent";
+    let dotClass = "bg-[var(--success)]";
 
     if (alerts.length > 0) {
         const hasDanger = alerts.some(a => a.alertLevel === "DANGER" || a.alertLevel === "CRITICAL" || a.level === "DANGER" || a.level === "CRITICAL");
         if (hasDanger) {
             statusText = "Nguy hiểm";
-            badgeClass = "bg-red-500/10 text-red-400 border-red-500/20";
-            dotClass = "bg-red-400";
+            badgeClass = "bg-[var(--critical-bg)] text-[var(--critical)] border-transparent";
+            dotClass = "bg-[var(--critical)]";
         } else {
             statusText = "Cảnh báo";
-            badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-            dotClass = "bg-amber-400";
+            badgeClass = "bg-[var(--warning-bg)] text-[var(--warning)] border-transparent";
+            dotClass = "bg-[var(--warning)]";
         }
     }
 
     return (
         <div
             onClick={onClick}
-            className="group cursor-pointer overflow-hidden rounded-xl border border-(--panel-border) bg-(--panel-bg) transition-all duration-300 hover:-translate-y-1 hover:border-(--panel-border-strong) hover:shadow-lg text-left"
+            className="group cursor-pointer overflow-hidden dashboard-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-left"
         >
             {/* Image */}
             <div className="relative h-32 overflow-hidden">

@@ -1,28 +1,31 @@
-import type { Devices } from "./Devices";
+import type { Devices, Device } from "./Devices";
 
 export type PondStatus = "ACTIVE" | "HARVESTED" | "EMPTY";
 
-export type Pond = {
+export interface Pond {
+  // Backend actual fields
   pondId?: string;
-  id: string;
+  userId?: string;
   pondName?: string;
-  name: string;
   areaM2?: number;
-  area: number;
   depthM?: number;
   shrimpDensity?: number | string;
-  density?: string;
   status: PondStatus | string;
-  createAt?: string;
   createdAt?: string;
   updatedAt?: string;
+
+  // Frontend aliases / backward compat
+  id?: string;
+  name?: string;
+  area?: number;
+  density?: string;
+  createAt?: string;
   location?: string;
   stockingDate?: string;
   growthStage?: string;
   managerId?: string;
-  userId?: string;
-};
+}
 
-export type PondWithDevices = Pond & {
-  devices: Devices[];
-};
+export interface PondWithDevices extends Pond {
+  devices: Device[];
+}

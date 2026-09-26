@@ -1,16 +1,19 @@
-export interface ThresholdConfig {
-  configId?: string;
-  id?: string;
-  pondId: string;
-  metricName: string;
-  minValue: number;
-  maxValue: number;
-  isActive: boolean;
-  normalMin?: number;
-  normalMax?: number;
-  dangerMin?: number;
-  dangerMax?: number;
-  parameterId?: string;
-}
+export interface Threshold {
+  // Backend actual fields (ThresholdConfig)
+  thresholdId?: string;
+  pondId?: string;
+  metricName?: string;
+  minCritical?: number;
+  minWarning?: number;
+  maxWarning?: number;
+  maxCritical?: number;
 
-export type Threshold = ThresholdConfig;
+  // Frontend aliases / backward compat
+  id?: string;
+  parameterId?: string;
+  parameterName?: string;
+  min?: number;
+  max?: number;
+  optimalMin?: number;
+  optimalMax?: number;
+}

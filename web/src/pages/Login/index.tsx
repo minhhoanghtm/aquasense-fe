@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   WavesHorizontal,
@@ -9,7 +9,7 @@ import {
   ArrowRight,
   AlertCircle,
 } from "lucide-react";
-import { login } from "../../services/authApi";
+import { login, loginWithOtp, sendOtp } from "../../services/authApi";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export const Login: React.FC = () => {
@@ -26,8 +26,76 @@ export const Login: React.FC = () => {
     searchParams.get("expired") === "1" ? "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại." : null
   );
 
+  const [loginMethod, setLoginMethod] = useState<"PASSWORD" | "OTP">("PASSWORD");
+  const [otpStep, setOtpStep] = useState<"PHONE" | "OTP">("PHONE");
+  const [otpCode, setOtpCode] = useState("");
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer: any;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!identifier.trim()) {
+      setErrorMessage("Vui lòng nhập số điện thoại.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      // Gọi API Backend để gửi OTP qua SMS Gateway
+      await sendOtp(identifier);
+      
+      setOtpStep("OTP");
+      setCountdown(60);
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err?.message || "Lỗi khi gửi mã OTP. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length < 6) {
+      setErrorMessage("Vui lòng nhập đủ 6 số OTP.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      
+      // Gọi API Backend xác thực OTP và lấy Session/Token
+      await loginWithOtp(identifier, otpCode);
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err?.message || "Đăng nhập không thành công. Vui lòng kiểm tra lại mã OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loginMethod === "OTP") {
+      if (otpStep === "PHONE") {
+        await handleSendOtp(e);
+      } else {
+        await handleVerifyOtp(e);
+      }
+      return;
+    }
+
     if (!identifier.trim()) {
       setErrorMessage("Vui lòng nhập Số điện thoại đăng nhập.");
       return;
@@ -43,21 +111,21 @@ export const Login: React.FC = () => {
       await login(identifier, password);
       navigate("/dashboard");
     } catch (err: any) {
-      setErrorMessage(err?.message || "Đăng nhập không thành công. Vui lòng thử lại.");
+      setErrorMessage("Số điện thoại hoặc mật khẩu không đúng!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-screen max-h-screen w-full flex flex-col justify-between relative overflow-hidden bg-transparent text-white font-sans selection:bg-(--accent) selection:text-(--text-on-accent)">
+    <div className="h-screen w-full relative overflow-hidden bg-transparent text-white font-sans selection:bg-(--accent) selection:text-(--text-on-accent)">
       {/* Background Glow Effects using App Color Tokens */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[var(--accent)]/10 blur-[160px] pointer-events-none" />
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[var(--accent-bright)]/5 blur-[160px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-teal-500/5 blur-[160px] pointer-events-none" />
 
       {/* Top Brand & Status Bar */}
-      <header className="w-full px-6 sm:px-10 lg:px-14 py-4 shrink-0 flex items-center justify-between z-20">
+      <header className="absolute top-0 left-0 right-0 w-full px-6 sm:px-10 lg:px-14 py-4 flex items-center justify-between z-20">
         {/* Left Brand */}
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_12px_rgba(45,212,195,0.2)]">
@@ -86,12 +154,12 @@ export const Login: React.FC = () => {
       </header>
 
       {/* Center Main Form Card */}
-      <main className="flex-1 flex items-center justify-center p-4 z-10 overflow-y-auto">
-        <div className="w-full max-w-[440px] rounded-[32px] border border-[var(--panel-border-strong)] bg-[#051c23]/90 backdrop-blur-2xl p-7 sm:p-9 shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center transition-all my-auto">
+      <main className="absolute inset-0 flex items-center justify-center p-4 z-10">
+        <div className="w-full max-w-[400px] rounded-[32px] border border-[var(--panel-border-strong)] bg-[#051c23]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center transition-all">
           
           {/* Centered Wave Icon Badge */}
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_20px_rgba(45,212,195,0.25)]">
-            <WavesHorizontal size={32} />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_20px_rgba(45,212,195,0.25)]">
+            <WavesHorizontal size={28} />
           </div>
 
           {/* Heading */}
@@ -100,7 +168,7 @@ export const Login: React.FC = () => {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xs sm:text-sm text-(--text-muted) mb-8 leading-relaxed">
+          <p className="text-xs sm:text-sm text-(--text-muted) mb-5 leading-relaxed">
             Nhập thông tin tài khoản để truy cập trạm giám sát
           </p>
 
@@ -112,10 +180,33 @@ export const Login: React.FC = () => {
             </div>
           )}
 
+          {/* Tabs */}
+          <div className="flex bg-[#04151c] p-1 rounded-xl mb-5 border border-[var(--panel-border-strong)] relative z-20">
+            <button
+              type="button"
+              onClick={() => { setLoginMethod("PASSWORD"); setErrorMessage(null); }}
+              className={`flex-1 text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer ${
+                loginMethod === "PASSWORD" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
+              }`}
+            >
+              Mật khẩu
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod("OTP"); setErrorMessage(null); }}
+              className={`flex-1 text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer ${
+                loginMethod === "OTP" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
+              }`}
+            >
+              Mã OTP (SMS)
+            </button>
+          </div>
+
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          <form onSubmit={handleSubmit} className="space-y-4 text-left relative z-20">
             {/* Phone Input */}
-            <div className="space-y-1.5">
+            {(loginMethod === "PASSWORD" || (loginMethod === "OTP" && otpStep === "PHONE")) && (
+              <div className="space-y-1.5 animate-fadeIn">
               <label className="block text-[11px] font-bold tracking-wider text-(--text-body) uppercase">
                 SỐ ĐIỆN THOẠI
               </label>
@@ -128,14 +219,16 @@ export const Login: React.FC = () => {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="0912 345 678"
-                  className="w-full rounded-full border border-white bg-white py-3.5 pl-12 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
+                  className="w-full rounded-full border border-white bg-white py-3 pl-12 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
                   autoComplete="username"
                 />
               </div>
             </div>
+            )}
 
             {/* Password Input */}
-            <div className="space-y-1.5">
+            {loginMethod === "PASSWORD" && (
+              <div className="space-y-1.5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <label className="block text-[11px] font-bold tracking-wider text-(--text-body) uppercase">
                   MẬT KHẨU
@@ -156,7 +249,7 @@ export const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-full border border-white bg-white py-3.5 pl-12 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
+                  className="w-full rounded-full border border-white bg-white py-3 pl-12 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
                   autoComplete="current-password"
                 />
                 <button
@@ -168,6 +261,51 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </div>
+            )}
+
+            {/* OTP Input */}
+            {loginMethod === "OTP" && otpStep === "OTP" && (
+              <div className="space-y-1.5 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold tracking-wider text-(--text-body) uppercase">
+                    MÃ OTP
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (countdown === 0) handleSendOtp();
+                    }}
+                    className={`text-xs font-semibold transition-colors ${countdown === 0 ? "text-[var(--accent)] hover:text-[var(--accent-bright)] cursor-pointer" : "text-gray-500 cursor-not-allowed"}`}
+                  >
+                    {countdown > 0 ? `Gửi lại sau ${countdown}s` : "Gửi lại OTP"}
+                  </button>
+                </div>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-gray-400 pointer-events-none">
+                    <Lock size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Nhập 6 số OTP"
+                    className="w-full rounded-full border border-white bg-white py-3 pl-12 pr-4 text-sm font-medium text-gray-900 tracking-[0.5em] placeholder:tracking-normal placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
+                    autoComplete="one-time-code"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpStep("PHONE");
+                    setOtpCode("");
+                    setErrorMessage(null);
+                  }}
+                  className="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer mt-1"
+                >
+                  ← Quay lại đổi số điện thoại
+                </button>
+              </div>
+            )}
 
             {/* Checkbox and Help Link */}
             <div className="flex items-center justify-between pt-1.5">
@@ -198,7 +336,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-3 group relative flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] active:scale-[0.99] py-3.5 px-6 font-bold text-[var(--text-on-accent)] text-sm shadow-[0_0_20px_rgba(45,212,195,0.35)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full mt-2 group relative flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] active:scale-[0.99] py-3 px-6 font-bold text-[var(--text-on-accent)] text-sm shadow-[0_0_20px_rgba(45,212,195,0.35)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -207,7 +345,12 @@ export const Login: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <span>Đăng nhập</span>
+                  <span>
+                    {loginMethod === "PASSWORD" 
+                      ? "Đăng nhập" 
+                      : (otpStep === "PHONE" ? "Gửi mã OTP" : "Xác nhận & Đăng nhập")
+                    }
+                  </span>
                   <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                 </>
               )}
@@ -217,7 +360,7 @@ export const Login: React.FC = () => {
       </main>
 
       {/* Footer Fixed to Bottom Edge */}
-      <footer className="fixed bottom-0 left-0 right-0 w-full px-6 sm:px-10 lg:px-14 py-3 z-20 border-t border-[var(--divider)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-(--text-muted) backdrop-blur-md bg-(--bg-primary)/40">
+      <footer className="absolute bottom-0 left-0 right-0 w-full px-6 sm:px-10 lg:px-14 py-3 z-20 border-t border-[var(--divider)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-(--text-muted) backdrop-blur-md bg-(--bg-primary)/40">
         <div>
           © 2026 AquaSense Smart AgriTech &nbsp;–&nbsp; Chuẩn bảo mật SSL 256-bit
         </div>

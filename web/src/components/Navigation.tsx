@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -8,6 +8,8 @@ import {
   Brain,
   Users,
 } from "lucide-react";
+import { getCurrentUser } from "../services/authApi";
+import type { User as UserType } from "../types/User";
 
 const navigation = [
   {
@@ -39,15 +41,31 @@ const navigation = [
     label: "Quản lý nhân viên",
     link: "/staff",
     icon: Users,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
 ];
 
 export const Navigation = memo(() => {
   const location = useLocation();
+  const [currentUser, setCurrentUser] = useState<UserType | null>(getCurrentUser());
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setCurrentUser(getCurrentUser());
+    };
+    window.addEventListener("storage", handleStorageUpdate);
+    return () => {
+      window.removeEventListener("storage", handleStorageUpdate);
+    };
+  }, []);
+
+  const filteredNavigation = navigation.filter(
+    (item) => !item.allowedRoles || (currentUser?.role && item.allowedRoles.includes(currentUser.role))
+  );
 
   return (
     <nav className="flex items-center gap-1 xl:gap-2">
-      {navigation.map((item) => {
+      {filteredNavigation.map((item) => {
         const isActive = location.pathname === item.link || 
           (item.link === "/dashboard" && location.pathname === "/");
 
@@ -70,7 +88,7 @@ export const Navigation = memo(() => {
               transition-colors
               duration-150
               ${isActive
-                ? "bg-[#0b353e] text-[var(--accent)] border-[#2dd4c3]/20 shadow-inner font-semibold"
+                ? "bg-[var(--panel-bg-dark)] text-[var(--accent)] border-[var(--panel-border-strong)] shadow-inner font-semibold"
                 : "border-transparent text-[var(--text-body)] hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]"
               }
             `}
@@ -90,10 +108,25 @@ export const MobileNavigation = memo(({
   onClose: () => void;
 }) => {
   const location = useLocation();
+  const [currentUser, setCurrentUser] = useState<UserType | null>(getCurrentUser());
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setCurrentUser(getCurrentUser());
+    };
+    window.addEventListener("storage", handleStorageUpdate);
+    return () => {
+      window.removeEventListener("storage", handleStorageUpdate);
+    };
+  }, []);
+
+  const filteredNavigation = navigation.filter(
+    (item) => !item.allowedRoles || (currentUser?.role && item.allowedRoles.includes(currentUser.role))
+  );
 
   return (
     <nav className="flex flex-col gap-1">
-      {navigation.map((item) => {
+      {filteredNavigation.map((item) => {
         const Icon = item.icon;
         const isActive =
           location.pathname === item.link ||
@@ -117,14 +150,14 @@ export const MobileNavigation = memo(({
               cursor-pointer
               ${
                 isActive
-                  ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30"
-                  : "text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-300"
+                  ? "bg-[var(--panel-bg-dark)] text-[var(--accent)] font-semibold border border-[var(--panel-border-strong)]"
+                  : "text-[var(--text-body)] hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)] border border-transparent"
               }
             `}
           >
             <Icon
               size={18}
-              className={isActive ? "text-cyan-400" : "text-cyan-500/80"}
+              className={isActive ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}
             />
 
             <span>{item.label}</span>

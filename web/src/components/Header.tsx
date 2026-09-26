@@ -26,6 +26,8 @@ const Header = () => {
   const mobileButtonRef = useRef<HTMLButtonElement>(null);
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   useEffect(() => {
     const initUser = async () => {
       const stored = getCurrentUser();
@@ -104,19 +106,29 @@ const Header = () => {
         </Link>
 
         {/* ================= DESKTOP NAVIGATION ================= */}
-        <div className="hidden flex-1 items-center justify-center lg:flex min-w-0 px-2">
-          <Navigation />
+        <div 
+          className={`hidden items-center justify-center lg:flex px-2 overflow-hidden transition-all duration-500 ease-in-out ${
+            isSearchFocused ? 'max-w-0 opacity-0' : 'flex-1 max-w-[1000px] opacity-100'
+          }`}
+        >
+          <div className="min-w-max">
+            <Navigation />
+          </div>
         </div>
 
         {/* ================= RIGHT SIDE (SEARCH + NOTIFICATION + USER) ================= */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className={`flex items-center gap-2 sm:gap-3 transition-all duration-500 ease-in-out ${isSearchFocused ? 'flex-1' : 'shrink-0'}`}>
           {/* ================= SEARCH DESKTOP (FIXED ON RIGHT) ================= */}
-          <div className="hidden h-8.5 w-36 2xl:w-48 shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-2.5 xl:flex focus-within:border-[var(--accent)]">
+          <div className={`hidden h-8.5 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-2.5 xl:flex focus-within:border-[var(--accent)] transition-all duration-500 ease-in-out ${
+            isSearchFocused ? 'flex-1 w-full' : 'w-36 2xl:w-48 shrink-0'
+          }`}>
             <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
 
             <input
               type="text"
               placeholder="Tìm kiếm..."
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] !border-none !shadow-none"
             />
           </div>
@@ -162,15 +174,15 @@ const Header = () => {
             {/* Profile Dropdown */}
             {isProfileOpen && (
               <div
-                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-cyan-800 bg-[#0b3039] shadow-2xl text-left"
+                className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-lg text-left"
               >
                 {/* User Info */}
-                <div className="border-b border-cyan-800/80 px-4 py-3 bg-[#08262e]">
-                  <p className="text-sm font-semibold text-white">
+                <div className="border-b border-[var(--panel-border)] px-4 py-3 bg-[var(--panel-bg-dark)]">
+                  <p className="text-sm font-medium text-[var(--text-heading)]">
                     {currentUser?.fullName || "Nguyễn Văn An"}
                   </p>
 
-                  <p className="text-xs text-cyan-300/70">
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
                     {currentUser?.phoneNumber || currentUser?.email || "farmer@example.com"}
                   </p>
                 </div>
@@ -179,9 +191,9 @@ const Header = () => {
                 <Link
                   to="/profile"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)]"
                 >
-                  <User size={17} className="text-cyan-400" />
+                  <User size={17} className="text-[var(--text-muted)]" />
                   <span>Hồ sơ cá nhân</span>
                 </Link>
 
@@ -189,9 +201,9 @@ const Header = () => {
                 <Link
                   to="/settings"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)]"
                 >
-                  <Settings size={17} className="text-cyan-400" />
+                  <Settings size={17} className="text-[var(--text-muted)]" />
                   <span>Cài đặt</span>
                 </Link>
 
@@ -199,19 +211,19 @@ const Header = () => {
                 <Link
                   to="/notifications"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition hover:bg-cyan-500/10 hover:text-cyan-300"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-[var(--text-body)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)]"
                 >
-                  <Bell size={17} className="text-cyan-400" />
+                  <Bell size={17} className="text-[var(--text-muted)]" />
                   <span>Thông báo</span>
                 </Link>
 
                 {/* Divider */}
-                <div className="border-t border-cyan-800/80" />
+                <div className="border-t border-[var(--panel-border)]" />
 
                 {/* Logout */}
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-rose-400 transition hover:bg-rose-500/10 cursor-pointer"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--critical)] transition hover:bg-[var(--critical-bg)] cursor-pointer"
                   onClick={() => {
                     setIsProfileOpen(false);
                     logout();
@@ -230,7 +242,7 @@ const Header = () => {
             ref={mobileButtonRef}
             type="button"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-800 bg-[#0b3039] text-cyan-300 transition hover:bg-cyan-900/50 hover:text-white lg:hidden cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)] lg:hidden cursor-pointer"
             aria-label="Menu"
           >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -240,12 +252,12 @@ const Header = () => {
 
       {/* ================= MOBILE SEARCH ================= */}
       <div className="px-4 pb-3 sm:px-5 lg:hidden">
-        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-cyan-800 bg-[#0b3039] px-3">
-          <Search size={16} className="shrink-0 text-cyan-400" />
+        <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3">
+          <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
           <input
             type="text"
             placeholder="Tìm vuông, cảm biến, cảnh báo..."
-            className="w-full bg-transparent text-xs text-white outline-none placeholder:text-[var(--text-muted)]"
+            className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
           />
         </div>
       </div>
@@ -254,7 +266,7 @@ const Header = () => {
       {isOpen && (
         <div
           ref={mobileNavRef}
-          className="absolute left-0 right-0 top-full z-50 border-y border-cyan-800 bg-[#0b3039] p-3 shadow-2xl lg:hidden"
+          className="absolute left-0 right-0 top-full z-50 border-b border-[var(--panel-border)] bg-[var(--panel-bg)] p-3 shadow-lg lg:hidden"
         >
           <MobileNavigation onClose={() => setIsOpen(false)} />
         </div>

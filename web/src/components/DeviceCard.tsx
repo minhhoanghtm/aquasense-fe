@@ -75,34 +75,34 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
         : "Ngoại tuyến";
 
   const statusBadgeClass = isOnline
-    ? "bg-cyan-950/80 text-(--accent) border-cyan-500/30"
+    ? "bg-[var(--success-bg)] text-[var(--success)] border-transparent"
     : isWarning
-      ? "bg-amber-950/80 text-amber-400 border-amber-500/30"
+      ? "bg-[var(--warning-bg)] text-[var(--warning)] border-transparent"
       : isDanger
-        ? "bg-rose-950/80 text-rose-400 border-rose-500/30"
-        : "bg-slate-900/80 text-slate-400 border-slate-700/40";
+        ? "bg-[var(--critical-bg)] text-[var(--critical)] border-transparent"
+        : "bg-[var(--panel-bg-dark)] text-[var(--text-muted)] border-transparent";
 
   const statusDotClass = isOnline
-    ? "bg-(--accent)"
+    ? "bg-[var(--success)]"
     : isWarning
-      ? "bg-amber-400"
+      ? "bg-[var(--warning)]"
       : isDanger
-        ? "bg-rose-400"
-        : "bg-slate-500";
+        ? "bg-[var(--critical)]"
+        : "bg-[var(--text-subtle)]";
 
   return (
     <div
-      className={`w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/50 ${className}`}
+      className={`w-full dashboard-card p-5 text-left flex flex-col justify-between ${className}`}
     >
       {/* Header: Icon Box + Status Badge + Actions */}
       <div className="flex items-start justify-between">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0d2e38] text-(--accent)">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)]">
           {icon || <Radio className="h-6 w-6" />}
         </div>
 
         <div className="flex items-center gap-1.5">
           <div
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur-md ${statusBadgeClass}`}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${statusBadgeClass}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
             <span>{statusLabel}</span>
@@ -112,7 +112,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             <button
               type="button"
               onClick={onEdit}
-              className="p-1.5 rounded-xl border border-cyan-800/80 bg-[#07252f] text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition cursor-pointer"
+              className="p-1.5 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)] transition cursor-pointer"
               title="Chỉnh sửa thiết bị"
             >
               <Edit3 size={13} />
@@ -123,7 +123,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             <button
               type="button"
               onClick={onDelete}
-              className="p-1.5 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 hover:text-rose-200 transition cursor-pointer"
+              className="p-1.5 rounded-xl border border-[var(--critical-bg)] bg-[var(--panel-bg)] text-[var(--critical)] hover:bg-[var(--critical-bg)] transition cursor-pointer"
               title="Xóa thiết bị"
             >
               <Trash2 size={13} />
@@ -134,11 +134,11 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
 
       {/* Title & Device Code */}
       <div className="mt-4 flex flex-col items-start gap-1">
-        <h3 className="text-base md:text-lg font-bold text-(--text-heading) leading-tight">
+        <h3 className="text-base md:text-lg font-semibold text-[var(--text-heading)] leading-tight">
           {name}
         </h3>
         {(code || subtitle) && (
-          <span className="text-xs font-semibold uppercase tracking-wider text-(--text-muted) font-mono">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-mono">
             {code || subtitle}
           </span>
         )}
@@ -150,7 +150,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
           {sensors.map((sensor, index) => (
             <span
               key={index}
-              className="rounded-xl border border-cyan-900/40 bg-[#0a2b35] px-3 py-1 text-xs font-medium text-(--text-body)"
+              className="rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-3 py-1 text-xs font-medium text-[var(--text-body)]"
             >
               {sensor}
             </span>

@@ -20,6 +20,7 @@ export interface RouteConfig {
   index?: boolean;
   element: ComponentType<any>;
   children?: RouteConfig[];
+  allowedRoles?: string[];
 }
 
 export const routes: RouteConfig[] = [
@@ -94,5 +95,6 @@ export const routes: RouteConfig[] = [
   {
     path: "/staff",
     element: StaffManagement,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
 ];

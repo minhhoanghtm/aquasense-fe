@@ -132,6 +132,13 @@ export const api = async <T>(
     }
   }
 
+  if (response.status === 403) {
+    if (window.location.pathname !== "/403") {
+      window.location.href = "/403";
+    }
+    throw new Error("Không có quyền truy cập");
+  }
+
   if (!response.ok) {
     let errorMessage = `Lỗi yêu cầu API (${response.status})`;
     try {

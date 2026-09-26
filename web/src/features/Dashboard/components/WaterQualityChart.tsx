@@ -47,7 +47,7 @@ const WaterQualityChart = ({ waterQuality }: WaterQualityChartProps) => {
 
     if (sensorReadings.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-8 mt-6 text-slate-400 min-h-[300px]">
+            <div className="flex flex-col items-center justify-center dashboard-card p-8 mt-6 text-[var(--text-muted)] min-h-[300px]">
                 <p className="text-sm">Đang tải dữ liệu biểu đồ...</p>
             </div>
         );
@@ -103,7 +103,7 @@ const WaterQualityChart = ({ waterQuality }: WaterQualityChartProps) => {
     };
 
     return (
-        <div className="flex flex-col rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 mt-6 text-left w-full">
+        <div className="flex flex-col dashboard-card p-6 mt-6 text-left w-full">
             {/* Chart Header */}
             <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
                 <div>

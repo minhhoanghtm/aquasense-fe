@@ -6,11 +6,11 @@
      ================================ */
   --bg-primary: #061c24;
   --bg-deep: #04151c;
-
+  
   --bg-gradient-top: #0a303b;
   --bg-gradient-middle: #082832;
   --bg-gradient-bottom: #041920;
-
+  
   --bg-overlay: rgba(3, 27, 35, 0.86);
 
   /* ================================
@@ -74,17 +74,17 @@
 body {
   margin: 0;
   min-height: 100vh;
-  zoom: 0.9;
+  /* Removed zoom: 0.9, as scaling should be responsive, not hardcoded zoom */
 
   background-color: var(--bg-primary);
-
+  
   /*
     Background ảnh + lớp phủ xanh đen.
     Giúp ảnh nền vẫn nhìn thấy nhưng không làm
     ảnh hưởng khả năng đọc nội dung dashboard.
   */
   background-image:
-    linear-gradient(rgba(3, 27, 35, 0.86), rgba(3, 27, 35, 0.92)),
+    linear-gradient(var(--bg-overlay), rgba(3, 27, 35, 0.92)),
     url("./assets/background.png");
 
   background-size: cover;
@@ -93,53 +93,39 @@ body {
   background-attachment: fixed;
 
   color: var(--text-primary);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 #root {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  text-align: center;
-
-  border-inline: 1px solid var(--panel-border);
-
   min-height: 100svh;
-
   display: flex;
   flex-direction: column;
-
   box-sizing: border-box;
-
   background: transparent;
 }
 
 @layer base {
-  h1,
-  h2,
-  h3,
-  h4 {
-    font-family: var(--heading);
-    font-weight: 600;
+  h1, h2, h3, h4 {
+    font-weight: 500;
     color: var(--text-heading);
+    letter-spacing: -0.01em;
   }
 
   h1 {
-    font-size: 28px;
-    letter-spacing: -0.5px;
+    font-size: 24px;
     margin: 8px 0;
-
     @media (max-width: 1024px) {
-      font-size: 22px;
-      margin: 6px 0;
+      font-size: 20px;
     }
   }
 
   h2 {
     font-size: 18px;
-    line-height: 125%;
-    letter-spacing: -0.2px;
+    line-height: 1.3;
     margin: 0 0 4px;
-
     @media (max-width: 1024px) {
       font-size: 16px;
     }
@@ -147,24 +133,24 @@ body {
 
   h3 {
     font-size: 15px;
-    line-height: 125%;
+    line-height: 1.3;
     margin: 0 0 2px;
   }
 
   h4 {
     font-size: 14px;
-    line-height: 125%;
+    line-height: 1.3;
     margin: 0;
   }
 
   p {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
-  code,
-  .counter {
-    font-family: var(--mono);
+  code, .counter {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     display: inline-flex;
     border-radius: 4px;
     color: var(--text-heading);
@@ -172,10 +158,9 @@ body {
 
   code {
     font-size: 13px;
-    line-height: 135%;
     padding: 2px 6px;
-
-    background: rgba(4, 25, 32, 0.8);
+    background: var(--panel-bg-dark);
+    border: 1px solid var(--panel-border);
   }
 }
 
@@ -186,22 +171,44 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(8, 39, 49, 0.3);
-  border-radius: 3px;
+  background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(45, 212, 195, 0.3);
-  border-radius: 3px;
+  background: #334155;
+  border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(45, 212, 195, 0.6);
+  background: #475569;
 }
 
 /* ================================
    CARD HOVER GLOW EFFECT
    ================================ */
+.dashboard-card {
+  background-color: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-card:hover {
+  border-color: rgba(45, 212, 195, 0.58) !important;
+  background-color: rgba(10, 48, 60, 0.82);
+  box-shadow: 0 10px 28px -4px rgba(45, 212, 195, 0.24), 0 0 20px rgba(45, 212, 195, 0.18);
+}
+
+/* Prevent parent card from glowing when hovering a child interactive element */
+.dashboard-card:has(button:hover),
+.dashboard-card:has(a:hover),
+.dashboard-card:has(.dashboard-card:hover) {
+  border-color: var(--panel-border) !important;
+  background-color: var(--panel-bg) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 .rounded-3xl.border,
 .rounded-2xl.border:not(input):not(textarea):not(select),
 [class*="bg-(--panel-bg)"]:not(input):not(textarea):not(select),
@@ -224,7 +231,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* Khi hover vào card con hoặc nút bấm bên trong thì card tổng / card cha bên ngoài không sáng */
 .rounded-3xl.border:has(.rounded-2xl.border:hover),
 .rounded-3xl.border:has(.rounded-xl.border:hover),
 .rounded-3xl.border:has(.rounded-lg.border:hover),
@@ -255,7 +261,7 @@ body {
   transform: none !important;
 }
 
-/* Form controls focus - remove inner glow, let container handle border */
+/* Form controls focus */
 input:focus,
 textarea:focus,
 select:focus {

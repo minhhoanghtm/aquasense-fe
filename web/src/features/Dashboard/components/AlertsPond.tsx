@@ -4,16 +4,16 @@ const AlertsPond = ({ alerts }: { alerts: any }) => {
     const safeAlerts = Array.isArray(alerts) ? alerts : [];
     const count = safeAlerts.length;
     return (
-        <div className='border border-(--panel-border-strong) p-3 rounded-xl text-left'>
+        <div className='dashboard-card p-5 text-left h-full flex flex-col'>
             {/* Title + icon  */}
             <div className='flex justify-between items-center w-full mb-6'>
                 {/* title  */}
                 <div className="flex flex-col items-start">
-                    <h4 className="text-(--primary)">Cảnh báo Ao</h4>
-                    <p className="text-xs text-(--text-muted)">{count > 0 ? `${count} cảnh báo cần chú ý` : "Không có cảnh báo nào"}</p>
+                    <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide">Cảnh báo Ao</h4>
+                    <p className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mt-0.5 uppercase">{count > 0 ? `${count} cảnh báo cần chú ý` : "Không có cảnh báo nào"}</p>
                 </div>
 
-                <TriangleAlert size={16} />
+                <TriangleAlert size={20} className="text-[var(--critical)]" />
             </div>
 
             {/* List alert */}

@@ -219,7 +219,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
                 >
-                  <option value="ACTIVE" className="bg-[#07242e]">Đang nuôi (ACTIVE)</option>
+                  <option value="ACTIVE" className="bg-[#07242e]">Đang nuôi</option>
                   <option value="PREPARING" className="bg-[#07242e]">Đang cải tạo / Chuẩn bị</option>
                   <option value="HARVESTING" className="bg-[#07242e]">Đang thu hoạch</option>
                   <option value="EMPTY" className="bg-[#07242e]">Ao trống</option>

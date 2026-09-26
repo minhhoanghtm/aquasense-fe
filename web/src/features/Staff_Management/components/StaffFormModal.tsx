@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, UserPlus, Phone, Contact, Mail, ArrowRight, AlertCircle } from "lucide-react";
 import type { User as UserType, Role, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import { getCurrentUser } from "../../../services/authApi";
 
 interface StaffFormModalProps {
   isOpen: boolean;
@@ -23,6 +24,9 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
   const [role, setRole] = useState<Role>("FARMER");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "ADMIN";
 
   useEffect(() => {
     if (initialData) {
@@ -67,6 +71,13 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
       return;
     }
 
+    const finalRole = isAdmin ? role : "MANAGER";
+
+    if (isAdmin && !["MANAGER", "FARMER"].includes(finalRole)) {
+      setErrorMsg("Vai trò không hợp lệ. Vui lòng chọn Quản lý hoặc Nông dân.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setErrorMsg("");
@@ -74,11 +85,11 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
         fullName: fullName.trim(),
         phoneNumber: cleanPhone,
         email: email.trim(),
-        role: role,
+        role: finalRole,
         password: initialData ? undefined : "password123",
         isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
         status: (initialData?.status as UserStatus) || "ACTIVE",
-        position: role === "MANAGER" ? "Quản lý trạm" : "Kỹ thuật viên ao",
+        position: finalRole === "MANAGER" ? "Quản lý trạm" : "Kỹ thuật viên ao",
         department: "Quản lý & Nuôi trồng Thủy sản",
         assignedPondIds: initialData?.assignedPondIds || [],
       });
@@ -192,6 +203,42 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Field 4: Vai trò (Chỉ hiển thị cho ADMIN) */}
+          {isAdmin && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-bold text-white">
+                  Vai trò <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] text-(--text-muted)">Bắt buộc</span>
+              </div>
+              <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="MANAGER"
+                    checked={role === "MANAGER"}
+                    onChange={() => setRole("MANAGER")}
+                    className="w-4 h-4 text-[#1AD1B9] bg-[#04151c] border-cyan-800/80 focus:ring-[#1AD1B9] focus:ring-2"
+                  />
+                  <span className="text-sm text-white">Quản lý</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="FARMER"
+                    checked={role === "FARMER"}
+                    onChange={() => setRole("FARMER")}
+                    className="w-4 h-4 text-[#1AD1B9] bg-[#04151c] border-cyan-800/80 focus:ring-[#1AD1B9] focus:ring-2"
+                  />
+                  <span className="text-sm text-white">Nông dân</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Footer Actions */}
           <div className="pt-3 border-t border-cyan-900/40 flex items-center justify-end gap-3 shrink-0">

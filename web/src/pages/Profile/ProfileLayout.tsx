@@ -84,14 +84,6 @@ export default function ProfileLayout() {
       icon: Shield,
     },
     {
-      id: "ponds",
-      path: "/profile/ponds",
-      aliasPaths: [],
-      label: "Vuông nuôi phụ trách",
-      icon: Waves,
-      badge: assignedPondsCount,
-    },
-    {
       id: "preferences",
       path: "/profile/preferences",
       aliasPaths: ["/profile/settings", "/settings"],
@@ -140,21 +132,19 @@ export default function ProfileLayout() {
               <Link
                 key={tab.id}
                 to={tab.path}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors duration-150 cursor-pointer ${
-                  active
+                className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-colors duration-150 cursor-pointer ${active
                     ? "bg-[var(--accent)] text-[var(--text-on-accent)] shadow-md shadow-[var(--accent)]/20"
                     : "text-[var(--text-muted)] hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)]"
-                }`}
+                  }`}
               >
                 <Icon size={16} />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span
-                    className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                      active
+                    className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${active
                         ? "bg-[var(--bg-primary)]/30 text-white"
                         : "bg-[var(--panel-bg)] text-[var(--accent)] border border-[var(--panel-border)]"
-                    }`}
+                      }`}
                   >
                     {tab.badge}
                   </span>

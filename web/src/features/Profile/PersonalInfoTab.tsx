@@ -9,6 +9,9 @@ import {
   Sparkles,
   ShieldCheck,
   Lock,
+  Mail,
+  Calendar,
+  Users,
 } from "lucide-react";
 import type { User as UserType } from "../../types/User";
 import { updateProfile } from "../../services/authApi";
@@ -22,6 +25,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
   const [formData, setFormData] = useState({
     fullName: user?.fullName || "",
     phoneNumber: user?.phoneNumber || "",
+    email: user?.email || "",
+    gender: user?.gender || "",
+    dateOfBirth: user?.dateOfBirth ? String(user.dateOfBirth).split('T')[0] : "",
     role: user?.role || "FARMER",
     fcmToken: user?.fcmToken || "",
   });
@@ -34,6 +40,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       setFormData({
         fullName: user.fullName || "",
         phoneNumber: user.phoneNumber || "",
+        email: user.email || "",
+        gender: user.gender || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).split('T')[0] : "",
         role: user.role || "FARMER",
         fcmToken: user.fcmToken || "",
       });
@@ -50,6 +59,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       setFormData({
         fullName: user.fullName || "",
         phoneNumber: user.phoneNumber || "",
+        email: user.email || "",
+        gender: user.gender || "",
+        dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).split('T')[0] : "",
         role: user.role || "FARMER",
         fcmToken: user.fcmToken || "",
       });
@@ -89,6 +101,9 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       const updated = await updateProfile(currentUserId, {
         fullName: formData.fullName.trim(),
         phoneNumber: formData.phoneNumber.trim(),
+        email: formData.email.trim() || undefined,
+        gender: formData.gender || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
         fcmToken: formData.fcmToken.trim(),
       });
 
@@ -185,6 +200,55 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
                 onChange={handleChange}
                 placeholder="Ví dụ: 0912345678"
                 className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
+                <Mail size={13} className="text-[var(--accent)]" />
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Ví dụ: ten@gmail.com"
+                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
+              />
+            </div>
+
+            {/* Giới tính */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
+                <Users size={13} className="text-[var(--accent)]" />
+                Giới tính
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange as any}
+                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
+              >
+                <option value="">Chọn giới tính</option>
+                <option value="MALE">Nam</option>
+                <option value="FEMALE">Nữ</option>
+              </select>
+            </div>
+
+            {/* Ngày sinh */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
+                <Calendar size={13} className="text-[var(--accent)]" />
+                Ngày sinh
+              </label>
+              <input
+                type="date"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
               />
             </div>
 

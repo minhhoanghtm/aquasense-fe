@@ -93,26 +93,15 @@ export const ForgotPassword: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await sendOtp(cleanVal);
-      if (res?.otp) {
-        setSuccessMessage(`Mã OTP của bạn là: ${res.otp}`);
-      } else {
-        setSuccessMessage("Mã OTP thử nghiệm: 123456");
-      }
-      setCountdown(60);
+      await sendOtp(cleanVal, "RESET_PASSWORD");
+      setSuccessMessage("Mã OTP đã được gửi thành công!");
+      setCountdown(600);
       setStep(2);
       setTimeout(() => {
         otpInputsRef.current[0]?.focus();
       }, 150);
     } catch (err: any) {
-      // Tự động chuyển sang chế độ Test/Mock
-      console.warn("Chế độ thử nghiệm OTP:", err);
-      setSuccessMessage("Mã OTP thử nghiệm: 123456");
-      setCountdown(60);
-      setStep(2);
-      setTimeout(() => {
-        otpInputsRef.current[0]?.focus();
-      }, 150);
+      setErrorMessage(err?.message || "Không thể gửi OTP. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setLoading(false);
     }
@@ -167,10 +156,10 @@ export const ForgotPassword: React.FC = () => {
         setStep(3);
         return;
       }
-      await verifyOtp(identifier.trim(), otpCode);
+      await verifyOtp(identifier.trim(), otpCode, "RESET_PASSWORD");
       setStep(3);
-    } catch {
-      setStep(3);
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Mã OTP không chính xác hoặc đã hết hạn.");
     } finally {
       setLoading(false);
     }
@@ -182,18 +171,14 @@ export const ForgotPassword: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await sendOtp(identifier.trim());
+      const res = await sendOtp(identifier.trim(), "RESET_PASSWORD");
       setCountdown(60);
       setOtpDigits(["", "", "", "", "", ""]);
       setSuccessMessage(res?.otp ? `Mã OTP mới: ${res.otp}` : "Mã OTP mới: 123456");
       setTimeout(() => setSuccessMessage(null), 4000);
       otpInputsRef.current[0]?.focus();
-    } catch {
-      setCountdown(60);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setSuccessMessage("Mã OTP thử nghiệm: 123456");
-      setTimeout(() => setSuccessMessage(null), 4000);
-      otpInputsRef.current[0]?.focus();
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Không thể gửi lại OTP.");
     } finally {
       setLoading(false);
     }
@@ -221,8 +206,8 @@ export const ForgotPassword: React.FC = () => {
       const otpCode = otpDigits.join("");
       await resetPassword(identifier.trim(), newPassword, otpCode);
       setStep(4);
-    } catch {
-      setStep(4);
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Đã xảy ra lỗi khi đổi mật khẩu.");
     } finally {
       setLoading(false);
     }
@@ -294,11 +279,10 @@ export const ForgotPassword: React.FC = () => {
                     setMethod("phone");
                     setErrorMessage(null);
                   }}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    method === "phone"
-                      ? "bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[0_0_12px_rgba(45,212,195,0.35)]"
-                      : "text-(--text-muted) hover:text-white"
-                  }`}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${method === "phone"
+                    ? "bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[0_0_12px_rgba(45,212,195,0.35)]"
+                    : "text-(--text-muted) hover:text-white"
+                    }`}
                 >
                   <Phone size={13} />
                   <span>Số điện thoại</span>
@@ -309,11 +293,10 @@ export const ForgotPassword: React.FC = () => {
                     setMethod("email");
                     setErrorMessage(null);
                   }}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    method === "email"
-                      ? "bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[0_0_12px_rgba(45,212,195,0.35)]"
-                      : "text-(--text-muted) hover:text-white"
-                  }`}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${method === "email"
+                    ? "bg-[var(--accent)] text-[var(--text-on-accent)] shadow-[0_0_12px_rgba(45,212,195,0.35)]"
+                    : "text-(--text-muted) hover:text-white"
+                    }`}
                 >
                   <Mail size={13} />
                   <span>Email</span>
@@ -475,11 +458,10 @@ export const ForgotPassword: React.FC = () => {
                     type="button"
                     onClick={handleResendOtp}
                     disabled={countdown > 0 || loading}
-                    className={`flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-                      countdown > 0
-                        ? "text-(--text-subtle) opacity-60 cursor-not-allowed"
-                        : "text-[var(--accent)] hover:text-[var(--accent-bright)]"
-                    }`}
+                    className={`flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${countdown > 0
+                      ? "text-(--text-subtle) opacity-60 cursor-not-allowed"
+                      : "text-[var(--accent)] hover:text-[var(--accent-bright)]"
+                      }`}
                   >
                     <RotateCw size={12} className={loading ? "animate-spin" : ""} />
                     <span>Gửi lại mã</span>

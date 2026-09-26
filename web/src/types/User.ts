@@ -1,19 +1,27 @@
-export type Role = "MANAGER" | "FARMER";
+export type Role = "ADMIN" | "MANAGER" | "FARMER";
 export type UserRole = Role | string;
-
 export type UserStatus = "ACTIVE" | "ON_LEAVE" | "INACTIVE" | "PENDING_APPROVAL";
 
 export interface User {
+  // Backend actual fields
   userId?: string;
-  id: string;
   fullName: string;
   phoneNumber?: string;
-  email?: string;
+  email?: string | null;
+  gender?: "MALE" | "FEMALE" | null;
+  dateOfBirth?: string | null;
   passwordHash?: string;
-  password?: string;
   role: Role | string;
-  fcmToken?: string;
+  fcmToken?: string | null;
   isActive?: boolean;
+  mustChangePassword?: boolean;
+  tokenVersion?: number;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Frontend aliases / backward compat
+  id?: string;
+  password?: string;
   status?: UserStatus;
   avatar?: string;
   avatarColor?: string;
@@ -23,8 +31,6 @@ export interface User {
   position?: string;
   assignedPondIds?: string[];
   joinDate?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface AuthResponse {

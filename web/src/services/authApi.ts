@@ -125,6 +125,9 @@ export interface BackendUpdateProfileResponse {
     userId: string;
     fullName: string;
     phoneNumber: string;
+    email?: string | null;
+    gender?: "MALE" | "FEMALE" | null;
+    dateOfBirth?: string | null;
     role: string;
     isActive: boolean;
     fcmToken?: string | null;
@@ -140,7 +143,7 @@ export interface BackendUpdateProfileResponse {
  */
 export const updateProfile = async (
   _userId: string,
-  updatedData: { fullName?: string; phoneNumber?: string; fcmToken?: string }
+  updatedData: { fullName?: string; phoneNumber?: string; email?: string; gender?: string; dateOfBirth?: string; fcmToken?: string }
 ): Promise<User> => {
   const payload: Record<string, string> = {};
   if (updatedData.fullName !== undefined && updatedData.fullName !== "") {
@@ -148,6 +151,15 @@ export const updateProfile = async (
   }
   if (updatedData.phoneNumber !== undefined && updatedData.phoneNumber !== "") {
     payload.phoneNumber = updatedData.phoneNumber.trim();
+  }
+  if (updatedData.email !== undefined) {
+    payload.email = updatedData.email.trim();
+  }
+  if (updatedData.gender !== undefined) {
+    payload.gender = updatedData.gender;
+  }
+  if (updatedData.dateOfBirth !== undefined) {
+    payload.dateOfBirth = updatedData.dateOfBirth;
   }
 
   const res = await api<BackendUpdateProfileResponse>("/users/profile", {
@@ -174,6 +186,9 @@ export const updateProfile = async (
     userId: rawUser.userId,
     fullName: rawUser.fullName,
     phoneNumber: rawUser.phoneNumber,
+    email: rawUser.email || undefined,
+    gender: rawUser.gender || undefined,
+    dateOfBirth: rawUser.dateOfBirth ? String(rawUser.dateOfBirth).split('T')[0] : undefined,
     role: rawUser.role,
     isActive: rawUser.isActive,
     fcmToken: updatedData.fcmToken !== undefined ? updatedData.fcmToken : rawUser.fcmToken || undefined,
@@ -271,12 +286,12 @@ export interface BackendRegisterResponse {
  * Gửi mã OTP xác thực (qua SĐT hoặc Email)
  * POST /auth/send-otp
  */
-export const sendOtp = async (identifier: string): Promise<SendOtpResponse> => {
+export const sendOtp = async (identifier: string, purpose: string = "LOGIN"): Promise<SendOtpResponse> => {
   const clean = identifier.trim();
   const isEmail = clean.includes("@");
   const payload: Record<string, any> = isEmail
-    ? { email: clean, identifier: clean }
-    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, "") };
+    ? { email: clean, identifier: clean, purpose }
+    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), purpose };
 
   const res = await api<SendOtpResponse>("/auth/send-otp", {
     method: "POST",
@@ -291,13 +306,14 @@ export const sendOtp = async (identifier: string): Promise<SendOtpResponse> => {
  */
 export const verifyOtp = async (
   identifier: string,
-  otp: string
+  otp: string,
+  purpose: string = "LOGIN"
 ): Promise<VerifyOtpResponse> => {
   const clean = identifier.trim();
   const isEmail = clean.includes("@");
   const payload: Record<string, any> = isEmail
-    ? { email: clean, identifier: clean, otp }
-    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), otp };
+    ? { email: clean, identifier: clean, otp, purpose }
+    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), otp, purpose };
 
   const res = await api<VerifyOtpResponse>("/auth/verify-otp", {
     method: "POST",
@@ -397,4 +413,42 @@ export const resetPassword = async (
       throw err;
     }
   }
+};
+
+/**
+ * Đăng nhập bằng OTP qua Backend (SMS Gateway)
+ * POST /auth/verify-otp với purpose: "LOGIN"
+ */
+export const loginWithOtp = async (phoneNumber: string, otp: string): Promise<AuthResponse> => {
+  const res = await api<BackendLoginResponse>("/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      phoneNumber: phoneNumber.replace(/\s+/g, ""),
+      purpose: "LOGIN",
+      otp,
+    }),
+  });
+
+  localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
+  if (res.refreshToken) {
+    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
+  }
+
+  const user: User = {
+    id: res.userId,
+    userId: res.userId,
+    fullName: res.fullName,
+    phoneNumber: res.phoneNumber,
+    role: res.role,
+    isActive: true,
+  };
+
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event("storage"));
+
+  return {
+    user,
+    token: res.accessToken,
+    refreshToken: res.refreshToken,
+  };
 };

@@ -80,7 +80,7 @@ const MetricCard = ({
   const currentLevel = levelConfig[level];
 
   return (
-    <div className="flex flex-col justify-center rounded-3xl border border-(--panel-border) bg-(--panel-bg) px-4 py-4">
+    <div className="flex flex-col justify-center dashboard-card px-4 py-4">
       {/* Title */}
       <div className="flex flex-wrap items-center justify-between">
         <span className="text-sm font-medium text-(--text-body)">

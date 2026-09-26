@@ -108,32 +108,32 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
     const recommendationsCount = aiRecommendations.length;
 
     return (
-        <div className="border border-(--panel-border-strong) bg-[#061d24]/65 backdrop-blur-md p-5 rounded-2xl text-left flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-full">
+        <div className="border border-[var(--panel-border-strong)] bg-[#061d24]/65 backdrop-blur-md p-5 rounded-xl text-left flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-full">
             {/* Header */}
             <div className="flex items-center mb-5">
                 {/* Sparkles Icon Block */}
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#0d3b46] border border-[#16515f]/60 text-[#2dd4c3] shadow-[0_0_12px_rgba(45,212,195,0.15)]">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)]">
                     <Sparkles size={20} className="animate-pulse" />
                 </div>
 
                 {/* Title Text */}
                 <div className="flex flex-col ml-3.5">
-                    <h4 className="text-white font-semibold text-base leading-tight tracking-wide">
+                    <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide">
                         Trợ lý AI • {pond?.name || "PND-A1"}
                     </h4>
-                    <span className="text-[9px] text-(--text-muted) font-bold tracking-wider mt-0.5 uppercase">
+                    <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mt-0.5 uppercase">
                         DỰ BÁO • 24 GIỜ TỚI
                     </span>
                 </div>
             </div>
 
             {/* Tab Bar */}
-            <div className="flex p-1 bg-[#04151c]/80 border border-[#0d343f] rounded-xl mb-4 gap-1">
+            <div className="flex p-1 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl mb-4 gap-1">
                 <button
                     onClick={() => setActiveTab('prediction')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'prediction'
-                            ? 'bg-[#0d3a47] text-[#2dd4c3] border border-[#174f5e]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-                            : 'text-(--text-muted) hover:text-white border border-transparent hover:bg-[#0d3a47]/30'
+                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
                         }`}
                 >
                     <Sparkles size={14} />
@@ -143,13 +143,13 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                 <button
                     onClick={() => setActiveTab('alerts')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'alerts'
-                            ? 'bg-[#0d3a47] text-[#2dd4c3] border border-[#174f5e]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-                            : 'text-(--text-muted) hover:text-white border border-transparent hover:bg-[#0d3a47]/30'
+                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
                         }`}
                 >
                     <Bell size={14} />
                     <span>Cảnh báo</span>
-                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'alerts' ? 'bg-[#082a33] text-[#2dd4c3]' : 'bg-[#08232c] text-(--text-muted)'
+                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'alerts' ? 'bg-[var(--critical-bg)] text-[var(--critical)]' : 'bg-[var(--panel-bg)] text-[var(--text-muted)]'
                         }`}>
                         {alertsCount}
                     </span>
@@ -158,13 +158,13 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                 <button
                     onClick={() => setActiveTab('recommendations')}
                     className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'recommendations'
-                            ? 'bg-[#0d3a47] text-[#2dd4c3] border border-[#174f5e]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-                            : 'text-(--text-muted) hover:text-white border border-transparent hover:bg-[#0d3a47]/30'
+                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
                         }`}
                 >
                     <Lightbulb size={14} />
                     <span>Khuyến nghị</span>
-                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'recommendations' ? 'bg-[#082a33] text-[#2dd4c3]' : 'bg-[#08232c] text-(--text-muted)'
+                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'recommendations' ? 'bg-[var(--success-bg)] text-[var(--success)]' : 'bg-[var(--panel-bg)] text-[var(--text-muted)]'
                         }`}>
                         {recommendationsCount}
                     </span>
@@ -180,34 +180,34 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                     </p>
 
                     {/* Trend & Risk Card */}
-                    <div className="grid grid-cols-2 gap-4 bg-[#04151c]/45 border border-[#0d343f] rounded-xl p-3.5 mb-5">
+                    <div className="grid grid-cols-2 gap-4 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3.5 mb-5">
                         {/* Trend */}
                         <div className="flex flex-col">
-                            <span className="text-[9px] text-(--text-muted) font-bold tracking-wider mb-1.5 uppercase">
+                            <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">
                                 Xu hướng
                             </span>
-                            <div className="flex items-center gap-1.5 text-white font-semibold text-sm">
-                                <TrendingUp size={16} className="text-[#2dd4c3]" />
+                            <div className="flex items-center gap-1.5 text-[var(--text-heading)] font-semibold text-sm">
+                                <TrendingUp size={16} className="text-[var(--accent)]" />
                                 <span>{trendText}</span>
                             </div>
                         </div>
 
                         {/* Risk */}
                         <div className="flex flex-col">
-                            <span className="text-[9px] text-(--text-muted) font-bold tracking-wider mb-1.5 uppercase">
+                            <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">
                                 Mức rủi ro
                             </span>
                             <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border self-start ${riskText === 'Rủi ro thấp' || riskText === 'Thấp'
-                                    ? 'bg-[#0d353b] text-[#2dd4c3] border-[#165161]/40'
+                                    ? 'bg-[var(--success-bg)] text-[var(--success)] border-transparent'
                                     : riskText === 'Trung bình'
-                                        ? 'bg-[#3b2d0d] text-[#f6b94c] border-[#615116]/40'
-                                        : 'bg-[#3d0f1b] text-[#ff6678] border-[#6b1c2b]/40'
+                                        ? 'bg-[var(--warning-bg)] text-[var(--warning)] border-transparent'
+                                        : 'bg-[var(--critical-bg)] text-[var(--critical)] border-transparent'
                                 }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${riskText === 'Rủi ro thấp' || riskText === 'Thấp'
-                                        ? 'bg-[#2dd4c3] shadow-[0_0_8px_rgba(45,212,195,0.6)]'
+                                        ? 'bg-[var(--success)] shadow-none'
                                         : riskText === 'Trung bình'
-                                            ? 'bg-[#f6b94c] shadow-[0_0_8px_rgba(246,185,76,0.6)]'
-                                            : 'bg-[#ff6678] shadow-[0_0_8px_rgba(255,102,120,0.6)]'
+                                            ? 'bg-[var(--warning)] shadow-none'
+                                            : 'bg-[var(--critical)] shadow-none'
                                     }`} />
                                 <span>{riskText}</span>
                             </div>
@@ -217,16 +217,16 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                     {/* Confidence Meter */}
                     <div className="mt-auto pt-2">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-(--text-muted) font-semibold tracking-wider uppercase">
+                            <span className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider uppercase">
                                 Độ tin cậy
                             </span>
-                            <span className="text-xs text-[#2dd4c3] font-bold">
+                            <span className="text-xs text-[var(--accent)] font-bold">
                                 {confidenceScore}%
                             </span>
                         </div>
-                        <div className="w-full h-1.5 bg-[#08232c] rounded-full mt-2 overflow-hidden">
+                        <div className="w-full h-1.5 bg-[var(--panel-bg-dark)] rounded-full mt-2 overflow-hidden border border-[var(--panel-border)]">
                             <div
-                                className="h-full bg-gradient-to-r from-[#2dd4c3] to-[#35e1d0] rounded-full transition-all duration-500 ease-out"
+                                className="h-full bg-[var(--accent)] rounded-full transition-all duration-500 ease-out"
                                 style={{ width: `${confidenceScore}%` }}
                             />
                         </div>
@@ -239,9 +239,9 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                     {aiAlerts.map((alert, index) => (
                         <div
                             key={index}
-                            className="flex gap-3 items-start p-3 bg-[#3d0f1b]/10 border border-[#6b1c2b]/20 rounded-xl transition-all duration-200 hover:bg-[#3d0f1b]/15"
+                            className="flex gap-3 items-start p-3 bg-[var(--critical-bg)] border border-[var(--critical-bg)] rounded-xl transition-all duration-200"
                         >
-                            <AlertTriangle size={16} className="text-[#ff6678] mt-0.5 shrink-0" />
+                            <AlertTriangle size={16} className="text-[var(--critical)] mt-0.5 shrink-0" />
                             <p className="text-xs text-[var(--text-body)] leading-relaxed">
                                 {alert}
                             </p>
@@ -255,9 +255,9 @@ const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
                     {aiRecommendations.map((rec, index) => (
                         <div
                             key={index}
-                            className="flex gap-3 items-start p-3 bg-[#0d353b]/10 border border-[#165161]/20 rounded-xl transition-all duration-200 hover:bg-[#0d353b]/15"
+                            className="flex gap-3 items-start p-3 bg-[var(--success-bg)] border border-[var(--success-bg)] rounded-xl transition-all duration-200"
                         >
-                            <Info size={16} className="text-[#2dd4c3] mt-0.5 shrink-0" />
+                            <Info size={16} className="text-[var(--success)] mt-0.5 shrink-0" />
                             <p className="text-xs text-[var(--text-body)] leading-relaxed">
                                 {rec}
                             </p>

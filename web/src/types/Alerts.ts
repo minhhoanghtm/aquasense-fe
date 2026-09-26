@@ -2,17 +2,23 @@ export type AlertStatus = "ACTIVE" | "RESOLVED" | string;
 export type AlertLevel = "WARNING" | "CRITICAL" | "DANGER" | "NORMAL" | string;
 
 export interface AiRecommendation {
+  // Backend actual fields
   recommendationId?: string;
-  id?: string;
   alertId?: string;
   actionSuggestion: string;
-  chemicalDosage?: string;
+  chemicalDosage?: string | null;
+
+  // Frontend aliases
+  id?: string;
 }
 
-export type Alerts = {
+export interface Alerts {
+  // Backend actual fields
   alertId?: string;
-  id: string;
-  pondId: string;
+  pondId?: string;
+  deviceId?: string | null;
+  message?: string | null;
+  resolvedById?: string | null;
   metricName?: string;
   triggeredValue?: number;
   alertLevel: AlertLevel;
@@ -21,20 +27,20 @@ export type Alerts = {
   resolvedAt?: string | null;
   resolutionNote?: string | null;
   recommendation?: AiRecommendation;
-  // Backward compatibility fields
+
+  // Frontend aliases / backward compat
+  id?: string;
   level?: AlertLevel;
   value?: number | string;
   parameterId?: string;
   title?: string;
   pondName?: string;
   unit?: string;
-  message?: string;
   isRead?: boolean;
   time?: string;
   source?: string;
-  deviceId?: string;
   predictionId?: string | null;
   thresholdId?: string;
-};
+}
 
 export type Alert = Alerts;

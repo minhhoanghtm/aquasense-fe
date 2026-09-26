@@ -14,6 +14,13 @@ import AssignPondModal from "../../features/Staff_Management/components/AssignPo
 import ConfirmModal from "../../components/ConfirmModal";
 import type { User, UserStatus } from "../../types/User";
 import { Users, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getCurrentUser } from "../../services/authApi";
+
+const getRoleLevel = (role: string | undefined): number => {
+  if (role === 'ADMIN') return 3;
+  if (role === 'MANAGER') return 2;
+  return 1;
+};
 
 export default function StaffManagement() {
   useDocumentTitle("Quản lý nhân viên");
@@ -91,12 +98,23 @@ export default function StaffManagement() {
   };
 
   // Handlers
+  const canManageStaff = (staff: User, actionName: string = "thực hiện hành động này") => {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return false;
+    if (getRoleLevel(staff.role) >= getRoleLevel(currentUser.role) && staff.id !== currentUser.id) {
+      showToast(`Bạn không thể ${actionName} với người có quyền cùng cấp hoặc cao hơn!`, "error");
+      return false;
+    }
+    return true;
+  };
+
   const handleAddNew = () => {
     setEditingStaff(null);
     setIsFormOpen(true);
   };
 
   const handleEdit = (staff: User) => {
+    if (!canManageStaff(staff, "thay đổi thông tin")) return;
     setEditingStaff(staff);
     setIsFormOpen(true);
   };
@@ -107,11 +125,14 @@ export default function StaffManagement() {
   };
 
   const handleAssignPond = (staff: User) => {
+    if (!canManageStaff(staff, "phân ao nuôi")) return;
     setAssigningStaff(staff);
     setIsAssignOpen(true);
   };
 
   const handleDelete = (staff: User) => {
+    if (!canManageStaff(staff, "xóa tài khoản")) return;
+    
     setConfirmConfig({
       isOpen: true,
       title: "Xác nhận xóa nhân viên",
@@ -187,6 +208,8 @@ export default function StaffManagement() {
   };
 
   const handleChangeStatus = (staff: User, newStatus: UserStatus) => {
+    if (!canManageStaff(staff, "thay đổi trạng thái")) return;
+
     const statusLabel =
       newStatus === "ACTIVE"
         ? "Hoạt động"

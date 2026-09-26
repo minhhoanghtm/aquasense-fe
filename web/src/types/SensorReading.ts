@@ -1,35 +1,20 @@
-export interface TelemetryData {
-  time: string;
-  temperature: number;
-  ph: number;
-  salinity: number;
-  dissolvedOxygen: number;
-  turbidity: number;
-  waterLevel: number;
-  isBuffered?: boolean;
-}
-
-export interface MetricItem {
-  name: string;
-  value: number;
-  unit: string;
-}
-
 export interface SensorReading {
+  // Backend actual fields (TelemetryData)
+  telemetryId?: string;
+  deviceId?: string;
+  measuredAt?: string;
+  dissolvedOxygen?: number | null;
+  temperature?: number | null;
+  ph?: number | null;
+  salinity?: number | null;
+  createdAt?: string;
+
+  // Frontend aliases / backward compat
   id?: string;
-  pondId: string;
-  time?: string;
-  recordedAt?: string;
-  metrics?: MetricItem[];
-  telemetry?: TelemetryData;
-  temperature?: number;
-  ph?: number;
-  salinity?: number;
-  dissolvedOxygen?: number;
-  turbidity?: number;
-  waterLevel?: number;
-  isBuffered?: boolean;
+  pondId?: string;
   parameterId?: string;
   value?: number;
   unit?: string;
+  timestamp?: string;
+  status?: string;
 }

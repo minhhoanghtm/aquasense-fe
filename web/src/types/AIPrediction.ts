@@ -1,15 +1,17 @@
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface AIPrediction {
+  // Backend actual fields
   predictionId?: string;
+  pondId?: string;
+  predictedTime?: string;
+  predictedDO?: number;
+  predictedPH?: number;
+  riskScore?: number;
+  riskLevel?: RiskLevel | string;
+
+  // Frontend aliases / backward compat
   id?: string;
-  pondId: string;
-  predictedTime: string;
-  predictedDO: number;
-  predictedPH: number;
-  riskScore: number;
-  riskLevel: RiskLevel;
-  // Extra UI helpers
   parameterId?: string;
   predictedValue?: number;
   unit?: string;
