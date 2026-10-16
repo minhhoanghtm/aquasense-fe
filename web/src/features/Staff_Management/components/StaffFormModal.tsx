@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { X, UserPlus, Phone, Contact, Mail, ArrowRight, AlertCircle } from "lucide-react";
-import type { User as UserType, Role, UserStatus } from "../../../types/User";
+import type { User as UserType, Role } from "../../../types/User";
+import type { CreateStaffRequest, UpdateStaffRequest } from "../../../services/staffApi";
 import type { Pond } from "../../../types/Pond";
 import { getCurrentUser } from "../../../services/authApi";
 
 interface StaffFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<UserType>) => Promise<void>;
+  onSubmit: (data: CreateStaffRequest | UpdateStaffRequest) => Promise<void>;
   initialData?: UserType | null;
   ponds: Pond[];
 }
@@ -71,28 +72,33 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
       return;
     }
 
-    const finalRole = isAdmin ? role : "MANAGER";
+    const finalRole = role;
 
-    if (isAdmin && !["MANAGER", "FARMER"].includes(finalRole)) {
-      setErrorMsg("Vai trò không hợp lệ. Vui lòng chọn Quản lý hoặc Nông dân.");
+    if (!isAdmin && !isEditing && finalRole !== "FARMER") {
+      setErrorMsg("Quản lý chỉ có thể tạo tài khoản nông dân.");
+      return;
+    }
+
+    if (!isAdmin && isEditing && finalRole !== initialData?.role) {
+      setErrorMsg("Quản lý không được thay đổi vai trò tài khoản.");
+      return;
+    }
+
+    if (isAdmin && !["ADMIN", "MANAGER", "FARMER"].includes(finalRole)) {
+      setErrorMsg("Vai trò không hợp lệ.");
       return;
     }
 
     try {
       setSubmitting(true);
       setErrorMsg("");
-      await onSubmit({
+      const baseData = {
         fullName: fullName.trim(),
         phoneNumber: cleanPhone,
         email: email.trim(),
         role: finalRole,
-        password: initialData ? undefined : "password123",
-        isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
-        status: (initialData?.status as UserStatus) || "ACTIVE",
-        position: finalRole === "MANAGER" ? "Quản lý trạm" : "Kỹ thuật viên ao",
-        department: "Quản lý & Nuôi trồng Thủy sản",
-        assignedPondIds: initialData?.assignedPondIds || [],
-      });
+      };
+      await onSubmit(baseData);
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || "Đã xảy ra lỗi khi lưu thông tin nhân viên.");
@@ -214,6 +220,17 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
                 <span className="text-[11px] text-(--text-muted)">Bắt buộc</span>
               </div>
               <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="ADMIN"
+                    checked={role === "ADMIN"}
+                    onChange={() => setRole("ADMIN")}
+                    className="w-4 h-4 text-[#1AD1B9] bg-[#04151c] border-cyan-800/80 focus:ring-[#1AD1B9] focus:ring-2"
+                  />
+                  <span className="text-sm text-white">Quản trị viên</span>
+                </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"

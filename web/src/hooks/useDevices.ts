@@ -2,25 +2,20 @@ import { useEffect, useState } from "react";
 import type { Devices } from "../types/Devices";
 import { getDevices } from "../services/deviceApi";
 
-let cachedDevices: Devices[] = [];
-
 export const invalidateDevicesCache = () => {
-    cachedDevices = [];
     window.dispatchEvent(new Event("devices-updated"));
 };
 
 export const useDevices = () => {
-    const [devices, setDevices] = useState<Devices[]>(cachedDevices);
-    const [loading, setLoading] = useState(cachedDevices.length === 0);
+    const [devices, setDevices] = useState<Devices[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const fetchDevices = async (force: boolean = false) => {
+    const fetchDevices = async () => {
         try {
-            if (cachedDevices.length === 0 || force) {
-                setLoading(true);
-            }
+            setLoading(true);
+            setDevices([]);
             const data = await getDevices();
-            cachedDevices = data;
-            setDevices(data);
+            setDevices(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Lỗi lấy danh sách thiết bị:", error);
         } finally {
@@ -32,7 +27,7 @@ export const useDevices = () => {
         fetchDevices();
 
         const handleUpdate = () => {
-            fetchDevices(true);
+            fetchDevices();
         };
 
         window.addEventListener("devices-updated", handleUpdate);
@@ -57,6 +52,6 @@ export const useDevices = () => {
         devices,
         stats: { total, active, offline, warning },
         loading,
-        refetch: () => fetchDevices(true),
+        refetch: fetchDevices,
     };
 };

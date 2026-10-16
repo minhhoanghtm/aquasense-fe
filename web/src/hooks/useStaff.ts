@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { User, UserStatus } from "../types/User";
+import type { Role, User, UserStatus } from "../types/User";
 import {
   getStaffList,
   createStaff,
   updateStaff,
+  changeStaffStatus,
   deleteStaff,
-  assignPondsToStaff,
+  type CreateStaffRequest,
+  type PaginatedUsers,
+  type UpdateStaffRequest,
 } from "../services/staffApi";
 
 export interface StaffStats {
@@ -19,6 +22,7 @@ export interface StaffStats {
 
 export const useStaff = () => {
   const [staffList, setStaffList] = useState<User[]>([]);
+  const [pagination, setPagination] = useState<Omit<PaginatedUsers, "data">>({ total: 0, page: 1, limit: 10, totalPages: 0 });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,61 +36,41 @@ export const useStaff = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getStaffList();
-      setStaffList(data);
-    } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách nhân viên");
+      const result = await getStaffList({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm || undefined,
+        role: roleFilter === "ALL" ? undefined : roleFilter as Role,
+      });
+      setStaffList(result.data);
+      setPagination({ total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages });
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Không thể tải danh sách nhân viên");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.page, pagination.limit, searchTerm, roleFilter]);
 
   useEffect(() => {
-    loadStaff();
+    void Promise.resolve().then(loadStaff);
   }, [loadStaff]);
 
   // Derived filtered staff
   const filteredStaff = useMemo(() => {
     return staffList.filter((staff) => {
-      // Search term
-      if (searchTerm.trim()) {
-        const query = searchTerm.toLowerCase().trim();
-        const matchName = staff.fullName?.toLowerCase().includes(query);
-        const matchEmail = staff.email?.toLowerCase().includes(query);
-        const matchPhone = staff.phoneNumber?.toLowerCase().includes(query);
-        const matchPosition = staff.position?.toLowerCase().includes(query);
-        const matchDept = staff.department?.toLowerCase().includes(query);
-
-        if (!matchName && !matchEmail && !matchPhone && !matchPosition && !matchDept) {
-          return false;
-        }
-      }
-
-      // Role filter
-      if (roleFilter !== "ALL") {
-        if (staff.role !== roleFilter) return false;
-      }
-
       // Status filter
       if (statusFilter !== "ALL") {
         const staffStatus = staff.status || (staff.isActive ? "ACTIVE" : "ON_LEAVE");
         if (staffStatus !== statusFilter) return false;
       }
 
-      // Pond filter
-      if (pondFilter !== "ALL") {
-        if (!staff.assignedPondIds || !staff.assignedPondIds.includes(pondFilter)) {
-          return false;
-        }
-      }
-
       return true;
     });
-  }, [staffList, searchTerm, roleFilter, statusFilter, pondFilter]);
+  }, [staffList, statusFilter]);
 
   // Statistics
   const stats: StaffStats = useMemo(() => {
-    const total = staffList.length;
+    const total = pagination.total;
     let active = 0;
     let managers = 0;
     let farmers = 0;
@@ -112,17 +96,17 @@ export const useStaff = () => {
       onLeave,
       pendingApproval,
     };
-  }, [staffList]);
+  }, [staffList, pagination.total]);
 
   // Add staff (Optionally with auto-approval or pending approval)
-  const addStaff = async (data: Omit<User, "id" | "createdAt" | "updatedAt">) => {
+  const addStaff = async (data: CreateStaffRequest) => {
     const created = await createStaff(data);
-    setStaffList((prev) => [created, ...prev]);
+    await loadStaff();
     return created;
   };
 
   // Edit staff
-  const editStaff = async (id: string, data: Partial<User>) => {
+  const editStaff = async (id: string, data: UpdateStaffRequest) => {
     const updated = await updateStaff(id, data);
     setStaffList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updated } : item))
@@ -132,7 +116,7 @@ export const useStaff = () => {
 
   // Approve pending account
   const approveAccount = async (id: string) => {
-    const updated = await updateStaff(id, { status: "ACTIVE" });
+    const updated = await updateStaff(id, { isActive: true });
     setStaffList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: "ACTIVE" } : item))
     );
@@ -147,7 +131,7 @@ export const useStaff = () => {
 
   // Change status (Hoạt động / Tạm nghỉ / Khóa)
   const changeStatus = async (id: string, newStatus: UserStatus) => {
-    const updated = await updateStaff(id, { status: newStatus });
+    const updated = await changeStaffStatus(id, newStatus === "ACTIVE");
     setStaffList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
     );
@@ -160,24 +144,13 @@ export const useStaff = () => {
     setStaffList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Assign ponds
-  const assignPonds = async (staffId: string, pondIds: string[]) => {
-    const updated = await assignPondsToStaff(staffId, pondIds);
-    setStaffList((prev) =>
-      prev.map((item) =>
-        item.id === staffId || item.userId === staffId
-          ? { ...item, ...updated, assignedPondIds: pondIds }
-          : item
-      )
-    );
-    return updated;
-  };
-
   return {
     staffList,
     filteredStaff,
     loading,
     error,
+    pagination,
+    setPage: (page: number) => setPagination((prev) => ({ ...prev, page })),
     stats,
     searchTerm,
     setSearchTerm,
@@ -194,6 +167,5 @@ export const useStaff = () => {
     rejectAccount,
     changeStatus,
     removeStaff,
-    assignPonds,
   };
 };

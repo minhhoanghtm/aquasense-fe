@@ -1,4 +1,6 @@
-import { api } from "./api";
+// The real backend currently exposes no AI prediction controller.
+// Swagger currently exposes no AI prediction endpoints.
+export const AI_ENDPOINTS_AVAILABLE = false;
 
 export interface AIPrediction {
     id: string;
@@ -48,20 +50,20 @@ export interface ParameterHealth {
 }
 
 export const getAIPredictions = async (pondId?: string): Promise<AIPrediction[]> => {
-    const endpoint = pondId ? `/aiPredictions?pondId=${pondId}` : "/aiPredictions";
-    return await api<AIPrediction[]>(endpoint);
+    if (!AI_ENDPOINTS_AVAILABLE || !pondId) return [];
+    return [];
 };
 
 export const getAIRecommendations = async (pondId?: string): Promise<AIRecommendation[]> => {
-    const endpoint = pondId ? `/aiRecommendations?pondId=${pondId}` : "/aiRecommendations";
-    return await api<AIRecommendation[]>(endpoint);
+    if (!AI_ENDPOINTS_AVAILABLE || !pondId) return [];
+    return [];
 };
 
 export const getAnomalies = async (pondId?: string): Promise<AnomalyItem[]> => {
-    const endpoint = pondId ? `/anomalies?pondId=${pondId}` : "/anomalies";
-    return await api<AnomalyItem[]>(endpoint);
+    if (!AI_ENDPOINTS_AVAILABLE || !pondId) return [];
+    return [];
 };
 
 export const getParameterHealth = async (): Promise<ParameterHealth[]> => {
-    return await api<ParameterHealth[]>("/parameterHealth");
+    return [];
 };

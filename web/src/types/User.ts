@@ -14,6 +14,8 @@ export interface User {
   role: Role | string;
   fcmToken?: string | null;
   isActive?: boolean;
+  isLocked?: boolean;
+  is_login_locked?: boolean;
   mustChangePassword?: boolean;
   tokenVersion?: number;
   createdAt?: string;

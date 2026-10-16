@@ -1,10 +1,9 @@
 // services/pondApi.ts
 
-import type { Pond, PondWithDevices } from "../types/Pond";
+import type { Pond, PondStatus, PondWithDevices } from "../types/Pond";
 import type { SensorReading } from "../types/SensorReading";
 import { api } from "./api";
 import { getDevicesByPondId } from "./deviceApi";
-import { getAlertPondById } from "./alertsApi";
 
 export interface ThresholdConfigItem {
   configId: string;
@@ -20,14 +19,14 @@ export interface ThresholdConfigItem {
 export interface ManualTestLogItem {
   logId: string;
   pondId: string;
-  userId: string;
+  testedById: string;
   nh3Value: number;
   no2Value: number;
   note?: string;
   testedAt: string;
   createdAt?: string;
   updatedAt?: string;
-  user?: {
+  testedBy?: {
     fullName?: string;
     phoneNumber?: string;
   };
@@ -38,7 +37,9 @@ export interface CreatePondPayload {
   areaM2: number;
   depthM: number;
   shrimpDensity: number;
-  status?: string;
+  location?: string;
+  capacity?: number;
+  status?: PondStatus;
   userId?: string;
 }
 
@@ -47,89 +48,140 @@ export interface UpdatePondPayload {
   areaM2?: number;
   depthM?: number;
   shrimpDensity?: number;
-  status?: string;
+  location?: string;
+  capacity?: number;
+  status?: PondStatus;
   userId?: string;
 }
 
-const normalizePond = (p: any): Pond => ({
+const normalizePond = (p: Pond): Pond => ({
   ...p,
   id: p.pondId || p.id,
   pondId: p.pondId || p.id,
-  name: p.pondName || p.name || "Vuông nuôi",
-  pondName: p.pondName || p.name || "Vuông nuôi",
-  area: p.areaM2 ? p.areaM2 / 10000 : p.area || 0.5,
-  areaM2: p.areaM2 || (p.area ? p.area * 10000 : 5000),
-  depthM: p.depthM || 1.5,
-  shrimpDensity: p.shrimpDensity || 150,
-  density: `${p.shrimpDensity || 150} PL/m²`,
-  status: p.status || "ACTIVE",
+  name: p.pondName || p.name || "",
+  pondName: p.pondName || p.name || "",
+  area: p.areaM2 !== undefined ? Number(p.areaM2) / 10000 : p.area,
+  areaM2: p.areaM2 !== undefined ? p.areaM2 : p.area !== undefined ? Number(p.area) * 10000 : undefined,
+  depthM: p.depthM,
+  shrimpDensity: p.shrimpDensity,
+  location: p.location,
+  capacity: p.capacity,
+  density: p.density || (p.shrimpDensity !== undefined ? `${p.shrimpDensity} PL/m²` : undefined),
+  status: p.status || "",
   userId: p.userId,
   createdAt: p.createdAt,
   updatedAt: p.updatedAt,
 });
 
 // 1. POND CRUD
-export const getPonds = async (): Promise<Pond[]> => {
-  const res = await api<any>("/ponds");
-  const rawList = Array.isArray(res) ? res : res?.data || [];
-  return rawList.map(normalizePond);
+export const getPonds = async (): Promise<Pond[]> =>
+  (await getPondsPage({ limit: 100 })).data;
+
+export interface PaginatedPonds {
+  data: Pond[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PondListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: PondStatus;
+  userId?: string;
+}
+
+export const getPondsPage = async (query: PondListQuery = {}): Promise<PaginatedPonds> => {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  });
+  const response = await api<{ data: Pond[]; total: number; page: number; limit: number; totalPages: number }>(`/ponds?${params.toString()}`);
+  return { ...response, data: response.data.map((pond) => normalizePond(pond)) };
+};
+
+export const getAllPondsPage = async (
+  query: Omit<PondListQuery, "page" | "limit"> = {},
+): Promise<PaginatedPonds> => {
+  const firstPage = await getPondsPage({ ...query, page: 1, limit: 100 });
+  if (firstPage.totalPages <= 1) return firstPage;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      getPondsPage({ ...query, page: index + 2, limit: 100 }),
+    ),
+  );
+
+  return {
+    ...firstPage,
+    data: [firstPage, ...remainingPages].flatMap((page) => page.data),
+  };
 };
 
 export const getPondById = async (pondId: string): Promise<Pond> => {
-  const res = await api<any>(`/ponds/${pondId}`);
-  const p = res?.data || res;
-  return normalizePond(p);
+  if (!pondId) throw new Error("ID vuông nuôi không hợp lệ");
+  return normalizePond(await api<Pond>(`/ponds/${pondId}`));
 };
 
 export const createPond = async (payload: CreatePondPayload): Promise<Pond> => {
-  const res = await api<{ message: string; data: any }>("/ponds", {
+  const res = await api<{ data: Pond }>("/ponds", {
     method: "POST",
     body: JSON.stringify({
       pondName: payload.pondName.trim(),
       areaM2: Number(payload.areaM2),
       depthM: Number(payload.depthM),
       shrimpDensity: Number(payload.shrimpDensity),
-      status: payload.status || "ACTIVE",
+      ...(payload.location ? { location: payload.location.trim() } : {}),
+      ...(payload.capacity !== undefined ? { capacity: Number(payload.capacity) } : {}),
+      ...(payload.status ? { status: payload.status } : {}),
       ...(payload.userId ? { userId: payload.userId } : {}),
     }),
   });
-  return normalizePond(res.data || res);
+  return normalizePond(res.data);
 };
 
 export const updatePond = async (pondId: string, payload: UpdatePondPayload): Promise<Pond> => {
-  const body: Record<string, any> = {};
+  if (!pondId) throw new Error("ID vuông nuôi không hợp lệ");
+  const body: UpdatePondPayload = {};
   if (payload.pondName !== undefined) body.pondName = payload.pondName.trim();
   if (payload.areaM2 !== undefined) body.areaM2 = Number(payload.areaM2);
   if (payload.depthM !== undefined) body.depthM = Number(payload.depthM);
   if (payload.shrimpDensity !== undefined) body.shrimpDensity = Number(payload.shrimpDensity);
+  if (payload.location !== undefined) body.location = payload.location.trim();
+  if (payload.capacity !== undefined) body.capacity = Number(payload.capacity);
   if (payload.status !== undefined) body.status = payload.status;
   if (payload.userId !== undefined) body.userId = payload.userId;
 
-  const res = await api<{ message: string; data: any }>(`/ponds/${pondId}`, {
+  const res = await api<{ data: Pond }>(`/ponds/${pondId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
-  return normalizePond(res.data || res);
+  return normalizePond(res.data);
 };
 
 export const deletePond = async (pondId: string): Promise<boolean> => {
-  await api<any>(`/ponds/${pondId}`, {
+  if (!pondId) throw new Error("ID vuông nuôi không hợp lệ");
+  await api<null>(`/ponds/${pondId}`, {
     method: "DELETE",
   });
   return true;
 };
 
+export const assignPondToUser = async (pondId: string, userId: string): Promise<Pond> =>
+  updatePond(pondId, { userId });
+
 // 2. THRESHOLD CONFIGS
 export const getThresholdConfigs = async (pondId: string): Promise<ThresholdConfigItem[]> => {
-  const res = await api<any>(`/ponds/${pondId}/thresholds`);
-  return Array.isArray(res) ? res : res?.data || [];
+  return api<ThresholdConfigItem[]>(`/ponds/${pondId}/thresholds`);
 };
 
 export const createThresholdConfig = async (
   pondId: string,
   dto: { metricName: string; minValue: number; maxValue: number; isActive?: boolean }
 ): Promise<ThresholdConfigItem> => {
-  const res = await api<{ message: string; data: ThresholdConfigItem }>(`/ponds/${pondId}/thresholds`, {
+  const res = await api<{ data: ThresholdConfigItem }>(`/ponds/${pondId}/thresholds`, {
     method: "POST",
     body: JSON.stringify({
       metricName: dto.metricName,
@@ -138,44 +190,51 @@ export const createThresholdConfig = async (
       isActive: dto.isActive !== undefined ? dto.isActive : true,
     }),
   });
-  return res.data || res;
+  return res.data;
 };
 
 export const updateThresholdConfig = async (
   configId: string,
   dto: { metricName?: string; minValue?: number; maxValue?: number; isActive?: boolean }
 ): Promise<ThresholdConfigItem> => {
-  const body: Record<string, any> = {};
+  const body: { metricName?: string; minValue?: number; maxValue?: number; isActive?: boolean } = {};
   if (dto.metricName !== undefined) body.metricName = dto.metricName;
   if (dto.minValue !== undefined) body.minValue = Number(dto.minValue);
   if (dto.maxValue !== undefined) body.maxValue = Number(dto.maxValue);
   if (dto.isActive !== undefined) body.isActive = dto.isActive;
 
-  const res = await api<{ message: string; data: ThresholdConfigItem }>(`/ponds/thresholds/${configId}`, {
+  const res = await api<{ data: ThresholdConfigItem }>(`/ponds/thresholds/${configId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
-  return res.data || res;
+  return res.data;
 };
 
 export const deleteThresholdConfig = async (configId: string): Promise<boolean> => {
-  await api<any>(`/ponds/thresholds/${configId}`, {
+  await api<null>(`/ponds/thresholds/${configId}`, {
     method: "DELETE",
   });
   return true;
 };
 
 // 3. MANUAL TEST LOGS (Đo khí độc NH3, NO2 thủ công)
-export const getManualTestLogs = async (pondId: string): Promise<ManualTestLogItem[]> => {
-  const res = await api<any>(`/ponds/${pondId}/manual-logs?limit=50`);
-  return Array.isArray(res) ? res : res?.data || [];
+export const getManualTestLogsPage = async (pondId: string, query: { page?: number; limit?: number; startDate?: string; endDate?: string } = {}): Promise<{ data: ManualTestLogItem[]; total: number; page: number; limit: number; totalPages: number }> => {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  });
+  const res = await api<{ data: ManualTestLogItem[]; total: number; page: number; limit: number; totalPages: number }>(`/ponds/${pondId}/manual-logs?${params.toString()}`);
+  return res;
 };
+
+export const getManualTestLogs = async (pondId: string): Promise<ManualTestLogItem[]> =>
+  (await getManualTestLogsPage(pondId, { limit: 100 })).data;
 
 export const createManualTestLog = async (
   pondId: string,
   dto: { nh3Value: number; no2Value: number; note?: string; testedAt?: string }
 ): Promise<ManualTestLogItem> => {
-  const res = await api<{ message: string; data: ManualTestLogItem }>(`/ponds/${pondId}/manual-logs`, {
+  const res = await api<{ data: ManualTestLogItem }>(`/ponds/${pondId}/manual-logs`, {
     method: "POST",
     body: JSON.stringify({
       nh3Value: Number(dto.nh3Value),
@@ -184,28 +243,28 @@ export const createManualTestLog = async (
       testedAt: dto.testedAt || new Date().toISOString(),
     }),
   });
-  return res.data || res;
+  return res.data;
 };
 
 export const updateManualTestLog = async (
   logId: string,
   dto: { nh3Value?: number; no2Value?: number; note?: string; testedAt?: string }
 ): Promise<ManualTestLogItem> => {
-  const body: Record<string, any> = {};
+  const body: { nh3Value?: number; no2Value?: number; note?: string; testedAt?: string } = {};
   if (dto.nh3Value !== undefined) body.nh3Value = Number(dto.nh3Value);
   if (dto.no2Value !== undefined) body.no2Value = Number(dto.no2Value);
   if (dto.note !== undefined) body.note = dto.note.trim();
   if (dto.testedAt !== undefined) body.testedAt = dto.testedAt;
 
-  const res = await api<{ message: string; data: ManualTestLogItem }>(`/ponds/manual-logs/${logId}`, {
+  const res = await api<{ data: ManualTestLogItem }>(`/ponds/manual-logs/${logId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
   });
-  return res.data || res;
+  return res.data;
 };
 
 export const deleteManualTestLog = async (logId: string): Promise<boolean> => {
-  await api<any>(`/ponds/manual-logs/${logId}`, {
+  await api<null>(`/ponds/manual-logs/${logId}`, {
     method: "DELETE",
   });
   return true;
@@ -216,49 +275,61 @@ export const getPondsWithDevices = async (): Promise<PondWithDevices[]> => {
   const ponds = await getPonds();
   return Promise.all(
     ponds.map(async (pond) => {
-      const devices = await getDevicesByPondId(pond.id);
+      const devices = pond.id ? await getDevicesByPondId(pond.id) : [];
       return { ...pond, devices: devices || [] };
     })
   );
 };
 
 export const getSensorReadings = async (pondId: string): Promise<SensorReading[]> => {
-  try {
-    const res = await api<any>(`/sensorReadings?pondId=${pondId}`);
-    const rawList = Array.isArray(res) ? res : res?.data || [];
-    return Array.isArray(rawList) ? rawList : [];
-  } catch {
-    return [];
-  }
+  const devices = await getDevicesByPondId(pondId);
+  const histories = await Promise.all(
+    devices.map(async (device) => {
+      const res = await api<any>(`/telemetry/device/${device.id}/history?limit=100`);
+      const records = Array.isArray(res) ? res : res?.data || [];
+      return Array.isArray(records) ? records.map((record) => ({
+        ...record,
+        id: String(record.id ?? record.telemetryId ?? ""),
+        pondId,
+        deviceId: record.deviceId || device.id,
+        timestamp: record.recordedAt || record.timestamp,
+        metrics: [
+          { name: "temperature", value: record.temperature, unit: "°C" },
+          { name: "pH", value: record.ph, unit: "" },
+          { name: "dissolvedOxygen", value: record.dissolvedOxygen, unit: "mg/L" },
+          { name: "salinity", value: record.salinity, unit: "ppt" },
+          { name: "turbidity", value: record.turbidity, unit: "NTU" },
+          { name: "waterLevel", value: record.waterLevel, unit: "m" },
+        ].filter((metric) => metric.value !== null && metric.value !== undefined),
+      })) : [];
+    }),
+  );
+  return histories.flat().sort((a, b) =>
+    new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime(),
+  );
 };
 
 export const getPondDashboard = async (pondId: string) => {
-  const [pond, thresholds, sensorReadings, alerts, devices] = await Promise.all([
-    getPondById(pondId).catch(() => null),
-    getThresholdConfigs(pondId).catch(() => []),
-    getSensorReadings(pondId).catch(() => []),
-    getAlertPondById(pondId).catch(() => []),
-    api(`/devices?pondId=${pondId}`).catch(() => []),
+  const [pond, devices] = await Promise.all([
+    getPondById(pondId),
+    getDevicesByPondId(pondId),
   ]);
 
   return {
     pond,
-    thresholds,
-    sensorReadings,
-    alerts,
     devices,
   };
 };
 
 export const getCurrentWaterQuality = async (pondId: string) => {
   const [sensorReadings, thresholds] = await Promise.all([
-    getSensorReadings(pondId).catch(() => []),
-    getThresholdConfigs(pondId).catch(() => []),
+    getSensorReadings(pondId),
+    getThresholdConfigs(pondId),
   ]);
 
   return {
-    sensorReadings: Array.isArray(sensorReadings) ? sensorReadings : [],
-    thresholds: Array.isArray(thresholds) ? thresholds : [],
+    sensorReadings,
+    thresholds,
   };
 };
 
@@ -272,11 +343,8 @@ export interface FeedingScheduleItem {
 }
 
 export const getFeedingSchedules = async (pondId?: string): Promise<FeedingScheduleItem[]> => {
-  try {
-    const endpoint = pondId ? `/feedingSchedules?pondId=${pondId}` : "/feedingSchedules";
-    return await api<FeedingScheduleItem[]>(endpoint);
-  } catch {
-    return [];
-  }
+  // The real backend has no feeding-schedule controller yet.
+  void pondId;
+  return [];
 };
 

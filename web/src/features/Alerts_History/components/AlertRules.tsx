@@ -10,27 +10,6 @@ export interface AlertRuleItem {
   subtitle: string;
 }
 
-export const DEFAULT_RULES: AlertRuleItem[] = [
-  {
-    id: "rule-do",
-    iconType: "oxygen",
-    title: "Ngưỡng DO",
-    subtitle: "Nguy hiểm dưới 3.5 mg/L",
-  },
-  {
-    id: "rule-ph",
-    iconType: "ph",
-    title: "Khoảng pH",
-    subtitle: "Cảnh báo ngoài 7.5–8.5",
-  },
-  {
-    id: "rule-water-level",
-    iconType: "waterLevel",
-    title: "Mực nước",
-    subtitle: "Cảnh báo dưới 1.05 m",
-  },
-];
-
 export interface AlertRulesProps {
   rules?: AlertRuleItem[];
   className?: string;
@@ -45,11 +24,9 @@ const getRuleIcon = (rule: AlertRuleItem) => {
 };
 
 const AlertRules: React.FC<AlertRulesProps> = ({
-  rules = DEFAULT_RULES,
+  rules = [],
   className = "",
 }) => {
-  const displayRules = rules.length > 0 ? rules : DEFAULT_RULES;
-
   return (
     <div
       className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl lg:rounded-3xl p-3.5 sm:p-4 shadow-lg flex flex-col text-left ${className}`}
@@ -64,14 +41,14 @@ const AlertRules: React.FC<AlertRulesProps> = ({
 
       {/* Rules list using existing DeviceItem */}
       <div className="divide-y divide-(--panel-border)">
-        {displayRules.map((rule) => (
+        {rules.length > 0 ? rules.map((rule) => (
           <DeviceItem
             key={rule.id}
             icon={getRuleIcon(rule)}
             title={rule.title}
             subtitle={rule.subtitle}
           />
-        ))}
+        )) : <p className="py-4 text-sm text-(--text-muted)">Chưa có quy tắc cảnh báo từ hệ thống.</p>}
       </div>
     </div>
   );

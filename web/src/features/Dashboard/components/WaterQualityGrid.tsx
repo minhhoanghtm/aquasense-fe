@@ -2,10 +2,14 @@
 import MetricCard from "../../../components/MetricCard";
 
 interface WaterQualityGridProps {
-  waterQuality: any
+  waterQuality: any;
+  loading?: boolean;
+  error?: string | null;
 }
 
-const WaterQualityGrid = ({ waterQuality }: WaterQualityGridProps) => {
+const WaterQualityGrid = ({ waterQuality, loading = false, error }: WaterQualityGridProps) => {
+  if (loading) return <div className="w-full my-3 p-4 rounded-xl border border-cyan-900/40 bg-[#04151c]/60 text-center text-xs text-gray-400">Đang tải dữ liệu cảm biến...</div>;
+  if (error) return <div className="w-full my-3 p-4 rounded-xl border border-red-900/40 bg-[#04151c]/60 text-center text-xs text-[var(--critical)]">Không thể tải dữ liệu cảm biến: {error}</div>;
   if (!waterQuality) return null;
 
   const sensorReadings = Array.isArray(waterQuality.sensorReadings) ? waterQuality.sensorReadings : [];
@@ -26,27 +30,8 @@ const WaterQualityGrid = ({ waterQuality }: WaterQualityGridProps) => {
     temp: "temperature",
   };
 
-  const DEFAULT_THRESHOLDS: Record<string, { normalMin: number; normalMax: number; dangerMin: number; dangerMax: number; unit: string }> = {
-    pH: { normalMin: 7.5, normalMax: 8.5, dangerMin: 6.5, dangerMax: 9.0, unit: "" },
-    dissolvedOxygen: { normalMin: 5.0, normalMax: 8.0, dangerMin: 3.5, dangerMax: 10.0, unit: "mg/L" },
-    DO: { normalMin: 5.0, normalMax: 8.0, dangerMin: 3.5, dangerMax: 10.0, unit: "mg/L" },
-    temperature: { normalMin: 26, normalMax: 32, dangerMin: 22, dangerMax: 35, unit: "°C" },
-    temp: { normalMin: 26, normalMax: 32, dangerMin: 22, dangerMax: 35, unit: "°C" },
-    salinity: { normalMin: 10, normalMax: 25, dangerMin: 5, dangerMax: 35, unit: "ppt" },
-    turbidity: { normalMin: 20, normalMax: 40, dangerMin: 10, dangerMax: 60, unit: "NTU" },
-    waterLevel: { normalMin: 1.2, normalMax: 1.5, dangerMin: 0.9, dangerMax: 1.8, unit: "m" },
-  };
-
   const currentMetrics = metrics.map((metric: any) => {
     const canonicalName = PARAM_NAME_MAP[metric.name] || metric.name;
-    const defaultMeta = DEFAULT_THRESHOLDS[metric.name] || DEFAULT_THRESHOLDS[canonicalName] || {
-      normalMin: 0,
-      normalMax: 100,
-      dangerMin: 0,
-      dangerMax: 150,
-      unit: metric.unit || "",
-    };
-
     const foundThreshold = thresholds.find(
       (item: any) =>
         item.parameterId === metric.name ||
@@ -57,17 +42,17 @@ const WaterQualityGrid = ({ waterQuality }: WaterQualityGridProps) => {
 
     const threshold = foundThreshold
       ? {
-          normalMin: foundThreshold.normalMin ?? foundThreshold.minValue ?? defaultMeta.normalMin,
-          normalMax: foundThreshold.normalMax ?? foundThreshold.maxValue ?? defaultMeta.normalMax,
-          dangerMin: foundThreshold.dangerMin ?? defaultMeta.dangerMin,
-          dangerMax: foundThreshold.dangerMax ?? defaultMeta.dangerMax,
+          normalMin: foundThreshold.normalMin ?? foundThreshold.minValue,
+          normalMax: foundThreshold.normalMax ?? foundThreshold.maxValue,
+          dangerMin: foundThreshold.dangerMin,
+          dangerMax: foundThreshold.dangerMax,
         }
-      : defaultMeta;
+      : undefined;
 
     return {
       ...metric,
       parameter: canonicalName,
-      unit: metric.unit || defaultMeta.unit,
+      unit: metric.unit || "",
       threshold,
     };
   });

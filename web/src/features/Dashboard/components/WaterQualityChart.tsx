@@ -19,6 +19,8 @@ import {
 
 interface WaterQualityChartProps {
     waterQuality: any;
+    loading?: boolean;
+    error?: string | null;
 }
 
 // const PARAMETERS = [
@@ -39,16 +41,16 @@ const iconMap: Record<string, React.ReactNode> = {
     waterLevel: <ActivityIcon size={14} />,
 };
 
-const WaterQualityChart = ({ waterQuality }: WaterQualityChartProps) => {
+const WaterQualityChart = ({ waterQuality, loading = false, error }: WaterQualityChartProps) => {
     // console.log(waterQuality);
     const [selectedParam, setSelectedParam] = useState("temperature");
 
     const sensorReadings = waterQuality?.sensorReadings ?? [];
 
-    if (sensorReadings.length === 0) {
+    if (loading || error || sensorReadings.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center dashboard-card p-8 mt-6 text-[var(--text-muted)] min-h-[300px]">
-                <p className="text-sm">Đang tải dữ liệu biểu đồ...</p>
+                <p className={`text-sm ${error ? "text-[var(--critical)]" : ""}`}>{error ? `Không thể tải dữ liệu biểu đồ: ${error}` : loading ? "Đang tải dữ liệu biểu đồ..." : "Chưa có dữ liệu biểu đồ cho ao này."}</p>
             </div>
         );
     }

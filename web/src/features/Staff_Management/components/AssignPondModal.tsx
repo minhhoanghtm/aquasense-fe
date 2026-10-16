@@ -20,36 +20,37 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
 }) => {
   const [selectedPondIds, setSelectedPondIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (staff) {
-      setSelectedPondIds(staff.assignedPondIds || []);
+      setSelectedPondIds(ponds.filter((pond) => pond.userId === (staff.userId || staff.id)).map((pond) => pond.pondId || pond.id || "").filter(Boolean));
     }
-  }, [staff, isOpen]);
+  }, [staff, isOpen, ponds]);
 
   if (!isOpen || !staff) return null;
 
   const togglePond = (id: string) => {
+    if (selectedPondIds.includes(id)) return; // Backend does not support unassign.
     setSelectedPondIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+      [...prev, id]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedPondIds.length === ponds.length) {
-      setSelectedPondIds([]);
-    } else {
-      setSelectedPondIds(ponds.map((p) => p.pondId || p.id));
-    }
+    setSelectedPondIds(ponds.map((p) => p.pondId || p.id || "").filter(Boolean));
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      await onSave(staff.userId || staff.id, selectedPondIds);
+      const staffId = staff.userId || staff.id;
+      if (!staffId) throw new Error("Không xác định được nhân viên.");
+      const newPondIds = selectedPondIds.filter((id) => ponds.some((p) => (p.pondId || p.id) === id && p.userId !== staffId));
+      await onSave(staffId, newPondIds);
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Không thể phân công ao nuôi.");
     } finally {
       setSaving(false);
     }
@@ -84,6 +85,8 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-4">
+          {errorMsg && <p className="text-xs text-rose-300">{errorMsg}</p>}
+          <p className="text-xs text-[var(--text-muted)]">Chỉ hỗ trợ gán hoặc chuyển ao sang nhân viên này. Backend chưa hỗ trợ bỏ gán.</p>
           <div className="flex items-center justify-between text-xs">
             <span className="text-[var(--text-body)] font-medium">
               Chọn danh sách các vuông nuôi phụ trách:
@@ -93,16 +96,15 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
               onClick={handleSelectAll}
               className="text-[var(--accent)] hover:underline cursor-pointer"
             >
-              {selectedPondIds.length === ponds.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+              Chọn tất cả ao đang hiển thị
             </button>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
             {ponds.map((pond) => {
-              const pondKey = pond.pondId || pond.id;
+              const pondKey = pond.pondId || pond.id || "";
               const isSelected =
-                selectedPondIds.includes(pondKey) ||
-                selectedPondIds.includes(pond.id);
+                selectedPondIds.includes(pondKey);
               return (
                 <div
                   key={pondKey}
@@ -128,21 +130,21 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
                         {pond.name}
                       </div>
                       <div className="text-[11px] text-[var(--text-subtle)]">
-                        {pond.location} · {pond.density || "Mật độ chuẩn"}
+                        {pond.location || "Vị trí chưa cập nhật"} · {pond.density || "Mật độ chưa cập nhật"}
                       </div>
                     </div>
                   </div>
 
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                      pond.status === "NORMAL"
+                      pond.status === "ACTIVE"
                         ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                        : pond.status === "WARNING"
+                        : pond.status === "HARVESTED"
                         ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                        : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                        : "bg-slate-500/15 text-slate-400 border border-slate-500/30"
                     }`}
                   >
-                    {pond.status === "NORMAL" ? "Ổn định" : pond.status === "WARNING" ? "Cảnh báo" : "Nguy hiểm"}
+                    {pond.status === "ACTIVE" ? "Đang nuôi" : pond.status === "HARVESTED" ? "Đã thu hoạch" : "Ao trống"}
                   </span>
                 </div>
               );

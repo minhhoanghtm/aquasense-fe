@@ -1,48 +1,75 @@
 import { useEffect, useState } from "react";
 import type { Pond, PondWithDevices } from "../types/Pond";
 import type { Alerts } from "../types/Alerts";
-import { getPonds, getPondsWithDevices } from "../services/pondApi";
+import { getAllPondsPage, getPondsPage, type PaginatedPonds } from "../services/pondApi";
+import type { PondStatus } from "../types/Pond";
 import { getAlerts } from "../services/alertsApi";
 
-let cachedPonds: Pond[] = [];
-let cachedInfoPond: PondWithDevices[] = [];
-let cachedAllAlerts: Alerts[] = [];
+const sortPonds = (ponds: Pond[]): Pond[] => [...ponds].sort((a, b) =>
+    (a.name || a.pondName || a.id || a.pondId || "").localeCompare(
+        b.name || b.pondName || b.id || b.pondId || "",
+        "vi",
+    ),
+);
 
 export const invalidatePondsCache = () => {
-    cachedPonds = [];
-    cachedInfoPond = [];
-    cachedAllAlerts = [];
     window.dispatchEvent(new Event("ponds-updated"));
 };
 
-export const usePonds = () => {
-    const [ponds, setPonds] = useState<Pond[]>(cachedPonds);
-    const [infoPond, setInfoPond] = useState<PondWithDevices[]>(cachedInfoPond);
-    const [allAlerts, setAllAlerts] = useState<Alerts[]>(cachedAllAlerts);
-    const [loading, setLoading] = useState(cachedPonds.length === 0);
+export interface PondQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: PondStatus;
+    userId?: string;
+    allPages?: boolean;
+}
 
-    const fetchPondsData = async (force: boolean = false) => {
+export const usePonds = (query: PondQuery = {}) => {
+    // Do not hydrate from module cache: a prior user's permitted ponds must
+    // never be rendered while the current session's authorization is loading.
+    const [ponds, setPonds] = useState<Pond[]>([]);
+    const [infoPond, setInfoPond] = useState<PondWithDevices[]>([]);
+    const [allAlerts, setAllAlerts] = useState<Alerts[]>([]);
+    const [alertsError, setAlertsError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [pagination, setPagination] = useState<Omit<PaginatedPonds, "data">>({ total: 0, page: 1, limit: query.limit ?? 100, totalPages: 0 });
+
+    const fetchPondsData = async () => {
         try {
-            if (cachedPonds.length === 0 || force) {
-                setLoading(true);
-            }
+            setError(null);
+            setLoading(true);
+            // Never leave another session's data on screen while the current
+            // user's authorization-scoped request is in flight.
+            setPonds([]);
+            setInfoPond([]);
+            setAllAlerts([]);
+            setAlertsError(null);
 
-            const [pondsData, infoPondsData, alertsData] = await Promise.all([
-                getPonds(),
-                getPondsWithDevices().catch(() => []),
-                getAlerts().catch(() => []),
+            const [pondsResult, alertsResult] = await Promise.allSettled([
+                query.allPages
+                    ? getAllPondsPage({ search: query.search, status: query.status, userId: query.userId })
+                    : getPondsPage({ page: query.page, limit: query.limit ?? 100, search: query.search, status: query.status, userId: query.userId }),
+                getAlerts(),
             ]);
 
-            const safeAlerts = Array.isArray(alertsData) ? alertsData : [];
-            cachedPonds = Array.isArray(pondsData) ? pondsData : [];
-            cachedInfoPond = Array.isArray(infoPondsData) ? infoPondsData : [];
-            cachedAllAlerts = safeAlerts;
+            if (pondsResult.status === "rejected") throw pondsResult.reason;
+            const nextPonds = sortPonds(pondsResult.value.data);
+            const safeAlerts = alertsResult.status === "fulfilled" && Array.isArray(alertsResult.value)
+                ? alertsResult.value
+                : [];
+            if (alertsResult.status === "rejected") {
+                setAlertsError(alertsResult.reason instanceof Error ? alertsResult.reason.message : "Không thể tải cảnh báo.");
+            }
 
-            setPonds(cachedPonds);
-            setInfoPond(cachedInfoPond);
+            setPonds(nextPonds);
+            setPagination({ total: pondsResult.value.total, page: pondsResult.value.page, limit: pondsResult.value.limit, totalPages: pondsResult.value.totalPages });
+            setInfoPond(nextPonds.map((pond) => ({ ...pond, devices: [] })));
             setAllAlerts(safeAlerts);
         } catch (error) {
             console.error("Lỗi lấy danh sách ao và thiết bị:", error);
+            setError(error instanceof Error ? error.message : "Không thể tải danh sách ao nuôi.");
         } finally {
             setLoading(false);
         }
@@ -52,18 +79,21 @@ export const usePonds = () => {
         fetchPondsData();
 
         const handleUpdate = () => {
-            fetchPondsData(true);
+            fetchPondsData();
         };
 
         window.addEventListener("ponds-updated", handleUpdate);
         return () => window.removeEventListener("ponds-updated", handleUpdate);
-    }, []);
+    }, [query.page, query.limit, query.search, query.status, query.userId, query.allPages]);
 
     return {
         ponds,
         infoPond,
         allAlerts,
+        alertsError,
         loading,
-        refetch: () => fetchPondsData(true),
+        error,
+        pagination,
+        refetch: fetchPondsData,
     };
 };

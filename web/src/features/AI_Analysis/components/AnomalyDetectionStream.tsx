@@ -15,31 +15,10 @@ export interface AnomalyDetectionStreamProps {
   className?: string;
 }
 
-const DEFAULT_ANOMALIES: AnomalyItem[] = [
-  {
-    id: "anom-1",
-    title: "DO giảm nhanh hơn 18% so với mẫu bình thường",
-    subtitle: "Vuông D3 · So với 14 đêm gần nhất cùng giai đoạn phát triển.",
-    level: "WARNING",
-  },
-  {
-    id: "anom-2",
-    title: "Độ đục tăng đột biến sau chu kỳ cho ăn",
-    subtitle: "Vuông A1 · Giá trị trở lại bình thường sau 22 phút; không cần xử lý.",
-    level: "WARNING",
-  },
-  {
-    id: "anom-3",
-    title: "Phát hiện lệch cảm biến",
-    subtitle: "Mẫu DO A1-04 · Nên hiệu chuẩn trong 48 giờ tới.",
-    level: "WARNING",
-  },
-];
-
 export const AnomalyDetectionStream: React.FC<AnomalyDetectionStreamProps> = ({
   title = "Luồng phát hiện bất thường",
-  subtitle = "Mẫu bất thường do AI đánh dấu",
-  anomalies = DEFAULT_ANOMALIES,
+  subtitle = "Các bất thường do AI đánh dấu",
+  anomalies = [],
   className = "",
 }) => {
   return (
@@ -63,7 +42,7 @@ export const AnomalyDetectionStream: React.FC<AnomalyDetectionStreamProps> = ({
 
       {/* Anomalies List */}
       <div className="divide-y divide-(--panel-border) mt-0.5">
-        {anomalies.map((item) => (
+        {anomalies.length > 0 ? anomalies.map((item) => (
           <div
             key={item.id}
             className="flex items-start gap-3 py-2.5 sm:py-3 first:pt-1.5 last:pb-0.5 transition-colors hover:bg-slate-900/20 px-1.5 rounded-lg"
@@ -83,7 +62,7 @@ export const AnomalyDetectionStream: React.FC<AnomalyDetectionStreamProps> = ({
               </p>
             </div>
           </div>
-        ))}
+        )) : <p className="py-6 text-sm text-(--text-muted)">Chưa có bất thường được AI ghi nhận.</p>}
       </div>
     </div>
   );

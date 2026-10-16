@@ -9,38 +9,10 @@ export interface ParameterHealthCardProps {
   className?: string;
 }
 
-const DEFAULT_PARAMETER_DATA: ParameterData[] = [
-  {
-    parameter: "DO",
-    current: 78,
-    optimal: 85,
-  },
-  {
-    parameter: "pH",
-    current: 82,
-    optimal: 88,
-  },
-  {
-    parameter: "NHIỆT",
-    current: 85,
-    optimal: 82,
-  },
-  {
-    parameter: "MẶN",
-    current: 70,
-    optimal: 80,
-  },
-  {
-    parameter: "MỰC",
-    current: 80,
-    optimal: 85,
-  },
-];
-
 export const ParameterHealthCard: React.FC<ParameterHealthCardProps> = ({
   title = "Sức khỏe thông số",
   subtitle = "Hiện tại so với ngưỡng tối ưu",
-  data = DEFAULT_PARAMETER_DATA,
+  data = [],
   className = "",
 }) => {
   return (
@@ -64,7 +36,7 @@ export const ParameterHealthCard: React.FC<ParameterHealthCardProps> = ({
 
       {/* Radar Chart */}
       <div className="my-1 flex-1 flex items-center justify-center w-full min-h-[240px]">
-        <WaterQualityRadar data={data} />
+        {data.length > 0 ? <WaterQualityRadar data={data} /> : <p className="text-sm text-(--text-muted)">Chưa có dữ liệu sức khỏe thông số.</p>}
       </div>
     </div>
   );

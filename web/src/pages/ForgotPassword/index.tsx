@@ -18,7 +18,8 @@ import {
   RotateCw,
   Headphones,
 } from "lucide-react";
-import { sendOtp, verifyOtp, resetPassword } from "../../services/authApi";
+import { verifyOtp, resetPassword, forgotPassword } from "../../services/authApi";
+import { ApiError } from "../../services/api";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export const ForgotPassword: React.FC = () => {
@@ -37,20 +38,40 @@ export const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(0);
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const sendRequestInFlightRef = useRef(false);
+  const genericSuccessMessage = "Nếu Email hoặc số điện thoại đã đăng ký, mã OTP sẽ được gửi. Vui lòng kiểm tra hộp thư hoặc tin nhắn.";
+  const getErrorMessage = (error: unknown, fallback: string): string =>
+    error instanceof Error && error.message ? error.message : fallback;
 
-  // Countdown timer for Step 2
+  // A countdown only exists when the backend confirms a Retry-After value.
   useEffect(() => {
-    let timer: any;
-    if (step === 2 && countdown > 0) {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    if (countdown > 0) {
       timer = setInterval(() => {
         setCountdown((prev) => prev - 1);
       }, 1000);
     }
-    return () => clearInterval(timer);
-  }, [step, countdown]);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [countdown]);
+
+  const handleSendError = (error: unknown, fallback: string) => {
+    if (error instanceof ApiError && error.status === 429) {
+      if (error.retryAfterSeconds !== undefined) {
+        setCountdown(error.retryAfterSeconds);
+        setErrorMessage(`Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ${error.retryAfterSeconds} giây.`);
+      } else {
+        setCountdown(0);
+        setErrorMessage("Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.");
+      }
+      return;
+    }
+    setErrorMessage(getErrorMessage(error, fallback));
+  };
 
   // Mask phone or email for Step 2 display
   const getMaskedTarget = (val: string) => {
@@ -69,14 +90,17 @@ export const ForgotPassword: React.FC = () => {
     return clean;
   };
 
-  const isPhoneValid = /^(0[3|5|7|8|9])[0-9]{8}$/.test(identifier.trim().replace(/\s+/g, ""));
+  const isPhoneValid = /^(03|05|07|08|09)[0-9]{8}$/.test(identifier.trim().replace(/\s+/g, ""));
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim());
   const isTargetValid = method === "phone" ? isPhoneValid : isEmailValid;
 
   // Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanVal = identifier.trim();
+    if (sendRequestInFlightRef.current) return;
+    const cleanVal = method === "email"
+      ? identifier.trim().toLowerCase()
+      : identifier.trim().replace(/\s+/g, "");
     if (!cleanVal) {
       setErrorMessage(method === "phone" ? "Vui lòng nhập số điện thoại." : "Vui lòng nhập địa chỉ email.");
       return;
@@ -86,23 +110,26 @@ export const ForgotPassword: React.FC = () => {
       return;
     }
     if (method === "email" && !isEmailValid) {
-      setErrorMessage("Địa chỉ email không đúng định dạng (ví dụ: ten@gmail.com).");
+      setErrorMessage("Địa chỉ email không hợp lệ.");
       return;
     }
 
     try {
+      sendRequestInFlightRef.current = true;
       setLoading(true);
       setErrorMessage(null);
-      await sendOtp(cleanVal, "RESET_PASSWORD");
-      setSuccessMessage("Mã OTP đã được gửi thành công!");
-      setCountdown(600);
+      await forgotPassword(cleanVal);
+      setIdentifier(cleanVal);
+      setSuccessMessage(genericSuccessMessage);
+      setCountdown(0);
       setStep(2);
       setTimeout(() => {
         otpInputsRef.current[0]?.focus();
       }, 150);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Không thể gửi OTP. Vui lòng kiểm tra lại thông tin.");
+    } catch (error: unknown) {
+      handleSendError(error, "Không thể gửi OTP. Vui lòng kiểm tra lại thông tin.");
     } finally {
+      sendRequestInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -152,14 +179,10 @@ export const ForgotPassword: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      if (otpCode === "123456") {
-        setStep(3);
-        return;
-      }
       await verifyOtp(identifier.trim(), otpCode, "RESET_PASSWORD");
       setStep(3);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Mã OTP không chính xác hoặc đã hết hạn.");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, "Mã OTP không chính xác hoặc đã hết hạn."));
     } finally {
       setLoading(false);
     }
@@ -167,19 +190,20 @@ export const ForgotPassword: React.FC = () => {
 
   // Step 2: Resend OTP
   const handleResendOtp = async () => {
-    if (countdown > 0) return;
+    if (countdown > 0 || sendRequestInFlightRef.current) return;
     try {
+      sendRequestInFlightRef.current = true;
       setLoading(true);
       setErrorMessage(null);
-      const res = await sendOtp(identifier.trim(), "RESET_PASSWORD");
-      setCountdown(60);
+      await forgotPassword(identifier.trim());
       setOtpDigits(["", "", "", "", "", ""]);
-      setSuccessMessage(res?.otp ? `Mã OTP mới: ${res.otp}` : "Mã OTP mới: 123456");
+      setSuccessMessage(genericSuccessMessage);
       setTimeout(() => setSuccessMessage(null), 4000);
       otpInputsRef.current[0]?.focus();
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Không thể gửi lại OTP.");
+    } catch (error: unknown) {
+      handleSendError(error, "Không thể gửi lại OTP.");
     } finally {
+      sendRequestInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -191,8 +215,8 @@ export const ForgotPassword: React.FC = () => {
       setErrorMessage("Vui lòng nhập mật khẩu mới.");
       return;
     }
-    if (newPassword.length < 6) {
-      setErrorMessage("Mật khẩu mới phải có tối thiểu 6 ký tự.");
+    if (newPassword.length < 8) {
+      setErrorMessage("Mật khẩu mới phải có ít nhất 8 ký tự.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -203,11 +227,10 @@ export const ForgotPassword: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const otpCode = otpDigits.join("");
-      await resetPassword(identifier.trim(), newPassword, otpCode);
+      await resetPassword(identifier.trim(), newPassword);
       setStep(4);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Đã xảy ra lỗi khi đổi mật khẩu.");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, "Đã xảy ra lỗi khi đổi mật khẩu."));
     } finally {
       setLoading(false);
     }
@@ -223,24 +246,15 @@ export const ForgotPassword: React.FC = () => {
       {/* Top Brand & Status Bar */}
       <header className="w-full px-6 sm:px-10 lg:px-14 py-3 shrink-0 flex items-center justify-between z-20">
         {/* Left Brand */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_12px_rgba(45,212,195,0.2)]">
-            <WavesHorizontal className="h-5 w-5" />
+        <Link to="/" className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            <WavesHorizontal className="h-5 w-5 text-[var(--leaf-highlight)]" />
+
+            <span className="text-base font-bold text-[var(--text-primary)] sm:text-lg">AquaSense</span>
+
+            <span className="text-[8px] font-bold text-[#2dd4c3] sm:text-[9px]">IoT</span>
           </div>
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold tracking-tight text-(--text-primary)">
-                AquaSense
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--panel-bg)] text-[var(--accent)] border border-[var(--panel-border)] tracking-wider uppercase">
-                AGRITECH
-              </span>
-            </div>
-            <p className="text-[10px] text-(--text-muted) font-medium">
-              Hệ thống Quản lý Nuôi tôm IoT
-            </p>
-          </div>
-        </div>
+        </Link>
 
         {/* Right Status Badge */}
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--panel-bg)] border border-[var(--panel-border)] text-[var(--success)] text-xs font-semibold backdrop-blur-md">
@@ -343,15 +357,15 @@ export const ForgotPassword: React.FC = () => {
                   <Info size={13} className="text-[var(--accent)] shrink-0 mt-0.5" />
                   <span>
                     {method === "phone"
-                      ? "Mã OTP gồm 6 chữ số sẽ được gửi qua SMS tới số điện thoại của bạn."
-                      : "Mã OTP gồm 6 chữ số sẽ được gửi tới hòm thư email của bạn."}
+                      ? "Nếu số điện thoại đã đăng ký, bạn có thể nhận mã OTP 6 chữ số qua SMS."
+                      : "Nếu email đã đăng ký, bạn có thể nhận mã OTP 6 chữ số trong hộp thư."}
                   </span>
                 </div>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || countdown > 0}
                   className="w-full mt-1 group relative flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] active:scale-[0.99] py-2.5 px-5 font-bold text-[var(--text-on-accent)] text-xs sm:text-sm shadow-[0_0_16px_rgba(45,212,195,0.35)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
@@ -361,7 +375,7 @@ export const ForgotPassword: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <span>Nhận mã OTP</span>
+                      <span>{countdown > 0 ? `Thử lại sau ${countdown}s` : "Nhận mã OTP"}</span>
                       <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
                     </>
                   )}
@@ -401,7 +415,7 @@ export const ForgotPassword: React.FC = () => {
                 Xác thực mã OTP
               </h1>
               <p className="text-xs text-(--text-muted) mb-3 leading-tight">
-                Nhập mã 6 chữ số đã gửi đến <span className="font-semibold text-(--text-primary)">{getMaskedTarget(identifier)}</span>
+                Nhập mã 6 chữ số nếu bạn nhận được tại <span className="font-semibold text-(--text-primary)">{getMaskedTarget(identifier)}</span>
               </p>
 
               {/* Feedback messages */}
@@ -449,9 +463,7 @@ export const ForgotPassword: React.FC = () => {
                 <div className="flex items-center justify-between text-xs pt-0.5">
                   <div className="flex items-center gap-1 text-(--text-muted) text-[11px]">
                     <Clock size={13} className="text-[var(--accent)]" />
-                    <span>
-                      Mã hết hạn: <strong className="text-(--text-primary)">00:{countdown < 10 ? `0${countdown}` : countdown}s</strong>
-                    </span>
+                    <span>{countdown > 0 ? <>Có thể gửi lại sau: <strong className="text-(--text-primary)">{countdown}s</strong></> : "Có thể yêu cầu gửi lại"}</span>
                   </div>
 
                   <button
@@ -569,7 +581,7 @@ export const ForgotPassword: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-(--text-muted) pl-2">
-                    Tối thiểu 6 ký tự bao gồm chữ và số.
+                    Tối thiểu 8 ký tự.
                   </p>
                 </div>
 
@@ -646,6 +658,9 @@ export const ForgotPassword: React.FC = () => {
               </h1>
               <p className="text-xs text-(--text-muted) mb-4 leading-relaxed">
                 Mật khẩu của bạn đã được cập nhật thành công. Vui lòng đăng nhập lại với mật khẩu mới.
+              </p>
+              <p className="text-[11px] text-(--text-subtle) mb-4 leading-relaxed">
+                Nếu tài khoản đang bị khóa thủ công, việc đặt lại mật khẩu không tự mở khóa. Vui lòng liên hệ ADMIN/MANAGER.
               </p>
 
               <button

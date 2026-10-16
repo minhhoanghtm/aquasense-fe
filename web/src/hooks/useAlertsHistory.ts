@@ -6,11 +6,13 @@ export const useAlertsHistory = () => {
     const [alerts, setAlerts] = useState<Alerts[]>([]);
     const [rules, setRules] = useState<AlertRule[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAlertsData = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const [alertsData, rulesData] = await Promise.all([
                     getAlerts(),
                     getAlertRules(),
@@ -20,6 +22,8 @@ export const useAlertsHistory = () => {
                 setRules(rulesData);
             } catch (error) {
                 console.error("Lỗi lấy dữ liệu cảnh báo:", error);
+                setAlerts([]);
+                setError(error instanceof Error ? error.message : "Không thể tải dữ liệu cảnh báo.");
             } finally {
                 setLoading(false);
             }
@@ -55,5 +59,6 @@ export const useAlertsHistory = () => {
             resolved: resolvedCount,
         },
         loading,
+        error,
     };
 };

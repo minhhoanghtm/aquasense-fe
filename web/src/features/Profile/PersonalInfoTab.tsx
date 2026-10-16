@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { User as UserType } from "../../types/User";
 import { updateProfile } from "../../services/authApi";
+import { getRoleLabel } from "../../lib/rolePermissions";
 
 interface PersonalInfoTabProps {
   user: UserType | null;
@@ -94,6 +95,24 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
       }
     }
 
+    if (formData.dateOfBirth) {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) {
+        setMessage({
+          type: "error",
+          text: "Người dùng phải đủ 18 tuổi.",
+        });
+        return;
+      }
+    }
+
     setIsSaving(true);
     setMessage(null);
 
@@ -120,10 +139,7 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
     }
   };
 
-  const roleLabel =
-    formData.role === "MANAGER" || formData.role === "ADMIN"
-      ? "Quản lý"
-      : "Nông dân";
+  const roleLabel = getRoleLabel(formData.role);
 
   return (
     <div className="rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 sm:p-7 backdrop-blur-xl shadow-lg text-left">

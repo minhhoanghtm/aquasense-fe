@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getCurrentUser } from "../services/authApi";
 import type { User as UserType } from "../types/User";
+import { canAccessRoute } from "../lib/rolePermissions";
 
 const navigation = [
   {
@@ -59,8 +60,8 @@ export const Navigation = memo(() => {
     };
   }, []);
 
-  const filteredNavigation = navigation.filter(
-    (item) => !item.allowedRoles || (currentUser?.role && item.allowedRoles.includes(currentUser.role))
+  const filteredNavigation = navigation.filter((item) =>
+    canAccessRoute(currentUser?.role, item.allowedRoles),
   );
 
   return (
@@ -120,8 +121,8 @@ export const MobileNavigation = memo(({
     };
   }, []);
 
-  const filteredNavigation = navigation.filter(
-    (item) => !item.allowedRoles || (currentUser?.role && item.allowedRoles.includes(currentUser.role))
+  const filteredNavigation = navigation.filter((item) =>
+    canAccessRoute(currentUser?.role, item.allowedRoles),
   );
 
   return (

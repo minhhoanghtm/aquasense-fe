@@ -1,11 +1,11 @@
-import PondStatus from "./PondStatus";
+import type { PondStatus } from "../types/Pond";
 
 type Pond = {
     id: string;
     name: string;
     area: number;
     density: string;
-    status: "NORMAL" | "WARNING" | "DANGER";
+    status: PondStatus;
 };
 
 type Props = {
@@ -38,7 +38,9 @@ export default function PondListItem({ pond, isSelected, onClick }: Props) {
                     {pond.area} ha · {pond.density}
                 </span>
 
-                <PondStatus status={pond.status} />
+                <span className="rounded-lg border border-cyan-700/50 bg-cyan-950/60 px-2 py-1 text-[11px] text-cyan-200">
+                    {pond.status === "ACTIVE" ? "Đang nuôi" : pond.status === "HARVESTED" ? "Đã thu hoạch" : "Ao trống"}
+                </span>
             </div>
         </button>
     );

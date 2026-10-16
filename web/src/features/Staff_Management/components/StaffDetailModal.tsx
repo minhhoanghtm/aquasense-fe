@@ -6,9 +6,11 @@ import {
   Layers,
   AlertTriangle,
   BellRing,
+  Lock,
 } from "lucide-react";
 import type { User as UserType, UserStatus } from "../../../types/User";
 import type { Pond, PondStatus } from "../../../types/Pond";
+import { getRoleLabel } from "../../../lib/rolePermissions";
 
 interface StaffDetailModalProps {
   isOpen: boolean;
@@ -16,8 +18,9 @@ interface StaffDetailModalProps {
   staff: UserType | null;
   ponds: Pond[];
   onEdit?: (staff: UserType) => void;
-  onAssignPond: (staff: UserType) => void;
+  onAssignPond?: (staff: UserType) => void;
   onApprove?: (staff: UserType) => void;
+  canManage?: boolean;
 }
 
 export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
@@ -28,21 +31,25 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   onEdit: _onEdit,
   onAssignPond,
   onApprove,
+  canManage = false,
 }) => {
   if (!isOpen || !staff) return null;
 
-  const assignedPonds = ponds.filter((p) =>
-    staff.assignedPondIds?.includes(p.id) || staff.assignedPondIds?.includes(p.pondId || "")
-  );
+  const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
 
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
       case "MANAGER":
-      case "ADMIN":
         return {
           label: "Quản lý",
           desc: "Toàn quyền quản lý tài khoản nông dân, cấu hình ngưỡng cảnh báo và phân công vuông nuôi.",
           color: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+        };
+      case "ADMIN":
+        return {
+          label: getRoleLabel(role),
+          desc: "Toàn quyền truy cập và quản trị hệ thống, tài khoản, vuông nuôi và thiết bị.",
+          color: "bg-amber-500/15 text-amber-300 border-amber-500/30",
         };
       case "FARMER":
       default:
@@ -128,6 +135,12 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 >
                   {statusInfo.label}
                 </span>
+                {staff.is_login_locked && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-rose-500/15 text-rose-400 border-rose-500/30">
+                    <Lock size={11} />
+                    Khóa đăng nhập
+                  </span>
+                )}
                 {/* <span
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                     staff.isActive !== false
@@ -142,7 +155,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
               <p className="text-xs text-[var(--text-muted)] mt-0.5 flex items-center gap-2">
                 <span>Mã định danh: <span className="font-mono text-cyan-400">{staff.userId || staff.id}</span></span>
                 <span>·</span>
-                <span>Vai trò: <span className="text-emerald-400 font-semibold">{staff.role == "FARMER" ? "Nông dân" : "Quản lý"}</span></span>
+                <span>Vai trò: <span className="text-emerald-400 font-semibold">{getRoleLabel(staff.role)}</span></span>
               </p>
             </div>
           </div>
@@ -157,7 +170,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <AlertTriangle size={16} className="text-amber-400 shrink-0" />
                 <span>Tài khoản này đang chờ quản trị viên duyệt trước khi có thể đăng nhập.</span>
               </div>
-              {onApprove && (
+              {canManage && onApprove && (
                 <button
                   type="button"
                   onClick={() => {
@@ -205,7 +218,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <Mail size={15} className="text-cyan-400 shrink-0" />
                 <div>
                   <div className="text-[10px] text-[var(--text-subtle)]">Email liên hệ</div>
-                  <div className="text-[var(--text-primary)] font-medium">{staff.email || "farmer@aquasense.vn"}</div>
+                  <div className="text-[var(--text-primary)] font-medium">{staff.email || "Chưa cập nhật"}</div>
                 </div>
               </div>
 
@@ -213,7 +226,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <MapPin size={15} className="text-amber-400 shrink-0" />
                 <div>
                   <div className="text-[10px] text-[var(--text-subtle)]">Địa chỉ / Khu vực (address)</div>
-                  <div className="text-[var(--text-primary)] font-medium">{staff.address || "Khu vực Cà Mau"}</div>
+                  <div className="text-[var(--text-primary)] font-medium">{staff.address || "Chưa cập nhật"}</div>
                 </div>
               </div>
 
@@ -222,7 +235,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <div className="truncate">
                   <div className="text-[10px] text-[var(--text-subtle)]">Mã FCM Push Token</div>
                   <div className="text-[var(--text-primary)] font-mono text-[11px] truncate">
-                    {staff.fcmToken || `fcm_usr_${staff.id}`}
+                    {staff.fcmToken || "Chưa cập nhật"}
                   </div>
                 </div>
               </div>
@@ -236,16 +249,16 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <Layers size={14} className="text-cyan-400" />
                 Danh sách vuông nuôi phụ trách ({assignedPonds.length})
               </h4>
-              <button
+              {canManage && onAssignPond && <button
                 type="button"
                 onClick={() => {
                   onClose();
-                  onAssignPond(staff);
+                  onAssignPond?.(staff);
                 }}
                 className="text-xs text-[var(--accent)] hover:text-[var(--accent-bright)] font-semibold transition cursor-pointer"
               >
                 + Thay đổi phân công
-              </button>
+              </button>}
             </div>
 
             {assignedPonds.length === 0 ? (
@@ -264,11 +277,11 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                         {pond.pondName || pond.name}
                       </div>
                       <div className="text-[10px] text-[var(--text-subtle)] mt-0.5 flex items-center gap-1.5">
-                        <span>{pond.areaM2 ? `${pond.areaM2.toLocaleString()} m²` : `${pond.area || 0.5} ha`}</span>
+                        <span>{pond.areaM2 !== undefined ? `${pond.areaM2.toLocaleString()} m²` : pond.area !== undefined ? `${pond.area} ha` : "Diện tích chưa cập nhật"}</span>
                         <span>·</span>
-                        <span>Độ sâu: {pond.depthM || 1.5}m</span>
+                        <span>Độ sâu: {pond.depthM !== undefined ? `${pond.depthM}m` : "chưa cập nhật"}</span>
                         <span>·</span>
-                        <span>Mật độ: {pond.shrimpDensity || 120} con/m²</span>
+                        <span>Mật độ: {pond.shrimpDensity !== undefined ? `${pond.shrimpDensity} con/m²` : "chưa cập nhật"}</span>
                       </div>
                     </div>
                     <span
@@ -276,7 +289,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                         pond.status
                       )}`}
                     >
-                      {pond.status || "ACTIVE"}
+                      {pond.status || "Chưa cập nhật"}
                     </span>
                   </div>
                 ))}

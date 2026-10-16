@@ -10,9 +10,9 @@ interface WarningSummaryProps {
 }
 
 const WarningSummary = ({
-  danger = 4,
-  warning = 10,
-  resolved = 10,
+  danger = 0,
+  warning = 0,
+  resolved = 0,
   onExport,
   className = "",
 }: WarningSummaryProps) => {

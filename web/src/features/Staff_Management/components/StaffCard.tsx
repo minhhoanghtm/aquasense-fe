@@ -10,9 +10,12 @@ import {
   Trash2,
   Shield,
   Layers,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import { getRoleLabel } from "../../../lib/rolePermissions";
 
 interface StaffCardProps {
   staff: User;
@@ -20,10 +23,12 @@ interface StaffCardProps {
   onViewDetail: (staff: User) => void;
   onEdit: (staff: User) => void;
   onDelete: (staff: User) => void;
-  onAssignPond: (staff: User) => void;
+  onAssignPond?: (staff: User) => void;
   onApprove?: (staff: User) => void;
   onReject?: (staff: User) => void;
   onChangeStatus?: (staff: User, status: UserStatus) => void;
+  onToggleLoginLock?: (staff: User) => void;
+  canManage: boolean;
 }
 
 export const StaffCard: React.FC<StaffCardProps> = ({
@@ -36,20 +41,22 @@ export const StaffCard: React.FC<StaffCardProps> = ({
   onApprove,
   onReject,
   onChangeStatus,
+  onToggleLoginLock,
+  canManage,
 }) => {
-  const assignedPonds = ponds.filter(
-    (p) =>
-      staff.assignedPondIds?.includes(p.id) ||
-      staff.assignedPondIds?.includes(p.pondId || "")
-  );
+  const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
 
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
       case "MANAGER":
-      case "ADMIN":
         return {
           label: "Quản lý",
           color: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+        };
+      case "ADMIN":
+        return {
+          label: getRoleLabel(role),
+          color: "bg-amber-500/15 text-amber-300 border-amber-500/30",
         };
       case "FARMER":
       default:
@@ -176,13 +183,13 @@ export const StaffCard: React.FC<StaffCardProps> = ({
               <Layers size={13} className="text-[var(--accent)]" />
               Vuông nuôi phụ trách ({assignedPonds.length}):
             </span>
-            <button
+            {canManage && onAssignPond && <button
               type="button"
-              onClick={() => onAssignPond(staff)}
+              onClick={() => onAssignPond?.(staff)}
               className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
             >
               + Phân công
-            </button>
+            </button>}
           </div>
 
           <div className="flex flex-wrap gap-1.5 min-h-[30px] items-center">
@@ -208,29 +215,29 @@ export const StaffCard: React.FC<StaffCardProps> = ({
       {/* Card Actions Footer */}
       <div className="mt-5 pt-3.5 border-t border-[var(--divider)] flex flex-col gap-2">
         {/* Pending Approval Action Bar */}
-        {staff.status === "PENDING_APPROVAL" ? (
+        {canManage && staff.status === "PENDING_APPROVAL" ? (
           <div className="flex items-center gap-2 w-full">
-            <button
+            {canManage && <button
               type="button"
               onClick={() => onApprove && onApprove(staff)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 text-xs font-semibold transition cursor-pointer"
             >
               <CheckCircle2 size={14} />
               <span>Phê duyệt</span>
-            </button>
-            <button
+            </button>}
+            {canManage ? <button
               type="button"
               onClick={() => onReject && onReject(staff)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 text-xs font-semibold transition cursor-pointer"
             >
               <XCircle size={14} />
               <span>Từ chối</span>
-            </button>
+            </button> : <span className="text-xs text-[var(--text-subtle)]">Chỉ xem</span>}
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2 w-full">
             {/* Status toggle switch */}
-            <button
+            {canManage ? <button
               type="button"
               onClick={() => {
                 if (onChangeStatus) {
@@ -271,10 +278,27 @@ export const StaffCard: React.FC<StaffCardProps> = ({
                   ? "Hoạt động"
                   : "Không hoạt động"}
               </span>
-            </button>
+            </button> : <span className="text-xs text-[var(--text-subtle)]">Chỉ xem</span>}
 
             {/* Quick buttons */}
             <div className="flex items-center gap-1.5">
+              {canManage && <button
+                type="button"
+                onClick={() => onToggleLoginLock?.(staff)}
+                className={`p-1.5 rounded-lg flex items-center justify-center transition cursor-pointer ${
+                  staff.isLocked || staff.is_login_locked
+                    ? "bg-rose-950/40 text-rose-400 border border-rose-900/50"
+                    : "bg-[#07252f] text-emerald-400/70 border border-transparent"
+                }`}
+                title={
+                  staff.isLocked || staff.is_login_locked
+                    ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
+                    : "Tài khoản không bị khóa đăng nhập"
+                }
+                aria-label={staff.isLocked || staff.is_login_locked ? "Mở khóa đăng nhập" : "Khóa đăng nhập"}
+              >
+                {staff.isLocked || staff.is_login_locked ? <Lock size={15} /> : <Unlock size={15} />}
+              </button>}
               <button
                 type="button"
                 onClick={() => onViewDetail(staff)}
@@ -283,14 +307,14 @@ export const StaffCard: React.FC<StaffCardProps> = ({
               >
                 <Eye size={15} />
               </button>
-              <button
+              {canManage && <button
                 type="button"
                 onClick={() => onDelete(staff)}
                 className="p-1.5 rounded-lg bg-[#07252f] text-rose-400 hover:bg-rose-900/40 transition cursor-pointer"
                 title="Xóa nhân viên"
               >
                 <Trash2 size={14} />
-              </button>
+              </button>}
             </div>
           </div>
         )}

@@ -16,9 +16,12 @@ import {
 } from "../../services/deviceApi";
 import type { Devices as DeviceType } from "../../types/Devices";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import { getCurrentUser } from "../../services/authApi";
+import { canManageDevices } from "../../lib/rolePermissions";
 
 export default function Devices() {
   useDocumentTitle("Cảm biến & Thiết bị");
+  const canManage = canManageDevices(getCurrentUser()?.role);
 
   const { ponds } = usePonds();
   const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
@@ -68,6 +71,10 @@ export default function Devices() {
 
   const handleDeleteDevice = async (dev: DeviceType) => {
     const devId = dev.deviceId || dev.id;
+    if (!devId) {
+      showToast("Thiết bị không có ID hợp lệ.", "error");
+      return;
+    }
     if (window.confirm(`Bạn có chắc chắn muốn xóa thiết bị "${dev.name || dev.deviceName}"?`)) {
       try {
         await deleteDevice(devId);
@@ -89,6 +96,7 @@ export default function Devices() {
   }) => {
     if (editingDevice) {
       const devId = editingDevice.deviceId || editingDevice.id;
+      if (!devId) throw new Error("Thiết bị không có ID hợp lệ.");
       await updateDevice(devId, data);
       showToast(`Đã cập nhật thiết bị "${data.deviceName}"!`, "success");
     } else {
@@ -140,15 +148,15 @@ export default function Devices() {
       {/* Danh sách thiết bị */}
       <DeviceList
         devices={devices}
-        onAddNew={handleAddNew}
-        onEditDevice={handleEditDevice}
-        onDeleteDevice={handleDeleteDevice}
+        onAddNew={canManage ? handleAddNew : undefined}
+        onEditDevice={canManage ? handleEditDevice : undefined}
+        onDeleteDevice={canManage ? handleDeleteDevice : undefined}
       />
 
       {/* Giá trị đo gần nhất */}
       <LatestReading
         deviceCode={device?.node_code || device?.serialNumber}
-        deviceName={device?.name || "Gateway ESP32"}
+        deviceName={device?.name || device?.deviceName}
         metrics={dynamicMetrics}
       />
 

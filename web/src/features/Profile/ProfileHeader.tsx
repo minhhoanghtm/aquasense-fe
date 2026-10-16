@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Phone, Award, Waves } from "lucide-react";
 import type { User as UserType } from "../../types/User";
+import { getRoleLabel } from "../../lib/rolePermissions";
 
 interface ProfileHeaderProps {
   user: UserType | null;
@@ -12,10 +13,7 @@ const ProfileHeader = memo(function ProfileHeader({
   user,
   totalPonds,
 }: ProfileHeaderProps) {
-  const roleLabel =
-    user?.role === "MANAGER" || user?.role === "ADMIN"
-      ? "Quản lý"
-      : "Nông dân";
+  const roleLabel = getRoleLabel(user?.role);
 
   const roleColor =
     user?.role === "MANAGER" || user?.role === "ADMIN"
@@ -29,7 +27,7 @@ const ProfileHeader = memo(function ProfileHeader({
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "ND";
+    : "?";
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 sm:p-6 backdrop-blur-xl shadow-lg">
@@ -51,7 +49,7 @@ const ProfileHeader = memo(function ProfileHeader({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-heading)]">
-                {user?.fullName || "Nguyễn Văn An"}
+                {user?.fullName || "Chưa có thông tin"}
               </h2>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleColor}`}>
                 <Award size={12} />
@@ -62,7 +60,7 @@ const ProfileHeader = memo(function ProfileHeader({
             <p className="text-xs sm:text-sm text-[var(--text-muted)] flex flex-wrap items-center gap-x-4 gap-y-1">
               <span className="flex items-center gap-1.5 text-[var(--text-body)]">
                 <Phone size={14} className="text-[var(--accent)]" />
-                Số điện thoại: <span className="text-white font-medium">{user?.phoneNumber || "0912 345 678"}</span>
+                Số điện thoại: <span className="text-white font-medium">{user?.phoneNumber || "Chưa cập nhật"}</span>
               </span>
             </p>
           </div>

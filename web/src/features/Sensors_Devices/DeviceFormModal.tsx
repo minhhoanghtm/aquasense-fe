@@ -27,8 +27,8 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
   const [deviceName, setDeviceName] = useState("");
   const [macAddress, setMacAddress] = useState("");
   const [pondId, setPondId] = useState("");
-  const [firmwareVersion, setFirmwareVersion] = useState("v1.2.0");
-  const [status, setStatus] = useState("ONLINE");
+  const [firmwareVersion, setFirmwareVersion] = useState("");
+  const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -38,15 +38,15 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
     if (initialData) {
       setDeviceName(initialData.deviceName || initialData.name || "");
       setMacAddress(initialData.macAddress || "");
-      setPondId(initialData.pondId || (ponds.length > 0 ? ponds[0].id : ""));
-      setFirmwareVersion(initialData.firmwareVersion || "v1.2.0");
-      setStatus(initialData.status || "ONLINE");
+      setPondId(initialData.pondId || ponds[0]?.id || "");
+      setFirmwareVersion(initialData.firmwareVersion || "");
+      setStatus(initialData.status || "");
     } else {
       setDeviceName("");
       setMacAddress("");
-      setPondId(ponds.length > 0 ? (ponds[0].pondId || ponds[0].id) : "");
-      setFirmwareVersion("v1.2.0");
-      setStatus("ONLINE");
+      setPondId(ponds[0]?.pondId || ponds[0]?.id || "");
+      setFirmwareVersion("");
+      setStatus("");
     }
     setErrorMsg("");
   }, [initialData, isOpen, ponds]);
@@ -75,8 +75,8 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
         deviceName: deviceName.trim(),
         macAddress: macAddress.trim(),
         pondId,
-        firmwareVersion: firmwareVersion.trim() || "v1.2.0",
-        status,
+        firmwareVersion: firmwareVersion.trim() || undefined,
+        status: status || undefined,
       });
       onClose();
     } catch (err: any) {
@@ -177,7 +177,7 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
                   const pId = p.pondId || p.id;
                   return (
                     <option key={pId} value={pId} className="bg-[#07242e]">
-                      {p.name || p.pondName} ({p.areaM2 ? `${p.areaM2.toLocaleString()} m²` : `${p.area || 0.5} ha`})
+                      {p.name || p.pondName || "Ao nuôi chưa đặt tên"} ({p.areaM2 !== undefined ? `${p.areaM2.toLocaleString()} m²` : p.area !== undefined ? `${p.area} ha` : "diện tích chưa cập nhật"})
                     </option>
                   );
                 })}
@@ -214,6 +214,7 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
                 >
+                  <option value="" className="bg-[#07242e]">Chọn trạng thái</option>
                   <option value="ONLINE" className="bg-[#07242e]">Trực tuyến</option>
                   <option value="OFFLINE" className="bg-[#07242e]">Ngoại tuyến</option>
                   <option value="MAINTENANCE" className="bg-[#07242e]">Bảo trì</option>

@@ -13,12 +13,13 @@ import {
 import { Navigation, MobileNavigation } from "./Navigation";
 import { useNavigate, Link } from "react-router-dom";
 import { getCurrentUser, logout } from "../services/authApi";
-import { api } from "../services/api";
 import type { User as UserType } from "../types/User";
+import { getRoleLabel } from "../lib/rolePermissions";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserType | null>(getCurrentUser());
   const navigate = useNavigate();
 
@@ -29,22 +30,8 @@ const Header = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   useEffect(() => {
-    const initUser = async () => {
-      const stored = getCurrentUser();
-      if (stored) {
-        setCurrentUser(stored);
-      } else {
-        try {
-          const res = await api<any>("/users");
-          const usersList = Array.isArray(res) ? res : (res?.data ?? []);
-          if (usersList && usersList.length > 0) {
-            setCurrentUser(usersList[0]);
-            localStorage.setItem("aquasense_user", JSON.stringify(usersList[0]));
-          }
-        } catch {
-          // ignore
-        }
-      }
+    const initUser = () => {
+      setCurrentUser(getCurrentUser());
     };
     initUser();
 
@@ -138,9 +125,6 @@ const Header = () => {
             type="button"
             className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)] text-[var(--text-muted)] transition hover:bg-[var(--panel-highlight)] hover:text-[var(--text-primary)] cursor-pointer">
             <Bell size={15} />
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#ff6678] text-[8px] font-bold text-white border border-[var(--bg-primary)]">
-              2
-            </span>
           </button>
 
           {/* ================= USER PROFILE ================= */}
@@ -157,17 +141,15 @@ const Header = () => {
                       .map((n) => n[0])
                       .slice(-2)
                       .join("")
-                  : "ND"}
+                  : "?"}
               </div>
 
               <div className="hidden 2xl:block text-left">
                 <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">
-                  {currentUser?.fullName || "Nguyễn Văn An"}
+                  {currentUser?.fullName || "Chưa đăng nhập"}
                 </p>
                 <p className="text-[10px] text-[var(--text-muted)] leading-tight">
-                  {currentUser?.role === "MANAGER" || currentUser?.role === "ADMIN"
-                    ? "Quản lý"
-                    : "Nông dân"}
+                  {getRoleLabel(currentUser?.role)}
                 </p>
               </div>
             </button>
@@ -179,11 +161,11 @@ const Header = () => {
                 {/* User Info */}
                 <div className="border-b border-[var(--panel-border)] px-4 py-3 bg-[var(--panel-bg-dark)]">
                   <p className="text-sm font-medium text-[var(--text-heading)]">
-                    {currentUser?.fullName || "Nguyễn Văn An"}
+                    {currentUser?.fullName || "Chưa đăng nhập"}
                   </p>
 
                   <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                    {currentUser?.phoneNumber || currentUser?.email || "farmer@example.com"}
+                    {currentUser?.phoneNumber || currentUser?.email || "Chưa có thông tin liên hệ"}
                   </p>
                 </div>
 
@@ -224,14 +206,22 @@ const Header = () => {
                 <button
                   type="button"
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--critical)] transition hover:bg-[var(--critical-bg)] cursor-pointer"
-                  onClick={() => {
+                  disabled={isLoggingOut}
+                  onClick={async () => {
                     setIsProfileOpen(false);
-                    logout();
-                    navigate("/login");
+                    setIsLoggingOut(true);
+                    try {
+                      await logout();
+                      navigate("/login");
+                    } catch (error) {
+                      console.error("Đăng xuất thất bại:", error);
+                    } finally {
+                      setIsLoggingOut(false);
+                    }
                   }}
                 >
                   <LogOut size={17} />
-                  <span>Đăng xuất</span>
+                  <span>{isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}</span>
                 </button>
               </div>
             )}

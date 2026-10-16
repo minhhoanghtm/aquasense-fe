@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   KeyRound,
   Shield,
-  Smartphone,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -15,15 +15,18 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
+  LogOut,
 } from "lucide-react";
 import type { User as UserType } from "../../types/User";
-import { changePassword } from "../../services/authApi";
+import { changePassword, sendOtp, logoutAll } from "../../services/authApi";
+import { X } from "lucide-react";
 
 interface SecurityTabProps {
   user: UserType | null;
 }
 
 export default function SecurityTab({ user }: SecurityTabProps) {
+  const navigate = useNavigate();
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -36,7 +39,34 @@ export default function SecurityTab({ user }: SecurityTabProps) {
 
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleLogoutAll = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn đăng xuất khỏi tất cả các thiết bị? Hành động này sẽ yêu cầu bạn đăng nhập lại.")) {
+      return;
+    }
+    
+    setIsLoggingOutAll(true);
+    try {
+      await logoutAll();
+      navigate("/login");
+    } catch (error: unknown) {
+      setMessage({
+        type: "error",
+        text: getErrorMessage(error, "Không thể đăng xuất khỏi các thiết bị khác."),
+      });
+      setIsLoggingOutAll(false);
+    }
+  };
+
+  // OTP Modal states
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpMessage, setOtpMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const getErrorMessage = (error: unknown, fallback: string): string =>
+    error instanceof Error && error.message ? error.message : fallback;
 
   // Password criteria check
   const hasMinLength = passwordData.newPassword.length >= 8;
@@ -69,6 +99,11 @@ export default function SecurityTab({ user }: SecurityTabProps) {
       return;
     }
 
+    if (!user?.phoneNumber) {
+      setMessage({ type: "error", text: "Tài khoản không có số điện thoại để gửi OTP." });
+      return;
+    }
+
     if (!passwordData.currentPassword) {
       setMessage({ type: "error", text: "Vui lòng nhập mật khẩu hiện tại." });
       return;
@@ -88,17 +123,44 @@ export default function SecurityTab({ user }: SecurityTabProps) {
     setMessage(null);
 
     try {
-      const res = await changePassword(passwordData.currentPassword, passwordData.newPassword);
-      setMessage({ type: "success", text: res.message || "Đổi mật khẩu thành công!" });
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      setTimeout(() => setMessage(null), 4000);
-    } catch (err: any) {
+      // Gửi OTP thay vì đổi mật khẩu ngay
+      await sendOtp(user.phoneNumber, "CHANGE_PASSWORD");
+      setShowOtpModal(true);
+      setOtpCode("");
+      setOtpMessage(null);
+    } catch (error: unknown) {
       setMessage({
         type: "error",
-        text: err?.message || "Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.",
+        text: getErrorMessage(error, "Không thể gửi mã OTP. Vui lòng thử lại sau."),
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleVerifyOtpAndChangePassword = async () => {
+    if (!/^\d{6}$/.test(otpCode)) {
+      setOtpMessage({ type: "error", text: "Vui lòng nhập mã OTP hợp lệ." });
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpMessage(null);
+
+    try {
+      // The backend validates and consumes this one-time OTP in change-password.
+      const res = await changePassword(passwordData.currentPassword, passwordData.newPassword, otpCode);
+      setMessage({ type: "success", text: res.message || "Đổi mật khẩu thành công!" });
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setShowOtpModal(false);
+      setTimeout(() => setMessage(null), 4000);
+    } catch (error: unknown) {
+      setOtpMessage({
+        type: "error",
+        text: getErrorMessage(error, "Xác thực OTP hoặc đổi mật khẩu thất bại."),
+      });
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -152,7 +214,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   }
                   placeholder="Nhập mật khẩu đang sử dụng"
                   required
-                  className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 group-hover:border-[var(--panel-border-strong)]"
+                  className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 group-hover:border-[var(--panel-border-strong)] [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                 />
                 <button
                   type="button"
@@ -187,7 +249,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   }
                   placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
                   required
-                  className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 group-hover:border-[var(--panel-border-strong)]"
+                  className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 group-hover:border-[var(--panel-border-strong)] [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                 />
                 <button
                   type="button"
@@ -241,7 +303,7 @@ export default function SecurityTab({ user }: SecurityTabProps) {
                   }
                   placeholder="Nhập lại mật khẩu mới"
                   required
-                  className={`w-full rounded-xl border bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:ring-2 group-hover:border-[var(--panel-border-strong)] ${passwordData.confirmPassword
+                  className={`w-full rounded-xl border bg-[var(--panel-bg)] px-3.5 pr-11 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all duration-200 focus:ring-2 group-hover:border-[var(--panel-border-strong)] [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${passwordData.confirmPassword
                       ? isMatching
                         ? "border-emerald-500/50 focus:border-emerald-500 focus:ring-emerald-500/20"
                         : "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
@@ -404,49 +466,82 @@ export default function SecurityTab({ user }: SecurityTabProps) {
           </p>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {/* Phiên hiện tại */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
-                <Laptop size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">
-                    Windows PC · Google Chrome
-                  </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-bg)] px-2 py-0.5 text-[10px] font-semibold text-[var(--success)] border border-[var(--success)]/30">
-                    <Check size={10} /> Phiên hiện tại
-                  </span>
-                </div>
-                <p className="text-xs text-[var(--text-subtle)] mt-0.5">
-                  IP: 113.161.xx.xx · TP. Cà Mau, Việt Nam
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-[var(--success)] font-medium">Hoạt động ngay bây giờ</span>
-          </div>
-
-          {/* Thiết bị di động */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] gap-3 opacity-80">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-500/15 text-blue-400">
-                <Smartphone size={20} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  iPhone 15 Pro · Safari Mobile
-                </p>
-                <p className="text-xs text-[var(--text-subtle)] mt-0.5">
-                  IP: 14.232.xx.xx · TP. Cà Mau, Việt Nam
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-[var(--text-muted)]">2 giờ trước</span>
-          </div>
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-[var(--text-muted)]">
+            Bạn có thể đăng xuất tài khoản khỏi tất cả các thiết bị khác trong trường hợp nghi ngờ tài khoản bị xâm nhập.
+          </p>
+          <button
+            type="button"
+            onClick={handleLogoutAll}
+            disabled={isLoggingOutAll}
+            className="flex items-center gap-2 rounded-xl bg-rose-500/10 text-rose-500 px-4 py-2 text-sm font-semibold hover:bg-rose-500/20 active:scale-[0.98] transition disabled:opacity-50 cursor-pointer"
+          >
+            {isLoggingOutAll ? (
+              <RefreshCw size={16} className="animate-spin" />
+            ) : (
+              <LogOut size={16} />
+            )}
+            <span>Đăng xuất tất cả thiết bị</span>
+          </button>
         </div>
       </div>
+
+      {/* Modal OTP */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--panel-bg)] border border-[var(--panel-border)] rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+            <button
+              onClick={() => setShowOtpModal(false)}
+              className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-bold text-[var(--text-heading)] mb-2">Xác thực OTP</h3>
+            <p className="text-sm text-[var(--text-muted)] mb-5">
+              Mã xác thực đã được gửi đến số điện thoại <span className="font-semibold text-[var(--text-primary)]">{user?.phoneNumber}</span>. Vui lòng nhập mã để tiếp tục đổi mật khẩu.
+            </p>
+
+            {otpMessage && (
+              <div
+                className={`mb-4 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm ${
+                  otpMessage.type === "success"
+                    ? "bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success)]/30"
+                    : "bg-[var(--critical-bg)] text-[var(--critical)] border border-[var(--critical)]/30"
+                }`}
+              >
+                {otpMessage.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <span>{otpMessage.text}</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="Nhập mã OTP..."
+                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--bg-primary)] px-4 py-3 text-center text-lg tracking-[0.25em] font-mono text-[var(--text-primary)] placeholder-[var(--text-subtle)] outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                maxLength={6}
+              />
+              
+              <button
+                onClick={handleVerifyOtpAndChangePassword}
+                disabled={isVerifyingOtp || !otpCode}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] text-white px-4 py-3 text-sm font-bold shadow-md hover:bg-[var(--accent-bright)] active:scale-[0.98] transition disabled:opacity-50"
+              >
+                {isVerifyingOtp ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Đang xác thực...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận & Đổi mật khẩu</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

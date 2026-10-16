@@ -41,7 +41,7 @@ const getRiskConfig = (risk?: string) => {
     };
   }
   return {
-    label: risk || "Rủi ro thấp",
+    label: risk || "Chưa đánh giá",
     badge: "bg-teal-950/70 text-teal-400 border border-teal-500/30",
     dot: "bg-teal-400",
     barColor: "bg-gradient-to-r from-teal-400 to-cyan-300",
@@ -49,12 +49,12 @@ const getRiskConfig = (risk?: string) => {
 };
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({
-  pondName = "Vuông A1",
-  riskLevel = "LOW",
+  pondName,
+  riskLevel,
   riskLabel,
-  description = "Điều kiện dự kiến ổn định. DO có thể giảm nhẹ trước bình minh.",
-  confidenceScore = 94,
-  confidenceLabel = "ĐỘ TIN CẬY",
+  description,
+  confidenceScore,
+  confidenceLabel,
   className = "",
   onClick,
 }) => {
@@ -70,7 +70,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       {/* Header: Pond Name + Risk Badge */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm sm:text-[15px] font-bold text-(--text-heading)">
-          {pondName}
+          {pondName || "Ao nuôi"}
         </h3>
 
         <span
@@ -83,17 +83,19 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
 
       {/* Description */}
       <p className="text-xs text-(--text-body) leading-relaxed line-clamp-2 min-h-[32px]">
-        {description}
+        {description || "Chưa có mô tả dự báo."}
       </p>
 
       {/* Progress Bar (calling existing ProgressBar component) */}
+      {typeof confidenceScore === "number" && (
       <div className="mt-0.5">
         <ProgressBar
-          title={confidenceLabel}
+          title={confidenceLabel || "Độ tin cậy"}
           value={confidenceScore}
           barColor={riskConfig.barColor}
         />
       </div>
+      )}
     </div>
   );
 };

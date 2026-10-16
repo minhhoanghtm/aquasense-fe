@@ -14,10 +14,13 @@ export const getMetricStatus = (
     return "normal";
   }
 
-  const normalMin = threshold.normalMin ?? (threshold as any).minValue ?? 0;
-  const normalMax = threshold.normalMax ?? (threshold as any).maxValue ?? 100;
-  const dangerMin = threshold.dangerMin ?? (normalMin > 0 ? normalMin * 0.8 : 0);
-  const dangerMax = threshold.dangerMax ?? (normalMax * 1.2);
+  const normalMin = threshold.normalMin ?? (threshold as any).minValue;
+  const normalMax = threshold.normalMax ?? (threshold as any).maxValue;
+  if (typeof normalMin !== "number" || typeof normalMax !== "number") {
+    return "normal";
+  }
+  const dangerMin = threshold.dangerMin ?? normalMin;
+  const dangerMax = threshold.dangerMax ?? normalMax;
 
   if (value < dangerMin || value > dangerMax) {
     return "danger";

@@ -9,7 +9,7 @@ export interface ResponseTimeProps {
 
 export const ResponseTime: React.FC<ResponseTimeProps> = ({
   title = "Thời gian phản hồi",
-  time = "04:18",
+  time,
   subtitle = "Thời gian xử lý trung bình",
   className = "",
 }) => {
@@ -23,7 +23,7 @@ export const ResponseTime: React.FC<ResponseTimeProps> = ({
 
       <div className="my-1.5 sm:my-2 flex flex-col items-center justify-center text-center">
         <span className="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-(--text-primary)">
-          {time}
+          {time || "Chưa có dữ liệu"}
         </span>
         <p className="text-[11px] sm:text-xs text-(--text-muted) mt-0.5">
           {subtitle}

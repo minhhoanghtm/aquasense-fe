@@ -1,5 +1,5 @@
 import type { User, AuthResponse } from "../types/User";
-import { api } from "./api";
+import { ApiError, api, clearAuthStorage, getRefreshToken, forceRefreshToken } from "./api";
 
 const AUTH_USER_KEY = "aquasense_user";
 const AUTH_TOKEN_KEY = "accessToken";
@@ -10,10 +10,47 @@ export interface BackendLoginResponse {
   fullName: string;
   phoneNumber: string;
   role: string;
-  tokenVersion?: number;
+  tokenVersion: number;
+  mustChangePassword: boolean;
   accessToken: string;
-  refreshToken?: string;
+  refreshToken: string;
 }
+
+interface BackendProfileResponse {
+  userId: string;
+  fullName: string;
+  phoneNumber: string;
+  email: string | null;
+  gender: "MALE" | "FEMALE" | null;
+  dateOfBirth: string | null;
+  role: string;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  tokenVersion: number;
+}
+
+const normalizePhoneNumber = (phoneNumber: string): string =>
+  phoneNumber.replace(/\s+/g, "").trim();
+
+const persistSession = (session: BackendLoginResponse): AuthResponse => {
+  localStorage.setItem(AUTH_TOKEN_KEY, session.accessToken);
+  localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, session.refreshToken);
+
+  const user: User = {
+    id: session.userId,
+    userId: session.userId,
+    fullName: session.fullName,
+    phoneNumber: session.phoneNumber,
+    role: session.role,
+    isActive: true,
+    mustChangePassword: session.mustChangePassword,
+    tokenVersion: session.tokenVersion,
+  };
+
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event("storage"));
+  return { user, token: session.accessToken };
+};
 
 /**
  * Login
@@ -23,6 +60,10 @@ export const login = async (
   phoneNumber: string,
   password: string,
 ): Promise<AuthResponse> => {
+  // A fresh Password Login must not inherit access/refresh credentials from
+  // the expired session. This also makes in-flight refresh requests stale.
+  clearAuthStorage();
+
   const res = await api<BackendLoginResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({
@@ -31,27 +72,7 @@ export const login = async (
     }),
   });
 
-  localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
-  if (res.refreshToken) {
-    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
-  }
-
-  const user: User = {
-    id: res.userId,
-    userId: res.userId,
-    fullName: res.fullName,
-    phoneNumber: res.phoneNumber,
-    role: res.role,
-    isActive: true,
-  };
-
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  window.dispatchEvent(new Event("storage"));
-
-  return {
-    user,
-    token: res.accessToken,
-  };
+  return persistSession(res);
 };
 
 /**
@@ -60,7 +81,7 @@ export const login = async (
  */
 export const getProfile = async (): Promise<User | null> => {
   try {
-    const res = await api<any>("/auth/me");
+    const res = await api<BackendProfileResponse>("/auth/me");
 
     if (res?.userId) {
       const user: User = {
@@ -68,8 +89,13 @@ export const getProfile = async (): Promise<User | null> => {
         userId: res.userId,
         fullName: res.fullName,
         phoneNumber: res.phoneNumber,
+        email: res.email || undefined,
+        gender: res.gender || undefined,
+        dateOfBirth: res.dateOfBirth ? String(res.dateOfBirth).split('T')[0] : undefined,
         role: res.role,
         isActive: res.isActive,
+        mustChangePassword: res.mustChangePassword,
+        tokenVersion: res.tokenVersion,
       };
 
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
@@ -83,32 +109,7 @@ export const getProfile = async (): Promise<User | null> => {
   return getCurrentUser();
 };
 
-/**
- * Refresh JWT token
- * POST /auth/refresh
- */
-export const refreshToken = async (): Promise<string | null> => {
-  const currentRefresh = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
-  if (!currentRefresh) return null;
 
-  try {
-    const res = await api<{ accessToken?: string; refreshToken?: string }>("/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refreshToken: currentRefresh }),
-    });
-
-    if (res?.accessToken && res?.refreshToken) {
-      localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
-      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
-      return res.accessToken;
-    }
-  } catch (err) {
-    console.error("Làm mới token thất bại:", err);
-    logout();
-  }
-
-  return null;
-};
 
 export const getCurrentUser = (): User | null => {
   try {
@@ -201,14 +202,11 @@ export const updateProfile = async (
 };
 
 export interface BackendChangePasswordResponse {
-  message: string;
   userId: string;
-  fullName: string;
-  phoneNumber: string;
-  role: string;
   tokenVersion: number;
+  mustChangePassword: boolean;
   accessToken: string;
-  refreshToken?: string;
+  refreshToken: string;
 }
 
 /**
@@ -216,12 +214,10 @@ export interface BackendChangePasswordResponse {
  * POST /auth/change-password
  */
 export const changePassword = async (
-  currentPasswordOrUserId: string,
-  newOrCurrentPassword: string,
-  possibleNewPassword?: string
+  currentPassword: string,
+  newPassword: string,
+  otp: string,
 ): Promise<{ success: boolean; message: string }> => {
-  const currentPassword = possibleNewPassword ? newOrCurrentPassword : currentPasswordOrUserId;
-  const newPassword = possibleNewPassword ? possibleNewPassword : newOrCurrentPassword;
   const refreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY) || undefined;
 
   const res = await api<BackendChangePasswordResponse>("/auth/change-password", {
@@ -229,28 +225,77 @@ export const changePassword = async (
     body: JSON.stringify({
       currentPassword,
       newPassword,
+      otp,
       refreshToken,
     }),
   });
 
-  if (res?.accessToken) {
-    localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
-    if (res.refreshToken) {
-      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
-    }
+  localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
+  localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
+
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify({
+      ...currentUser,
+      mustChangePassword: res.mustChangePassword,
+      tokenVersion: res.tokenVersion,
+    }));
+    window.dispatchEvent(new Event("storage"));
   }
 
   return {
     success: true,
-    message: res?.message || "Thay đổi mật khẩu thành công!",
+    message: "Thay đổi mật khẩu thành công!",
   };
 };
 
-export const logout = () => {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-  window.dispatchEvent(new Event("storage"));
+export const logout = async (): Promise<void> => {
+  const storedRefreshToken = getRefreshToken();
+  if (!storedRefreshToken) {
+    clearAuthStorage();
+    return;
+  }
+
+  try {
+    await api<void>("/auth/logout", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: storedRefreshToken }),
+    });
+    clearAuthStorage();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      try {
+        // Trigger the central auto-refresh queue directly without fake requests
+        await forceRefreshToken();
+      } catch (refreshError) {
+        // If api.ts cleared storage (e.g. 401), just return. Otherwise, rethrow (e.g. network error)
+        if (!getRefreshToken()) {
+          return;
+        }
+        throw refreshError;
+      }
+
+      const rotatedRefreshToken = getRefreshToken();
+      if (rotatedRefreshToken) {
+        await api<void>("/auth/logout", {
+          method: "POST",
+          body: JSON.stringify({ refreshToken: rotatedRefreshToken }),
+        });
+        clearAuthStorage();
+        return;
+      }
+      clearAuthStorage();
+      return;
+    }
+    throw error;
+  }
+};
+
+export const logoutAll = async (): Promise<void> => {
+  await api<void>("/auth/logout-all", {
+    method: "POST",
+  });
+  clearAuthStorage();
 };
 
 export const isAuthenticated = (): boolean => {
@@ -258,17 +303,25 @@ export const isAuthenticated = (): boolean => {
 };
 
 export interface SendOtpResponse {
-  message: string;
-  phoneNumber: string;
-  otp: string;
+  phoneNumber?: string;
+  email?: string;
+  otp?: string;
   expiresIn?: string;
 }
 
 export interface VerifyOtpResponse {
-  message: string;
-  phoneNumber: string;
-  isValid: boolean;
+  phoneNumber?: string;
+  isValid?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  userId?: string;
+  fullName?: string;
+  role?: string;
+  tokenVersion?: number;
+  mustChangePassword?: boolean;
 }
+
+export type OtpPurpose = "REGISTER" | "RESET_PASSWORD" | "CHANGE_PASSWORD" | "LOGIN";
 
 export interface BackendRegisterResponse {
   message?: string;
@@ -286,18 +339,22 @@ export interface BackendRegisterResponse {
  * Gửi mã OTP xác thực (qua SĐT hoặc Email)
  * POST /auth/send-otp
  */
-export const sendOtp = async (identifier: string, purpose: string = "LOGIN"): Promise<SendOtpResponse> => {
-  const clean = identifier.trim();
-  const isEmail = clean.includes("@");
-  const payload: Record<string, any> = isEmail
-    ? { email: clean, identifier: clean, purpose }
-    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), purpose };
-
-  const res = await api<SendOtpResponse>("/auth/send-otp", {
+export const sendOtp = async (phoneNumber: string, purpose: OtpPurpose = "LOGIN"): Promise<SendOtpResponse> => {
+  return api<SendOtpResponse>("/auth/send-otp", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ phoneNumber: normalizePhoneNumber(phoneNumber), purpose }),
   });
-  return res;
+};
+
+/**
+ * Yêu cầu gửi OTP để quên mật khẩu.
+ * Backend only supports phone-number OTP at POST /auth/send-otp.
+ */
+export const forgotPassword = async (identifier: string): Promise<SendOtpResponse> => {
+  if (identifier.includes("@")) {
+    throw new Error("Backend hiện chỉ hỗ trợ khôi phục mật khẩu bằng số điện thoại.");
+  }
+  return sendOtp(identifier, "RESET_PASSWORD");
 };
 
 /**
@@ -307,19 +364,15 @@ export const sendOtp = async (identifier: string, purpose: string = "LOGIN"): Pr
 export const verifyOtp = async (
   identifier: string,
   otp: string,
-  purpose: string = "LOGIN"
+  purpose: OtpPurpose = "LOGIN",
 ): Promise<VerifyOtpResponse> => {
-  const clean = identifier.trim();
-  const isEmail = clean.includes("@");
-  const payload: Record<string, any> = isEmail
-    ? { email: clean, identifier: clean, otp, purpose }
-    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), otp, purpose };
-
-  const res = await api<VerifyOtpResponse>("/auth/verify-otp", {
+  if (identifier.includes("@")) {
+    throw new Error("Backend hiện chỉ hỗ trợ xác thực OTP bằng số điện thoại.");
+  }
+  return api<VerifyOtpResponse>("/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ phoneNumber: normalizePhoneNumber(identifier), otp, purpose }),
   });
-  return res;
 };
 
 /**
@@ -348,7 +401,7 @@ export const register = async (
     fullName: res.fullName,
     phoneNumber: res.phoneNumber,
     email: res.email,
-    role: res.role as any,
+    role: res.role,
     isActive: true,
   };
 
@@ -377,42 +430,20 @@ export const registerUser = async (
 
 /**
  * Đặt lại mật khẩu tài khoản
- * POST /auth/reset-password hoặc POST /auth/forgot-password
+ * OTP RESET_PASSWORD must have been verified before this call.
  */
 export const resetPassword = async (
   identifier: string,
   newPassword: string,
-  otp?: string
 ): Promise<{ success: boolean; message: string }> => {
-  const clean = identifier.trim();
-  const isEmail = clean.includes("@");
-  const payload: Record<string, any> = isEmail
-    ? { email: clean, identifier: clean, newPassword, otp }
-    : { phoneNumber: clean.replace(/\s+/g, ""), identifier: clean.replace(/\s+/g, ""), newPassword, otp };
-
-  try {
-    const res = await api<{ message?: string }>("/auth/reset-password", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    return {
-      success: true,
-      message: res?.message || "Đặt lại mật khẩu thành công!",
-    };
-  } catch (err: any) {
-    try {
-      const res = await api<{ message?: string }>("/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      return {
-        success: true,
-        message: res?.message || "Đặt lại mật khẩu thành công!",
-      };
-    } catch {
-      throw err;
-    }
+  if (identifier.includes("@")) {
+    throw new Error("Backend hiện chỉ hỗ trợ đặt lại mật khẩu bằng số điện thoại.");
   }
+  await api<null>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ phoneNumber: normalizePhoneNumber(identifier), newPassword }),
+  });
+  return { success: true, message: "Đặt lại mật khẩu thành công!" };
 };
 
 /**
@@ -420,35 +451,19 @@ export const resetPassword = async (
  * POST /auth/verify-otp với purpose: "LOGIN"
  */
 export const loginWithOtp = async (phoneNumber: string, otp: string): Promise<AuthResponse> => {
-  const res = await api<BackendLoginResponse>("/auth/verify-otp", {
-    method: "POST",
-    body: JSON.stringify({
-      phoneNumber: phoneNumber.replace(/\s+/g, ""),
-      purpose: "LOGIN",
-      otp,
-    }),
-  });
-
-  localStorage.setItem(AUTH_TOKEN_KEY, res.accessToken);
-  if (res.refreshToken) {
-    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, res.refreshToken);
+  const result = await verifyOtp(phoneNumber, otp, "LOGIN");
+  if (
+    typeof result.accessToken !== "string" ||
+    typeof result.refreshToken !== "string" ||
+    typeof result.userId !== "string" ||
+    typeof result.fullName !== "string" ||
+    typeof result.phoneNumber !== "string" ||
+    typeof result.role !== "string" ||
+    typeof result.tokenVersion !== "number" ||
+    typeof result.mustChangePassword !== "boolean"
+  ) {
+    throw new Error("Phản hồi đăng nhập OTP không hợp lệ.");
   }
 
-  const user: User = {
-    id: res.userId,
-    userId: res.userId,
-    fullName: res.fullName,
-    phoneNumber: res.phoneNumber,
-    role: res.role,
-    isActive: true,
-  };
-
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  window.dispatchEvent(new Event("storage"));
-
-  return {
-    user,
-    token: res.accessToken,
-    refreshToken: res.refreshToken,
-  };
+  return persistSession(result as BackendLoginResponse);
 };

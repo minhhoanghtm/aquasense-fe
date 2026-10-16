@@ -7,33 +7,6 @@ export interface ReadingMetric {
   color?: "cyan" | "amber" | "rose" | "teal" | string;
 }
 
-export const defaultProbeMetrics: ReadingMetric[] = [
-  {
-    id: "ph",
-    label: "PH",
-    value: "7.8",
-    color: "cyan",
-  },
-  {
-    id: "temperature",
-    label: "NHIỆT ĐỘ",
-    value: "29.4°C",
-    color: "cyan",
-  },
-  {
-    id: "do",
-    label: "DO",
-    value: "4.2 mg/L",
-    color: "amber",
-  },
-  {
-    id: "signal",
-    label: "TÍN HIỆU",
-    value: "18%",
-    color: "cyan",
-  },
-];
-
 export interface LatestReadingCardProps {
   deviceCode?: string;
   subtitle?: string;
@@ -71,17 +44,17 @@ export const MiniWave = ({ color = "cyan" }: { color?: string }) => {
 };
 
 export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
-  deviceCode = "DO-PROBE-004",
+  deviceCode,
   subtitle,
-  title = "Mẫu DO A1-04",
-  metrics = defaultProbeMetrics,
+  title,
+  metrics = [],
   className = "",
   children,
 }) => {
   const headerSubtitle =
     subtitle || (deviceCode ? `GIÁ TRỊ ĐO GẦN NHẤT · ${deviceCode}` : "GIÁ TRỊ ĐO GẦN NHẤT");
 
-  const displayMetrics = metrics && metrics.length > 0 ? metrics : defaultProbeMetrics;
+  const displayMetrics = Array.isArray(metrics) ? metrics : [];
 
   return (
     <div
@@ -93,12 +66,12 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
           {headerSubtitle}
         </span>
         <h2 className="text-xl md:text-2xl font-bold text-(--text-heading) leading-tight">
-          {title}
+          {title || "Giá trị đo gần nhất"}
         </h2>
       </div>
 
       {/* Content: Metrics Grid or Children */}
-      {children || (
+      {children || (displayMetrics.length > 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {displayMetrics.map((metric, index) => (
             <div
@@ -122,7 +95,7 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
             </div>
           ))}
         </div>
-      )}
+      ) : <p className="py-6 text-sm text-(--text-muted)">Chưa có dữ liệu đo từ thiết bị này.</p>)}
     </div>
   );
 };

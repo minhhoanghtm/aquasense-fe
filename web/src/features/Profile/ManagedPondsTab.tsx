@@ -17,7 +17,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
 
   const userAssignedPondIds = user?.assignedPondIds || [];
   const assignedPonds = ponds.filter(
-    (p) => userAssignedPondIds.includes(p.id) || userAssignedPondIds.includes(p.pondId || "")
+    (p) => userAssignedPondIds.includes(p.id || "") || userAssignedPondIds.includes(p.pondId || "")
   );
 
   const displayedPonds =
@@ -26,7 +26,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
       : ponds;
 
   const totalArea = displayedPonds.reduce(
-    (sum, p) => sum + (p.areaM2 || (p.area ? p.area * 10000 : 0) || 5000),
+    (sum, p) => sum + Number(p.areaM2 ?? (p.area !== undefined ? p.area * 10000 : 0)),
     0
   );
   const activePondsCount = displayedPonds.filter(
@@ -48,11 +48,18 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
           dotColor: "bg-slate-400",
         };
       case "ACTIVE":
-      default:
+      case "NORMAL":
+      case "WARNING":
         return {
           label: "Đang nuôi",
           badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
           dotColor: "bg-emerald-400",
+        };
+      default:
+        return {
+          label: "Chưa cập nhật",
+          badgeColor: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+          dotColor: "bg-slate-400",
         };
     }
   };
@@ -115,14 +122,14 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
       {/* Grid of Ponds */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {displayedPonds.map((pond) => {
-          const pondId = pond.pondId || pond.id;
+          const pondId = pond.pondId || pond.id || "";
           const pondName = pond.pondName || pond.name;
-          const areaM2 = pond.areaM2 || (pond.area ? pond.area * 10000 : 5000);
-          const depthM = pond.depthM || 1.5;
-          const shrimpDensity = pond.shrimpDensity || 120;
+          const areaM2 = pond.areaM2 ?? (pond.area !== undefined ? pond.area * 10000 : undefined);
+          const depthM = pond.depthM;
+          const shrimpDensity = pond.shrimpDensity;
           const statusBadge = getPondStatusBadge(pond.status);
-          const createAt = pond.createAt || pond.createdAt || "2026-06-15T08:00:00Z";
-          const isUserAssigned = userAssignedPondIds.includes(pond.id) || userAssignedPondIds.includes(pondId);
+          const createAt = pond.createAt || pond.createdAt;
+          const isUserAssigned = userAssignedPondIds.includes(pond.id || "") || userAssignedPondIds.includes(pondId);
 
           const pondDevices = devices.filter((d) => d.pondId === pond.id || d.pondId === pond.pondId);
 
@@ -139,16 +146,13 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                 {/* Header: Pond Name & Status */}
                 <div className="flex items-start justify-between gap-2 pb-3 border-b border-[var(--divider)]">
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono font-semibold tracking-wider text-[var(--accent)] uppercase">
-                        {pondId}
-                      </span>
-                      {isUserAssigned && (
+                    {isUserAssigned && (
+                      <div className="flex items-center gap-1.5 mb-1">
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
                           <CheckCircle2 size={9} /> Phụ trách
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <h4 className="text-base font-bold text-[var(--text-heading)] group-hover:text-[var(--accent)] transition">
                       {pondName}
                     </h4>
@@ -169,7 +173,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Diện tích:
                     </span>
                     <span className="font-bold text-[var(--accent-bright)]">
-                      {areaM2.toLocaleString()} m² ({(areaM2 / 10000).toFixed(2)} ha)
+                      {areaM2 !== undefined ? `${Number(areaM2).toLocaleString()} m² (${(Number(areaM2) / 10000).toFixed(2)} ha)` : "Chưa cập nhật"}
                     </span>
                   </div>
 
@@ -179,7 +183,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Độ sâu mực nước:
                     </span>
                     <span className="font-semibold text-[var(--text-primary)]">
-                      {depthM} m
+                      {depthM !== undefined ? `${depthM} m` : "Chưa cập nhật"}
                     </span>
                   </div>
 
@@ -189,7 +193,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Mật độ giống:
                     </span>
                     <span className="font-semibold text-[var(--text-primary)]">
-                      {shrimpDensity} con/m²
+                      {shrimpDensity !== undefined ? `${shrimpDensity} con/m²` : "Chưa cập nhật"}
                     </span>
                   </div>
 
@@ -199,7 +203,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Ngày tạo:
                     </span>
                     <span className="font-medium text-[var(--text-primary)]">
-                      {formatVietnamDate(createAt)}
+                      {createAt ? formatVietnamDate(createAt) : "Chưa cập nhật"}
                     </span>
                   </div>
 
@@ -209,7 +213,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Trạm cảm biến IoT:
                     </span>
                     <span className="font-semibold text-[var(--accent-bright)]">
-                      {pondDevices.length > 0 ? `${pondDevices.length} thiết bị` : "1 Trạm Gateway"}
+                      {pondDevices.length > 0 ? `${pondDevices.length} thiết bị` : "Chưa có thiết bị"}
                     </span>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, TestTube, Plus, Trash2, Calendar, AlertCircle, Check, Clock } from "lucide-react";
 import {
-  getManualTestLogs,
+  getManualTestLogsPage,
   createManualTestLog,
   deleteManualTestLog,
   type ManualTestLogItem,
@@ -23,6 +23,11 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // Form state
   const [nh3Value, setNh3Value] = useState<number | "">("");
@@ -38,10 +43,12 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
     try {
       setLoading(true);
       setErrorMsg("");
-      const data = await getManualTestLogs(pondId);
-      setLogs(data);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Không thể tải danh sách nhật ký đo");
+      const result = await getManualTestLogsPage(pondId, { page, limit: 10, startDate: startDate || undefined, endDate: endDate || undefined });
+      setLogs(result.data);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Không thể tải danh sách nhật ký đo");
     } finally {
       setLoading(false);
     }
@@ -52,7 +59,7 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
       fetchLogs();
       setTestedAt(new Date().toISOString().slice(0, 16));
     }
-  }, [isOpen, pondId]);
+  }, [isOpen, pondId, page, startDate, endDate]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +86,8 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
       setNote("");
       setTimeout(() => setSuccessMsg(""), 3000);
       await fetchLogs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi khi lưu kết quả đo");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi khi lưu kết quả đo");
     } finally {
       setIsSubmitting(false);
     }
@@ -93,8 +100,8 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
       setSuccessMsg("Đã xóa bản ghi thành công!");
       setTimeout(() => setSuccessMsg(""), 3000);
       await fetchLogs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi khi xóa bản ghi");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi khi xóa bản ghi");
     }
   };
 
@@ -229,14 +236,19 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3 flex items-center gap-1.5">
               <Clock size={13} className="text-cyan-400" />
-              Lịch sử các lần đo ({logs.length} bản ghi)
+              Lịch sử các lần đo ({total} bản ghi)
             </h4>
+
+            <div className="mb-3 flex flex-wrap gap-2 text-xs text-[var(--text-muted)]">
+              <label>Từ ngày <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} className="ml-1 rounded border border-cyan-800 bg-[#051c24] px-2 py-1 text-white" /></label>
+              <label>Đến ngày <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} className="ml-1 rounded border border-cyan-800 bg-[#051c24] px-2 py-1 text-white" /></label>
+            </div>
 
             {loading ? (
               <div className="p-8 text-center text-xs text-[var(--text-muted)]">
                 Đang tải lịch sử đo...
               </div>
-            ) : logs.length === 0 ? (
+            ) : errorMsg ? null : logs.length === 0 ? (
               <div className="p-8 rounded-2xl border border-cyan-900/40 bg-[#051c24] text-center text-xs text-[var(--text-muted)]">
                 Chưa có nhật ký đo khí độc nào cho vuông nuôi này. Hãy nhập kết quả kiểm tra test kit ở biểu mẫu phía trên!
               </div>
@@ -292,6 +304,11 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
                 })}
               </div>
             )}
+            {totalPages > 1 && <div className="mt-3 flex items-center justify-end gap-2 text-xs text-[var(--text-muted)]">
+              <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded border border-cyan-800 px-2 py-1 disabled:opacity-50">Trước</button>
+              <span>Trang {page}/{totalPages}</span>
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded border border-cyan-800 px-2 py-1 disabled:opacity-50">Sau</button>
+            </div>}
           </div>
         </div>
 

@@ -45,13 +45,11 @@ const Title = memo(({
             <div className="flex items-center gap-1.5 whitespace-nowrap">
               <Droplet size={13} className="text-[var(--accent)]" />
               <span>{pond.name}</span>
-              <span className="text-slate-600">-</span>
-              <span>{pond.id.toUpperCase()}</span>
             </div>
 
             <div className="flex items-center gap-1.5 whitespace-nowrap">
               <MapPin size={13} className="text-[var(--accent)]" />
-              <span>{pond.location}</span>
+              <span>{pond.location || "Chưa cập nhật"}</span>
             </div>
 
             <div className="flex items-center gap-1.5 whitespace-nowrap">

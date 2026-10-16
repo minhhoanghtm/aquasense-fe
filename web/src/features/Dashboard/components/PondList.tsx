@@ -1,16 +1,20 @@
 import PondCard from "../../../components/PondCard";
-import type { PondWithDevices } from "../../../types/Pond";
+import type { Pond, PondWithDevices } from "../../../types/Pond";
 import type { Alerts } from "../../../types/Alerts";
 
 interface PondListProps {
+    ponds: Pond[];
     infoPond: PondWithDevices[];
     alerts?: Alerts[];
+    selectedPondId: string;
     onSelectPond?: (pondId: string) => void;
 }
 
 const PondList = ({
+    ponds,
     infoPond,
     alerts = [],
+    selectedPondId,
     onSelectPond,
 }: PondListProps) => {
     const safeAlerts = Array.isArray(alerts) ? alerts : [];
@@ -24,17 +28,19 @@ const PondList = ({
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {infoPond.map((pond) => {
+                {ponds.map((pond) => {
+                    const pondWithDevices = infoPond.find((item) => item.id === pond.id) || { ...pond, devices: [] };
                     const pondAlerts = safeAlerts.filter(
                         (alert) => alert.pondId === pond.id
                     );
 
                     return (
                         <PondCard
-                            key={pond.id}
-                            pond={pond}
+                            key={pond.id || pond.pondId}
+                            pond={pondWithDevices}
                             alerts={pondAlerts}
-                            onClick={() => onSelectPond?.(pond.id)}
+                            selected={pond.id === selectedPondId}
+                            onClick={() => pond.id && onSelectPond?.(pond.id)}
                         />
                     );
                 })}

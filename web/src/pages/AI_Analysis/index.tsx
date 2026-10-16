@@ -13,7 +13,7 @@ export default function AIAnalysis() {
     const { ponds } = usePonds();
     const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
     const { pond, device } = usePond(selectedPondId);
-    const { predictions, anomalies, parameterHealth } = useAIAnalysis(selectedPondId || undefined);
+    const { predictions, anomalies, parameterHealth, available } = useAIAnalysis(selectedPondId || undefined);
 
     const forecastItems = predictions.map((pred) => ({
         pondName: pred.pondName || `Vuông ${pred.pondId}`,
@@ -32,17 +32,22 @@ export default function AIAnalysis() {
                 pond={pond}
                 device={device}
             />
+            {!available && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-3 text-sm text-amber-100">
+                    Backend hiện chưa công bố API dữ liệu AI; các khối dưới đây chỉ hiển thị trạng thái chưa có dữ liệu.
+                </div>
+            )}
 
             {/* Top: Dự báo rủi ro chất lượng nước */}
-            <WaterQualityRiskForecast items={forecastItems.length > 0 ? forecastItems : undefined} />
+            <WaterQualityRiskForecast items={forecastItems} />
 
             {/* Bottom 2-Column: Luồng phát hiện bất thường (Trái) + Sức khỏe thông số (Phải) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
                 <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
-                    <AnomalyDetectionStream anomalies={anomalies.length > 0 ? anomalies : undefined} className="h-full" />
+                    <AnomalyDetectionStream anomalies={anomalies} className="h-full" />
                 </div>
                 <div className="lg:col-span-5 xl:col-span-4 flex flex-col">
-                    <ParameterHealthCard data={parameterHealth.length > 0 ? parameterHealth : undefined} className="h-full" />
+                    <ParameterHealthCard data={parameterHealth} className="h-full" />
                 </div>
             </div>
         </div>

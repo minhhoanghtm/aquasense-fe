@@ -44,13 +44,13 @@ const SignalBars = ({ value }: { value: number }) => {
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
   icon,
-  status = "ONLINE",
+  status = "",
   name,
   code,
   subtitle,
   sensors = [],
-  connector = "Wi-Fi · MQTT",
-  signal = 94,
+  connector = "",
+  signal,
   className = "",
   onEdit,
   onDelete,
@@ -66,7 +66,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     normalizedStatus === "ERROR" ||
     normalizedStatus === "NGUY HIỂM";
 
-  const statusLabel = isOnline
+  const statusLabel = !normalizedStatus
+    ? "Chưa cập nhật"
+    : isOnline
     ? "Trực tuyến"
     : isWarning
       ? "Cảnh báo"
@@ -161,20 +163,24 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
       {/* Footer: Connection & Signal */}
       <div className="mt-5 flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium text-(--text-muted)">{connector}</span>
-          <div className="flex items-center gap-2">
-            <SignalBars value={signal} />
-            <span className="font-bold text-(--text-primary)">{signal}%</span>
-          </div>
+          <span className="font-medium text-(--text-muted)">{connector || "Chưa có thông tin kết nối"}</span>
+          {typeof signal === "number" && (
+            <div className="flex items-center gap-2">
+              <SignalBars value={signal} />
+              <span className="font-bold text-(--text-primary)">{signal}%</span>
+            </div>
+          )}
         </div>
 
         {/* Signal Progress Bar */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-[#08222b]">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500 shadow-[0_0_8px_rgba(45,212,195,0.5)]"
-            style={{ width: `${Math.min(100, Math.max(0, signal))}%` }}
-          />
-        </div>
+        {typeof signal === "number" && (
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[#08222b]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500 shadow-[0_0_8px_rgba(45,212,195,0.5)]"
+              style={{ width: `${Math.min(100, Math.max(0, signal))}%` }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -15,14 +15,14 @@ export default function Alerts() {
     const { ponds } = usePonds();
     const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
     const { pond, device } = usePond(selectedPondId);
-    const { alerts, rules, summary } = useAlertsHistory();
+    const { alerts, rules, summary, loading, error } = useAlertsHistory();
 
     const formattedAlerts = alerts.map((a) => ({
-        id: a.id || a.alertId || "ALT",
-        time: a.time || (a.createdAt ? new Date(a.createdAt).toLocaleDateString("vi-VN") : "Hôm nay"),
-        title: a.title || a.message || a.metricName || "Cảnh báo chất lượng nước",
-        pondName: a.pondName || `Vuông ${a.pondId}`,
-        value: a.triggeredValue ?? a.value ?? "0",
+        id: a.id || a.alertId || "",
+        time: a.time || (a.createdAt ? new Date(a.createdAt).toLocaleDateString("vi-VN") : ""),
+        title: a.title || a.message || a.metricName || "",
+        pondName: a.pondName || "",
+        value: a.triggeredValue ?? a.value ?? "",
         unit: a.unit || "",
         level: (a.alertLevel === "CRITICAL" || a.alertLevel === "DANGER" || a.level === "DANGER" ? "DANGER" : "WARNING") as AlertItemAlertLevel,
         status: (a.status === "RESOLVED" || a.status === "Đã xử lý" ? "Đã xử lý" : "Chưa xử lý") as any,
@@ -43,6 +43,13 @@ export default function Alerts() {
                 warning={summary.warning}
                 resolved={summary.resolved}
             />
+
+            {loading && <div className="text-sm text-[var(--text-muted)]">Đang tải cảnh báo...</div>}
+            {error && (
+                <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-sm text-rose-200">
+                    Không thể tải cảnh báo: {error}
+                </div>
+            )}
 
             {/* Bottom 2-Column Content: Alert List (Left) + Rules & Response Time (Right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">

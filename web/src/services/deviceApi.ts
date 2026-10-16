@@ -21,16 +21,16 @@ const normalizeDevice = (d: any): Devices => ({
   ...d,
   id: d.deviceId || d.id,
   deviceId: d.deviceId || d.id,
-  name: d.deviceName || d.name || "Gateway ESP32",
-  deviceName: d.deviceName || d.name || "Gateway ESP32",
+  name: d.deviceName || d.name || "",
+  deviceName: d.deviceName || d.name || "",
   macAddress: d.macAddress || "",
   pondId: d.pondId || "",
-  firmwareVersion: d.firmwareVersion || "v1.0.0",
-  status: d.status || "ONLINE",
-  lastActiveAt: d.lastActiveAt || new Date().toISOString(),
-  sensors: d.sensors || ["pH", "DO", "Nhiệt độ", "Độ mặn", "Độ đục"],
-  connection_type: d.connection_type || "Wi-Fi · MQTT",
-  signal_strength: d.signal_strength ?? 90,
+  firmwareVersion: d.firmwareVersion ?? null,
+  status: d.status || "",
+  lastActiveAt: d.lastActiveAt ?? null,
+  sensors: Array.isArray(d.sensors) ? d.sensors : [],
+  connection_type: d.connection_type || "",
+  signal_strength: d.signal_strength ?? undefined,
 });
 
 export const getDevices = async (): Promise<Devices[]> => {
@@ -40,9 +40,8 @@ export const getDevices = async (): Promise<Devices[]> => {
 };
 
 export const getDevicesByPondId = async (pondId: string): Promise<Devices[]> => {
-  const res = await api<any>(`/devices?pondId=${pondId}`);
-  const rawList = Array.isArray(res) ? res : res?.data || [];
-  return rawList.map(normalizeDevice);
+  const devices = await getDevices();
+  return devices.filter((device) => device.pondId === pondId);
 };
 
 export const getDeviceById = async (id: string): Promise<Devices | null> => {

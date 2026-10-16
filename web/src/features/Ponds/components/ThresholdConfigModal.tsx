@@ -8,6 +8,8 @@ import {
   type ThresholdConfigItem,
 } from "../../../services/pondApi";
 import type { Pond } from "../../../types/Pond";
+import { getCurrentUser } from "../../../services/authApi";
+import { canManagePonds } from "../../../lib/rolePermissions";
 
 interface ThresholdConfigModalProps {
   isOpen: boolean;
@@ -48,6 +50,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
   const [editMax, setEditMax] = useState<number>(0);
 
   const pondId = pond?.pondId || pond?.id;
+  const canManage = canManagePonds(getCurrentUser()?.role);
 
   const fetchConfigs = async () => {
     if (!pondId) return;
@@ -56,8 +59,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
       setErrorMsg("");
       const data = await getThresholdConfigs(pondId);
       setConfigs(data);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Không thể tải danh sách cấu hình ngưỡng");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Không thể tải danh sách cấu hình ngưỡng");
     } finally {
       setLoading(false);
     }
@@ -85,8 +88,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
       setErrorMsg("Vui lòng nhập đầy đủ giá trị ngưỡng tối thiểu và tối đa.");
       return;
     }
-    if (Number(minValue) >= Number(maxValue)) {
-      setErrorMsg("Giá trị tối thiểu (Min) phải nhỏ hơn giá trị tối đa (Max).");
+    if (Number(minValue) > Number(maxValue)) {
+      setErrorMsg("Giá trị tối thiểu (Min) không được lớn hơn giá trị tối đa (Max).");
       return;
     }
 
@@ -102,8 +105,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
       setSuccessMsg("Thêm cấu hình ngưỡng thành công!");
       setTimeout(() => setSuccessMsg(""), 3000);
       await fetchConfigs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi khi thêm cấu hình ngưỡng");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi khi thêm cấu hình ngưỡng");
     } finally {
       setIsAdding(false);
     }
@@ -116,8 +119,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
   };
 
   const saveEdit = async (configId: string) => {
-    if (editMin >= editMax) {
-      setErrorMsg("Giá trị tối thiểu phải nhỏ hơn giá trị tối đa.");
+    if (editMin > editMax) {
+      setErrorMsg("Giá trị tối thiểu không được lớn hơn giá trị tối đa.");
       return;
     }
     try {
@@ -130,8 +133,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
       setSuccessMsg("Cập nhật ngưỡng thành công!");
       setTimeout(() => setSuccessMsg(""), 3000);
       await fetchConfigs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi cập nhật ngưỡng");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi cập nhật ngưỡng");
     }
   };
 
@@ -141,8 +144,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
         isActive: !cfg.isActive,
       });
       await fetchConfigs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi đổi trạng thái");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi đổi trạng thái");
     }
   };
 
@@ -153,8 +156,8 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
       setSuccessMsg("Đã xóa cấu hình ngưỡng!");
       setTimeout(() => setSuccessMsg(""), 3000);
       await fetchConfigs();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi khi xóa cấu hình");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Lỗi khi xóa cấu hình");
     }
   };
 
@@ -204,7 +207,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
           )}
 
           {/* Add Threshold Form */}
-          <form onSubmit={handleCreate} className="p-4 rounded-2xl border border-cyan-900/80 bg-[#051a22] space-y-3">
+          {canManage && <form onSubmit={handleCreate} className="p-4 rounded-2xl border border-cyan-900/80 bg-[#051a22] space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
               <Plus size={13} />
               Thêm ngưỡng cảnh báo chỉ số
@@ -267,7 +270,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                 </div>
               </div>
             </div>
-          </form>
+          </form>}
 
           {/* Configured Thresholds Table/List */}
           <div>
@@ -280,7 +283,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
               <div className="p-8 text-center text-xs text-[var(--text-muted)]">
                 Đang tải danh sách ngưỡng...
               </div>
-            ) : configs.length === 0 ? (
+            ) : errorMsg ? null : configs.length === 0 ? (
               <div className="p-8 rounded-2xl border border-cyan-900/40 bg-[#051c24] text-center text-xs text-[var(--text-muted)]">
                 Chưa có cấu hình ngưỡng nào cho vuông nuôi này. Hãy thêm ngưỡng an toàn phía trên!
               </div>
@@ -350,7 +353,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-2 sm:mt-0 self-end sm:self-auto">
+                      {canManage && <div className="flex items-center gap-2 mt-2 sm:mt-0 self-end sm:self-auto">
                         <button
                           type="button"
                           onClick={() => toggleActive(cfg)}
@@ -382,7 +385,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                         >
                           <Trash2 size={14} />
                         </button>
-                      </div>
+                      </div>}
                     </div>
                   );
                 })}

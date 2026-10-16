@@ -7,6 +7,7 @@ import { routes, type RouteConfig } from './routes';
 import { getCurrentUser } from './services/authApi';
 import { useEffect, useState } from 'react';
 import type { User } from './types/User';
+import { canAccessRoute } from './lib/rolePermissions';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
   const [user, setUser] = useState<User | null>(getCurrentUser());
@@ -23,7 +24,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && (!user.role || !allowedRoles.includes(user.role))) {
+  if (!canAccessRoute(user.role, allowedRoles)) {
     return <Navigate to="/403" replace />;
   }
 

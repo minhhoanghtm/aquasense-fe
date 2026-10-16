@@ -8,30 +8,12 @@ export type WaterQualityMetric = {
   value: number;
 };
 
-const defaultMetrics: WaterQualityMetric[] = [
-  {
-    id: "overall",
-    title: "Chất lượng nước tổng thể",
-    value: 92,
-  },
-  {
-    id: "sensor-connection",
-    title: "Kết nối cảm biến",
-    value: 98,
-  },
-  {
-    id: "optimal-parameters",
-    title: "Thông số tối ưu",
-    value: 84,
-  },
-];
-
 interface WaterQualitySummaryProps {
   metrics?: WaterQualityMetric[];
 }
 
 const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = ({
-  metrics = defaultMetrics,
+  metrics = [],
 }) => {
   return (
     <div className="flex flex-col gap-4 rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg">
@@ -43,11 +25,11 @@ const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = ({
       </div>
 
       <div className="flex flex-col gap-3">
-        {metrics.map((metric) => (
+        {metrics.length > 0 ? metrics.map((metric) => (
           <div key={metric.id}>
             <ProgressBar title={metric.title} value={metric.value} />
           </div>
-        ))}
+        )) : <p className="text-sm text-(--text-muted)">Chưa có dữ liệu chất lượng nước cho ao được chọn.</p>}
       </div>
     </div>
   );

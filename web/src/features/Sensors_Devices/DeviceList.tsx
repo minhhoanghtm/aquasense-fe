@@ -88,11 +88,11 @@ const DeviceList = ({
               <DeviceCard
                 key={device.id}
                 code={device.node_code || device.serialNumber || device.macAddress || device.id}
-                name={device.name || device.deviceName || device.serialNumber || "Thiết bị cảm biến"}
+                name={device.name || device.deviceName || device.serialNumber || "Chưa đặt tên thiết bị"}
                 status={statusNorm}
-                sensors={device.sensors || ["Cảm biến IoT"]}
-                connector={device.connection_type || "Wi-Fi · MQTT"}
-                signal={device.signal_strength ?? 85}
+                sensors={device.sensors || []}
+                connector={device.connection_type}
+                signal={device.signal_strength}
                 onEdit={onEditDevice ? () => onEditDevice(device) : undefined}
                 onDelete={onDeleteDevice ? () => onDeleteDevice(device) : undefined}
               />

@@ -8,9 +8,12 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import { getRoleLabel } from "../../../lib/rolePermissions";
 
 interface StaffTableProps {
   staffList: User[];
@@ -18,10 +21,12 @@ interface StaffTableProps {
   onViewDetail: (staff: User) => void;
   onEdit: (staff: User) => void;
   onDelete: (staff: User) => void;
-  onAssignPond: (staff: User) => void;
+  onAssignPond?: (staff: User) => void;
   onApprove?: (staff: User) => void;
   onReject?: (staff: User) => void;
   onChangeStatus?: (staff: User, status: UserStatus) => void;
+  onToggleLoginLock?: (staff: User) => void;
+  canManage: (staff: User) => boolean;
 }
 
 export const StaffTable: React.FC<StaffTableProps> = ({
@@ -34,14 +39,20 @@ export const StaffTable: React.FC<StaffTableProps> = ({
   onApprove,
   onReject,
   onChangeStatus,
+  onToggleLoginLock,
+  canManage,
 }) => {
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
       case "MANAGER":
-      case "ADMIN":
         return {
           label: "Quản lý",
           color: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+        };
+      case "ADMIN":
+        return {
+          label: getRoleLabel(role),
+          color: "bg-amber-500/15 text-amber-300 border-amber-500/30",
         };
       case "FARMER":
       default:
@@ -94,12 +105,9 @@ export const StaffTable: React.FC<StaffTableProps> = ({
           <tbody className="divide-y divide-[var(--divider)] text-xs text-[var(--text-body)]">
             {staffList.map((staff) => {
               const roleInfo = getRoleBadge(staff.role);
+              const mayManage = canManage(staff);
               const statusInfo = getStatusBadge(staff.status);
-              const assignedPonds = ponds.filter(
-                (p) =>
-                  staff.assignedPondIds?.includes(p.id) ||
-                  staff.assignedPondIds?.includes(p.pondId || "")
-              );
+              const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
               const initials = staff.fullName
                 ? staff.fullName
                     .split(" ")
@@ -188,14 +196,14 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                           Chưa phân công
                         </span>
                       )}
-                      <button
+                      {mayManage && onAssignPond && <button
                         type="button"
-                        onClick={() => onAssignPond(staff)}
+                        onClick={() => onAssignPond?.(staff)}
                         className="p-0.5 rounded bg-cyan-900/30 hover:bg-cyan-800/60 text-cyan-300 text-[10px] cursor-pointer"
                         title="Phân công vuông nuôi"
                       >
                         <Plus size={12} />
-                      </button>
+                      </button>}
                     </div>
                   </td>
 
@@ -208,7 +216,7 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                         <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dotColor}`} />
                         {statusInfo.label}
                       </span>
-                    ) : (
+                    ) : mayManage ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -251,12 +259,14 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                             : "Không hoạt động"}
                         </span>
                       </button>
+                    ) : (
+                      <span className="text-xs text-[var(--text-subtle)]">Chỉ xem</span>
                     )}
                   </td>
 
                   {/* Actions */}
                   <td className="py-3.5 px-4 sm:px-5 text-right">
-                    {staff.status === "PENDING_APPROVAL" ? (
+                    {mayManage && staff.status === "PENDING_APPROVAL" ? (
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
@@ -267,33 +277,50 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                           <CheckCircle2 size={13} />
                           <span>Duyệt</span>
                         </button>
-                        <button
+                        {mayManage && <button
                           type="button"
                           onClick={() => onReject && onReject(staff)}
                           className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 cursor-pointer"
                           title="Từ chối"
                         >
                           <XCircle size={13} />
-                        </button>
+                        </button>}
                       </div>
                     ) : (
                       <div className="flex items-center justify-end gap-1">
-                        <button
+                        {mayManage && <button
+                          type="button"
+                          onClick={() => onToggleLoginLock?.(staff)}
+                          className={`p-1.5 rounded-lg flex items-center justify-center transition cursor-pointer ${
+                            staff.isLocked || staff.is_login_locked
+                              ? "text-rose-400 bg-rose-950/40"
+                              : "text-emerald-400/70"
+                          }`}
+                          title={
+                            staff.isLocked || staff.is_login_locked
+                              ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
+                              : "Tài khoản không bị khóa đăng nhập"
+                          }
+                          aria-label={staff.isLocked || staff.is_login_locked ? "Mở khóa đăng nhập" : "Khóa đăng nhập"}
+                        >
+                          {staff.isLocked || staff.is_login_locked ? <Lock size={15} /> : <Unlock size={15} />}
+                        </button>}
+                        {mayManage && <button
                           type="button"
                           onClick={() => onViewDetail(staff)}
                           className="p-1.5 rounded-lg text-cyan-400 hover:text-white hover:bg-cyan-900/40 cursor-pointer"
                           title="Xem thông tin chi tiết"
                         >
                           <Eye size={15} />
-                        </button>
-                        <button
+                        </button>}
+                        {mayManage && <button
                           type="button"
                           onClick={() => onDelete(staff)}
                           className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-900/40 cursor-pointer"
                           title="Xóa nhân viên"
                         >
                           <Trash2 size={14} />
-                        </button>
+                        </button>}
                       </div>
                     )}
                   </td>

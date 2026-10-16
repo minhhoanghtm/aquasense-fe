@@ -12,59 +12,6 @@ export interface AlertData {
   status: AlertStatus;
 }
 
-const DEFAULT_ALERTS: AlertData[] = [
-  {
-    id: "ALT-001",
-    time: "18/06 · 09:30",
-    title: "Oxy hòa tan (DO)",
-    pondName: "Vuông D3",
-    value: "3.1",
-    unit: "mg/L",
-    level: "DANGER",
-    status: "Chưa xử lý",
-  },
-  {
-    id: "ALT-002",
-    time: "18/06 · 09:04",
-    title: "Độ đục",
-    pondName: "Vuông A1",
-    value: "22.8",
-    unit: "NTU",
-    level: "WARNING",
-    status: "Đang theo dõi",
-  },
-  {
-    id: "ALT-003",
-    time: "18/06 · 08:12",
-    title: "pH",
-    pondName: "Vuông B2",
-    value: "8.7",
-    unit: "pH",
-    level: "WARNING",
-    status: "Đã xử lý",
-  },
-  {
-    id: "ALT-004",
-    time: "17/06 · 22:48",
-    title: "Mực nước",
-    pondName: "Vuông C1",
-    value: "1.02",
-    unit: "m",
-    level: "NORMAL",
-    status: "Đã xử lý",
-  },
-  {
-    id: "ALT-005",
-    time: "17/06 · 18:22",
-    title: "Nhiệt độ",
-    pondName: "Vuông D3",
-    value: "32.8",
-    unit: "°C",
-    level: "DANGER",
-    status: "Đã xử lý",
-  },
-];
-
 type FilterType = "ALL" | "DANGER" | "WARNING" | "RESOLVED";
 
 interface FilterTab {
@@ -86,7 +33,7 @@ interface AlertListProps {
 }
 
 const AlertList: React.FC<AlertListProps> = ({
-  alerts = DEFAULT_ALERTS,
+  alerts = [],
   onAlertClick,
   className = "",
 }) => {

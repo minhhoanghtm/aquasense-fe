@@ -53,8 +53,8 @@ export const StaffToolbar: React.FC<StaffToolbarProps> = ({
   const pondOptions: DropdownOption[] = [
     { label: "Tất cả vuông nuôi", value: "ALL" },
     ...ponds.map((p) => ({
-      label: p.name,
-      value: p.id,
+      label: p.name || "Không tên",
+      value: p.id || "",
     })),
   ];
 

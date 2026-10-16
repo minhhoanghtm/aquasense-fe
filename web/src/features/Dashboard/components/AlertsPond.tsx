@@ -1,6 +1,6 @@
 import { TriangleAlert } from 'lucide-react';
 import { getTimeAgo } from '../../../utils/date';
-const AlertsPond = ({ alerts }: { alerts: any }) => {
+const AlertsPond = ({ alerts, loading = false, error }: { alerts: any; loading?: boolean; error?: string | null }) => {
     const safeAlerts = Array.isArray(alerts) ? alerts : [];
     const count = safeAlerts.length;
     return (
@@ -18,7 +18,9 @@ const AlertsPond = ({ alerts }: { alerts: any }) => {
 
             {/* List alert */}
             <div className="flex flex-col w-full mt-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-2">
-                {safeAlerts.map((alert: any, index: number) => (
+                {loading && <p className="text-xs text-[var(--text-muted)]">Đang tải cảnh báo...</p>}
+                {error && <p className="text-xs text-[var(--critical)]">Không thể tải cảnh báo: {error}</p>}
+                {!loading && !error && safeAlerts.map((alert: any, index: number) => (
                     <div
                         key={alert.id ?? index}
                         className="relative flex flex-col w-full px-4 py-3 border-b border-(--panel-border-strong)"

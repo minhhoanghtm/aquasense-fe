@@ -1,3 +1,60 @@
+export interface ApiSuccessEnvelope<T> {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: T;
+}
+
+interface ApiErrorEnvelope {
+  success: false;
+  statusCode: number;
+  message: string;
+  errorCode: string;
+  timestamp: string;
+  path: string;
+  errors?: string[];
+  retryAfter?: number;
+  retryAfterSeconds?: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isSuccessEnvelope = <T>(value: unknown): value is ApiSuccessEnvelope<T> =>
+  isRecord(value) && value.success === true && "data" in value;
+
+const isErrorEnvelope = (value: unknown): value is ApiErrorEnvelope =>
+  isRecord(value) && value.success === false && typeof value.message === "string";
+
+const unwrapSuccess = <T>(value: unknown): T =>
+  isSuccessEnvelope<T>(value) ? value.data : value as T;
+
+const parseRetryAfter = (response: Response): number | undefined => {
+  const value = response.headers.get("Retry-After")?.trim();
+  if (!value) return undefined;
+
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+
+  const retryAt = Date.parse(value);
+  if (Number.isNaN(retryAt)) return undefined;
+  return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+};
+
+export class ApiError extends Error {
+  code?: string;
+  retryAfterSeconds?: number;
+  status: number;
+
+  constructor(message: string, status: number, code?: string, retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 export const getAccessToken = (): string | null => {
@@ -15,12 +72,91 @@ export const clearAuthStorage = () => {
   window.dispatchEvent(new Event("storage"));
 };
 
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshPromise: Promise<string> | null = null;
 
-const onRefreshed = (token: string) => {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
+const processTokenRefresh = async (): Promise<string> => {
+  const refreshTokenValue = getRefreshToken();
+  const token = getAccessToken();
+
+  if (!refreshTokenValue || typeof refreshTokenValue !== "string" || refreshTokenValue.trim() === "" || refreshTokenValue === "undefined" || refreshTokenValue === "null") {
+    clearAuthStorage();
+    if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
+      window.location.href = "/login?expired=1";
+    }
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
+
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshTokenValue }),
+      });
+
+      const isCurrentAuthSession = () => getAccessToken() === token && getRefreshToken() === refreshTokenValue;
+
+      if (refreshRes.ok) {
+        const data = unwrapSuccess<{ accessToken?: string; refreshToken?: string }>(await refreshRes.json());
+        const newAccessToken = data.accessToken;
+        const newRefreshToken = data.refreshToken;
+
+        if (!isCurrentAuthSession()) {
+          return getAccessToken() || "";
+        }
+
+        if (!newAccessToken || typeof newAccessToken !== "string" || !newRefreshToken || typeof newRefreshToken !== "string") {
+          clearAuthStorage();
+          if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
+            window.location.href = "/login?expired=1";
+          }
+          throw new Error("Phản hồi làm mới token không hợp lệ!");
+        }
+
+        localStorage.setItem("accessToken", newAccessToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+        return newAccessToken;
+      } else {
+        if (!isCurrentAuthSession()) {
+          return getAccessToken() || "";
+        }
+        if (refreshRes.status >= 400 && refreshRes.status < 500) {
+          clearAuthStorage();
+          if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
+            window.location.href = "/login?expired=1";
+          }
+          throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+        throw new Error("Lỗi máy chủ khi làm mới token. Vui lòng thử lại sau.");
+      }
+    } catch (e) {
+      const isCurrentAuthSession = () => getAccessToken() === token && getRefreshToken() === refreshTokenValue;
+      if (!isCurrentAuthSession()) {
+        return getAccessToken() || "";
+      }
+      // If it's a network error (TypeError from fetch), don't log the user out
+      if (e instanceof TypeError) {
+        throw new Error("Lỗi mạng khi làm mới token. Vui lòng thử lại sau.", { cause: e });
+      }
+      clearAuthStorage();
+      if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
+        window.location.href = "/login?expired=1";
+      }
+      throw e instanceof Error ? e : new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+export const forceRefreshToken = async (): Promise<string> => {
+  return processTokenRefresh();
 };
 
 export const api = async <T>(
@@ -50,109 +186,63 @@ export const api = async <T>(
     !endpoint.includes("/auth/send-otp") &&
     !endpoint.includes("/auth/verify-otp") &&
     !endpoint.includes("/auth/reset-password") &&
-    !endpoint.includes("/auth/forgot-password")
+    endpoint !== "/auth/logout"
   ) {
-    const refreshTokenValue = getRefreshToken();
-    const isValidRefreshToken =
-      Boolean(refreshTokenValue) &&
-      typeof refreshTokenValue === "string" &&
-      refreshTokenValue.trim() !== "" &&
-      refreshTokenValue !== "undefined" &&
-      refreshTokenValue !== "null";
+    let newAccessToken = getAccessToken();
+    if (newAccessToken === token) {
+      newAccessToken = await processTokenRefresh();
+    } else if (refreshPromise) {
+      newAccessToken = await refreshPromise;
+    }
 
-    // 1. Nếu có refreshToken hợp lệ, tự động làm mới access token (Silent Refresh)
-    if (isValidRefreshToken) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken: refreshTokenValue }),
-          });
+    const retryHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(newAccessToken ? { Authorization: `Bearer ${newAccessToken}` } : {}),
+      ...(options?.headers as Record<string, string>),
+    };
 
-          if (refreshRes.ok) {
-            const data = await refreshRes.json();
-            const newAccessToken = data?.accessToken;
-            const newRefreshToken = data?.refreshToken;
+    const retryResponse = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: retryHeaders,
+    });
 
-            if (
-              !newAccessToken ||
-              typeof newAccessToken !== "string" ||
-              !newRefreshToken ||
-              typeof newRefreshToken !== "string"
-            ) {
-              isRefreshing = false;
-              refreshSubscribers = [];
-              clearAuthStorage();
-              if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-                window.location.href = "/login?expired=1";
-              }
-              throw new Error("Phản hồi làm mới token không hợp lệ!");
-            }
+    if (!retryResponse.ok) {
+      let errorMessage = `Lỗi yêu cầu API (${retryResponse.status})`;
+      let errorCode: string | undefined;
+      let retryAfter = parseRetryAfter(retryResponse);
 
-            localStorage.setItem("accessToken", newAccessToken);
-            localStorage.setItem("refreshToken", newRefreshToken);
-            isRefreshing = false;
-            onRefreshed(newAccessToken);
-
-            // Thử lại yêu cầu ban đầu với token mới
-            return api<T>(endpoint, options, true);
-          } else {
-            // Refresh token cũng đã hết hạn -> Tự động logout
-            isRefreshing = false;
-            refreshSubscribers = [];
-            clearAuthStorage();
-            if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-              window.location.href = "/login?expired=1";
-            }
-          }
-        } catch {
-          isRefreshing = false;
-          refreshSubscribers = [];
-          clearAuthStorage();
-          if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-            window.location.href = "/login?expired=1";
-          }
+      try {
+        const errorData: unknown = await retryResponse.json();
+        if (isErrorEnvelope(errorData)) {
+          errorMessage = errorData.message;
+          errorCode = errorData.errorCode;
+          retryAfter ??= errorData.retryAfterSeconds ?? errorData.retryAfter;
         }
-      } else {
-        // Chờ lượt refresh đang chạy và thử lại
-        return new Promise<T>((resolve) => {
-          refreshSubscribers.push(() => {
-            resolve(api<T>(endpoint, options, true));
-          });
-        });
+      } catch {
+        // ignore error
       }
-    } else {
-      // 2. Không có refreshToken -> Tự động đăng xuất và điều hướng về trang đăng nhập
-      clearAuthStorage();
-      if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-        window.location.href = "/login?expired=1";
-      }
+      throw new ApiError(errorMessage, retryResponse.status, errorCode, retryAfter);
     }
-  }
-
-  if (response.status === 403) {
-    if (window.location.pathname !== "/403") {
-      window.location.href = "/403";
-    }
-    throw new Error("Không có quyền truy cập");
+    return unwrapSuccess<T>(await retryResponse.json());
   }
 
   if (!response.ok) {
     let errorMessage = `Lỗi yêu cầu API (${response.status})`;
+    let errorCode: string | undefined;
+    let retryAfter = parseRetryAfter(response);
+
     try {
-      const errorData = await response.json();
-      if (errorData?.message) {
-        errorMessage = Array.isArray(errorData.message)
-          ? errorData.message.join(", ")
-          : errorData.message;
+      const errorData: unknown = await response.json();
+      if (isErrorEnvelope(errorData)) {
+        errorMessage = errorData.message;
+        errorCode = errorData.errorCode;
+        retryAfter ??= errorData.retryAfterSeconds ?? errorData.retryAfter;
       }
     } catch {
-      // response body was not JSON
+      // ignore error
     }
-    throw new Error(errorMessage);
+    throw new ApiError(errorMessage, response.status, errorCode, retryAfter);
   }
 
-  return response.json();
+  return unwrapSuccess<T>(await response.json());
 };

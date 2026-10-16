@@ -32,19 +32,14 @@ const MetricCard = ({
   unit,
   threshold,
 }: MetricCardProps) => {
-  const normalMin = threshold?.normalMin ?? threshold?.minValue ?? 0;
-  const normalMax = threshold?.normalMax ?? threshold?.maxValue ?? 100;
-  const dangerMin = threshold?.dangerMin ?? (normalMin > 0 ? normalMin * 0.8 : 0);
-  const dangerMax = threshold?.dangerMax ?? (normalMax * 1.2);
-
-  const safeThreshold = {
-    normalMin,
-    normalMax,
-    dangerMin,
-    dangerMax,
-  };
-
-  const level = getMetricStatus(value, safeThreshold);
+  const normalMin = threshold?.normalMin ?? threshold?.minValue;
+  const normalMax = threshold?.normalMax ?? threshold?.maxValue;
+  const hasThreshold = typeof normalMin === "number" && typeof normalMax === "number";
+  const dangerMin = threshold?.dangerMin;
+  const dangerMax = threshold?.dangerMax;
+  const level = hasThreshold
+    ? getMetricStatus(value, { normalMin, normalMax, dangerMin, dangerMax })
+    : undefined;
 
   const iconMap: Record<string, React.ReactNode> = {
     pH: <DropletsIcon size={20} />,
@@ -77,7 +72,7 @@ const MetricCard = ({
     },
   };
 
-  const currentLevel = levelConfig[level];
+  const currentLevel = level ? levelConfig[level] : null;
 
   return (
     <div className="flex flex-col justify-center dashboard-card px-4 py-4">
@@ -94,36 +89,33 @@ const MetricCard = ({
 
       {/* Value */}
       <div className="flex justify-center py-2">
-        <ProgressCircle
+        {hasThreshold ? <ProgressCircle
           value={value}
           title={unit}
           threshold={{
-            min: safeThreshold.normalMin,
-            max: safeThreshold.normalMax,
+            min: normalMin,
+            max: normalMax,
           }}
           size={120}
           strokeWidth={10}
           status={level}
-        />
+        /> : <span className="text-3xl font-semibold text-(--text-primary)">{value} {unit}</span>}
       </div>
 
       {/* Threshold */}
       <div className="py-1 text-center text-xs text-(--text-muted)">
-        Ngưỡng an toàn:{" "}
-        <span className="text-(--text-body)">
-          {safeThreshold.normalMin} - {safeThreshold.normalMax} {unit}
-        </span>
+        {hasThreshold ? <>Ngưỡng an toàn: <span className="text-(--text-body)">{normalMin} - {normalMax} {unit}</span></> : "Chưa có ngưỡng được cấu hình từ backend."}
       </div>
 
       {/* Level */}
-      <div className="mt-2 flex items-center justify-center">
+      {currentLevel && <div className="mt-2 flex items-center justify-center">
         <span
           className={`flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium ${currentLevel.className}`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-current" />
           {currentLevel.label}
         </span>
-      </div>
+      </div>}
     </div>
   );
 };

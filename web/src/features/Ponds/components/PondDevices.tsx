@@ -9,27 +9,6 @@ export type PondDevice = {
   icon: "gateway" | "oxygen" | "ultrasonic";
 };
 
-const defaultPondDevices: PondDevice[] = [
-  {
-    id: "GW-ESP32-A1",
-    name: "Gateway ESP32-A1",
-    subtitle: "6 cảm biến · Wi-Fi",
-    icon: "gateway",
-  },
-  {
-    id: "DO-A1-04",
-    name: "Mẫu DO A1-04",
-    subtitle: "Trực tuyến · 2 phút trước",
-    icon: "oxygen",
-  },
-  {
-    id: "ULTRASONIC-A1",
-    name: "Cảm biến siêu âm",
-    subtitle: "Trực tuyến · 2 phút trước",
-    icon: "ultrasonic",
-  },
-];
-
 const deviceIcons = {
   gateway: <Radio className="w-5 h-5" />,
   oxygen: <Wind className="w-5 h-5" />,
@@ -56,11 +35,11 @@ const PondDevices = ({ devices = [] }: PondDevicesProps) => {
           return {
             id: d.id,
             name: devName,
-            subtitle: `${d.sensors?.length || 1} cảm biến · ${d.connection_type || "Wi-Fi"}`,
+            subtitle: `${d.sensors?.length ?? 0} cảm biến${d.connection_type ? ` · ${d.connection_type}` : ""}`,
             icon: iconType,
           };
         })
-      : defaultPondDevices;
+      : [];
 
   return (
     <div className="w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg">
@@ -74,14 +53,14 @@ const PondDevices = ({ devices = [] }: PondDevicesProps) => {
 
       {/* Devices List */}
       <div className="divide-y divide-(--divider)">
-        {displayDevices.map((device) => (
+        {displayDevices.length > 0 ? displayDevices.map((device) => (
           <DeviceItem
             key={device.id}
             icon={deviceIcons[device.icon]}
             title={device.name}
             subtitle={device.subtitle}
           />
-        ))}
+        )) : <p className="py-3 text-sm text-(--text-muted)">Chưa có thiết bị được gắn cho ao này.</p>}
       </div>
     </div>
   );

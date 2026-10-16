@@ -1,37 +1,9 @@
 import { FlowingWave } from "../../../components/FlowingWave";
-import PondStatus from "../../../components/PondStatus";
 import { SensorCard } from "../../../components/SensorCard";
 import StepProgress from "../../../components/StepProgress";
 import type { Pond } from "../../../types/Pond";
 import type { FeedingScheduleItem } from "../../../services/pondApi";
 import { Edit3, Sliders, TestTube, Trash2 } from "lucide-react";
-
-const defaultSensorData = [
-    { id: "1", label: "Nhiệt độ", value: 29.4, unit: "°C" },
-    { id: "2", label: "Độ pH", value: 7.8, unit: "pH" },
-    { id: "3", label: "Độ mặn", value: 15.2, unit: "ppt" },
-    { id: "4", label: "Oxy hòa tan", value: 5.4, unit: "mg/L" },
-    { id: "5", label: "Độ đục", value: 24, unit: "NTU" },
-    { id: "6", label: "Mực nước", value: 1.22, unit: "m" },
-];
-
-const defaultFeedingSchedule = [
-    {
-        time: "10:30",
-        title: "Cho ăn buổi sáng · 42 kg",
-        description: "Máy cho ăn tự động · đã hoàn thành",
-    },
-    {
-        time: "16:00",
-        title: "Cho ăn buổi chiều · 38 kg",
-        description: "Đã lên lịch · cỡ hạt 2.0 mm",
-    },
-    {
-        time: "21:30",
-        title: "Cho ăn buổi tối · 35 kg",
-        description: "Đã lên lịch · điều chỉnh theo sinh khối",
-    },
-];
 
 interface PondInfoProps {
     pond?: Pond | null;
@@ -52,6 +24,14 @@ export const PondInfo = ({
     onOpenManualLogs,
     onDeletePond,
 }: PondInfoProps) => {
+    if (!pond) {
+        return (
+            <div className="w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 text-sm text-(--text-muted)">
+                Chưa có ao nuôi được chọn để hiển thị.
+            </div>
+        );
+    }
+
     // Extract sensor data from latest reading
     const latestReading = sensorReadings && sensorReadings.length > 0
         ? sensorReadings[sensorReadings.length - 1]
@@ -64,7 +44,7 @@ export const PondInfo = ({
             value: m.value,
             unit: m.unit || "",
         }))
-        : defaultSensorData;
+        : [];
 
     const displaySchedules = feedingSchedules.length > 0
         ? feedingSchedules.map((s) => ({
@@ -72,14 +52,10 @@ export const PondInfo = ({
             title: s.title,
             description: s.description,
         }))
-        : defaultFeedingSchedule;
+        : [];
 
-    const currentGrowthStage = pond?.growthStage || "Tôm tăng trưởng";
-    const pondStatus = (pond?.status?.toUpperCase() === "DANGER"
-        ? "DANGER"
-        : pond?.status?.toUpperCase() === "WARNING"
-        ? "WARNING"
-        : "NORMAL") as "NORMAL" | "WARNING" | "DANGER";
+    const currentGrowthStage = pond.growthStage;
+    const pondStatusLabel = pond.status === "ACTIVE" ? "Đang nuôi" : pond.status === "HARVESTED" ? "Đã thu hoạch" : "Ao trống";
 
     return (
         <div className="w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 shadow-lg flex flex-col gap-6">
@@ -87,15 +63,15 @@ export const PondInfo = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex flex-col items-start gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-(--text-muted) leading-none">
-                        Vuông đang chọn · {pond?.id || "PND-A1"}
+                        Vuông đang chọn
                     </span>
                     <h1 className="text-2xl font-bold text-(--text-heading) m-0 leading-tight">
-                        {pond?.name || "Vuông A1 - Cà Mau"}
+                        {pond.name || "Ao nuôi"}
                     </h1>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <PondStatus status={pondStatus} />
+                    <span className="rounded-xl border border-cyan-700/50 bg-cyan-950/60 px-3 py-1.5 text-xs text-cyan-200">{pondStatusLabel}</span>
 
                     {pond && onOpenThresholds && (
                         <button
@@ -147,17 +123,19 @@ export const PondInfo = ({
 
             {/* Growth Stage Progress */}
             <div>
+                {currentGrowthStage ? (
                 <StepProgress
                     steps={["Thả giống", "Tôm giống", "Tôm tăng trưởng", "Thu hoạch"]}
                     currentStep={currentGrowthStage}
                 />
+                ) : <p className="text-sm text-(--text-muted)">Chưa có dữ liệu giai đoạn nuôi.</p>}
             </div>
 
             {/* Sensor Cards Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {sensorCardsData.map((item: any) => (
+                {sensorCardsData.length > 0 ? sensorCardsData.map((item: any) => (
                     <SensorCard key={item.id} label={item.label} value={item.value} unit={item.unit} />
-                ))}
+                )) : <p className="col-span-full text-sm text-(--text-muted)">Chưa có dữ liệu cảm biến cho ao này.</p>}
             </div>
 
             <FlowingWave />
@@ -168,11 +146,11 @@ export const PondInfo = ({
                     LỊCH CHO ĂN
                 </span>
                 <div className="w-full">
-                    <StepProgress 
+                    {displaySchedules.length > 0 ? <StepProgress
                         orientation="vertical"
                         steps={displaySchedules}
                         currentStep={0}
-                    />
+                    /> : <p className="text-sm text-(--text-muted)">Chưa có lịch cho ăn cho ao này.</p>}
                 </div>
             </div>
         </div>

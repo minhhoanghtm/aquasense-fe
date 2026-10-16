@@ -8,46 +8,17 @@ interface LatestReadingProps {
   className?: string;
 }
 
-const defaultProbeMetrics: ReadingMetric[] = [
-  {
-    id: "ph",
-    label: "PH",
-    value: "7.8",
-    color: "cyan",
-  },
-  {
-    id: "temperature",
-    label: "NHIỆT ĐỘ",
-    value: "29.4°C",
-    color: "cyan",
-  },
-  {
-    id: "do",
-    label: "DO",
-    value: "4.2 mg/L",
-    color: "amber",
-  },
-  {
-    id: "signal",
-    label: "TÍN HIỆU",
-    value: "18%",
-    color: "cyan",
-  },
-];
-
 export const LatestReading: React.FC<LatestReadingProps> = ({
-  deviceCode = "DO-PROBE-004",
-  deviceName = "Mẫu DO A1-04",
+  deviceCode,
+  deviceName,
   metrics,
   className = "",
 }) => {
-  const displayMetrics = metrics && metrics.length > 0 ? metrics : defaultProbeMetrics;
-
   return (
     <LatestReadingCard
       deviceCode={deviceCode}
       title={deviceName}
-      metrics={displayMetrics}
+      metrics={metrics}
       className={className}
     />
   );

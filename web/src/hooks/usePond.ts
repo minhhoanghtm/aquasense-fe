@@ -3,58 +3,53 @@ import type { Pond } from "../types/Pond";
 import type { Devices } from "../types/Devices";
 import { getPondDashboard } from "../services/pondApi";
 
-const pondCache = new Map<string, { pond: Pond | null; device: Devices | null }>();
-
-export const invalidatePondCache = (pondId?: string) => {
-    if (pondId) {
-        pondCache.delete(pondId);
-    } else {
-        pondCache.clear();
-    }
-};
-
-export const usePond = (pondId: string) => {
-    const cached = pondId ? pondCache.get(pondId) : null;
-    const [pond, setPond] = useState<Pond | null>(cached?.pond ?? null);
-    const [device, setDevice] = useState<Devices | null>(cached?.device ?? null);
-    const [loading, setLoading] = useState(!cached && !!pondId);
+export const usePond = (pondId?: string) => {
+    const [pond, setPond] = useState<Pond | null>(null);
+    const [device, setDevice] = useState<Devices | null>(null);
+    const [loading, setLoading] = useState(!!pondId);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!pondId) {
             setPond(null);
             setDevice(null);
+            setLoading(false);
             return;
         }
 
+        let cancelled = false;
         const fetchPond = async () => {
             try {
-                if (!pondCache.has(pondId)) {
-                    setLoading(true);
-                }
+                setError(null);
+                setPond(null);
+                setDevice(null);
+                setLoading(true);
 
                 const data = await getPondDashboard(pondId);
                 const devicesList = Array.isArray(data.devices) ? data.devices : [];
                 const dev = devicesList.length > 0 ? (devicesList[0] as Devices) : null;
 
-                pondCache.set(pondId, { pond: data.pond, device: dev });
-                setPond(data.pond);
-                setDevice(dev);
+                if (!cancelled) {
+                    setPond(data.pond);
+                    setDevice(dev);
+                }
             } catch (error) {
                 console.error("Lỗi lấy thông tin ao:", error);
+                if (!cancelled) setError(error instanceof Error ? error.message : "Không thể tải thông tin ao.");
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
         fetchPond();
 
         const handleUpdate = () => {
-            pondCache.delete(pondId);
             fetchPond();
         };
 
         window.addEventListener("ponds-updated", handleUpdate);
         return () => {
+            cancelled = true;
             window.removeEventListener("ponds-updated", handleUpdate);
         };
     }, [pondId]);
@@ -63,5 +58,6 @@ export const usePond = (pondId: string) => {
         pond,
         device,
         loading,
+        error,
     };
 };

@@ -1,4 +1,4 @@
-import type { Devices, Device } from "./Devices";
+import type { Device } from "./Devices";
 
 export type PondStatus = "ACTIVE" | "HARVESTED" | "EMPTY";
 
@@ -10,6 +10,7 @@ export interface Pond {
   areaM2?: number;
   depthM?: number;
   shrimpDensity?: number | string;
+  capacity?: number | null;
   status: PondStatus | string;
   createdAt?: string;
   updatedAt?: string;
@@ -20,7 +21,7 @@ export interface Pond {
   area?: number;
   density?: string;
   createAt?: string;
-  location?: string;
+  location?: string | null;
   stockingDate?: string;
   growthStage?: string;
   managerId?: string;

@@ -1,272 +1,115 @@
-import { useState } from 'react';
-import { Sparkles, Bell, Lightbulb, TrendingUp, AlertTriangle, Info } from 'lucide-react';
-import type { Pond } from '../../../types/Pond';
-import { useAIAnalysis } from '../../../hooks/useAIAnalysis';
+import { useState } from "react";
+import { Sparkles, Bell, Lightbulb, TrendingUp, Info } from "lucide-react";
+import type { Pond } from "../../../types/Pond";
+import { useAIAnalysis } from "../../../hooks/useAIAnalysis";
 
 interface AIPredictionProps {
-    pond?: Pond | null;
-    waterQuality?: any;
+  pondId: string;
+  pond?: Pond | null;
 }
 
-const AIPrediction = ({ pond, waterQuality }: AIPredictionProps) => {
-    const [activeTab, setActiveTab] = useState<'prediction' | 'alerts' | 'recommendations'>('prediction');
-    const { predictions, recommendations } = useAIAnalysis(pond?.id);
+const AIPrediction = ({ pondId, pond }: AIPredictionProps) => {
+  const [activeTab, setActiveTab] = useState<"prediction" | "alerts" | "recommendations">("prediction");
+  const { predictions, recommendations, loading, error, available } = useAIAnalysis(pondId, false);
+  const prediction = predictions.find((item) => item.pondId === pondId);
+  const confidenceScore = prediction?.confidenceScore ?? (
+    typeof prediction?.confidence === "number" ? Math.round(prediction.confidence * 100) : undefined
+  );
+  const recommendationsText = recommendations.map((item) => item.content).filter(Boolean);
 
-    // Mặc định hoặc khi chưa tải xong dữ liệu
-    const pondPrediction = predictions.find((p) => p.pondId === pond?.id) || predictions[0];
+  const emptyState = (text: string) => (
+    <p className="py-5 text-xs text-[var(--text-muted)]">{text}</p>
+  );
 
-    let predictionText = pondPrediction?.description || "Điều kiện dự kiến ổn định. DO có thể giảm nhẹ trước bình minh.";
-    let trendText = "Ổn định";
-    let riskText = pondPrediction?.riskLabel || (pondPrediction?.riskLevel === "LOW" ? "Rủi ro thấp" : pondPrediction?.riskLevel === "MEDIUM" ? "Trung bình" : "Cao");
-    let confidenceScore = pondPrediction?.confidenceScore || (pondPrediction?.confidence ? Math.round(pondPrediction.confidence * 100) : 94);
-
-    let aiAlerts = [
-        "Độ pH có xu hướng giảm nhẹ dưới 7.2 trong 6 giờ tới.",
-        "Nhiệt độ nước tăng cao vào buổi trưa, cần theo dõi sát chỉ số oxy."
-    ];
-
-    let aiRecommendations = recommendations.length > 0
-        ? recommendations.map((r) => r.content)
-        : [
-            "Vận hành máy quạt nước từ 02:00 - 05:00 để duy trì hàm lượng DO ổn định.",
-            "Hạn chế cho ăn quá mức vào cữ trưa để tránh ô nhiễm hữu cơ khi nhiệt độ cao."
-        ];
-
-    // Tạo các cảnh báo và khuyến nghị động dựa trên chất lượng nước thực tế
-    if (waterQuality?.sensorReadings && waterQuality.sensorReadings.length > 0) {
-        const latestReading = waterQuality.sensorReadings[waterQuality.sensorReadings.length - 1];
-        const metrics = latestReading.metrics || [];
-        const thresholds = waterQuality.thresholds || [];
-
-        const doMetric = metrics.find((m: any) => m.name === 'Oxy hòa tan' || m.name === 'dissolvedOxygen' || m.parameterId === 'dissolvedOxygen');
-        const phMetric = metrics.find((m: any) => m.name === 'pH');
-        const tempMetric = metrics.find((m: any) => m.name === 'Nhiệt độ' || m.name === 'temperature' || m.parameterId === 'temperature');
-
-        const getStatus = (val: number, name: string) => {
-            const thr = thresholds.find((t: any) => t.parameterId === name || t.parameterName === name);
-            if (!thr) return 'normal';
-            if (val < thr.dangerMin || val > thr.dangerMax) return 'danger';
-            if (val < thr.normalMin || val > thr.normalMax) return 'warning';
-            return 'normal';
-        };
-
-        const doVal = doMetric?.value;
-        const phVal = phMetric?.value;
-        const tempVal = tempMetric?.value;
-
-        const doStatus = doVal !== undefined ? getStatus(doVal, 'dissolvedOxygen') : 'normal';
-        const phStatus = phVal !== undefined ? getStatus(phVal, 'pH') : 'normal';
-        const tempStatus = tempVal !== undefined ? getStatus(tempVal, 'temperature') : 'normal';
-
-        if (doStatus === 'danger' || (doVal !== undefined && doVal < 5.0)) {
-            predictionText = "Hàm lượng Oxy hòa tan (DO) có xu hướng giảm sâu về sáng sớm. Cần chú ý vận hành máy quạt nước.";
-            trendText = "Giảm nhẹ";
-            riskText = "Trung bình";
-            confidenceScore = 88;
-            aiAlerts = [
-                `Chỉ số Oxy hòa tan hiện tại ở mức thấp (${doVal} mg/L), dự kiến giảm dưới ngưỡng an toàn lúc 03:00 - 05:00 sáng.`,
-                "Hoạt động hô hấp của tảo về đêm làm tiêu hao nhanh lượng oxy trong nước."
-            ];
-            aiRecommendations = [
-                "Khởi động toàn bộ hệ thống quạt nước từ 01:00 đến 06:00 sáng mai.",
-                "Chuẩn bị sẵn oxy hạt (oxy viên) để rải cấp cứu nếu chỉ số DO thực tế giảm dưới 3.5 mg/L.",
-                "Cắt giảm 10% lượng thức ăn cữ sáng để giảm tải tiêu hao oxy phân hủy hữu cơ."
-            ];
-        } else if (tempStatus === 'danger' || (tempVal !== undefined && tempVal > 31.5)) {
-            predictionText = "Nhiệt độ nước tăng cao vượt ngưỡng tối ưu. Tốc độ chuyển hóa thức ăn tăng mạnh, dễ tích tụ khí độc.";
-            trendText = "Tăng nhanh";
-            riskText = "Cao";
-            confidenceScore = 91;
-            aiAlerts = [
-                `Nhiệt độ nước đạt mức cao (${tempVal}°C) vào buổi trưa, làm tăng độc tính của khí độc NH3.`,
-                "Oxy hòa tan giảm sút do độ hòa tan giảm ở nhiệt độ cao."
-            ];
-            aiRecommendations = [
-                "Giảm 15% - 20% lượng thức ăn vào cữ trưa nắng nóng từ 11:00 - 14:00.",
-                "Vận hành quạt nước tầng mặt vào giữa trưa để đảo đều nước và giải phóng nhiệt.",
-                "Bổ sung Vitamin C và khoáng chất chống sốc nhiệt cho tôm nuôi."
-            ];
-        } else if (phStatus === 'danger' || phStatus === 'warning') {
-            predictionText = `Độ pH của nước (${phVal}) biến động ngoài ngưỡng tối ưu. Có nguy cơ ảnh hưởng lớp vỏ tôm.`;
-            trendText = phVal !== undefined && phVal < 7.5 ? "Giảm dần" : "Tăng dần";
-            riskText = "Trung bình";
-            confidenceScore = 85;
-            aiAlerts = [
-                `Chỉ số pH đạt ${phVal}, dao động ngoài ngưỡng tối ưu (7.5 - 8.5) ảnh hưởng hệ đệm sinh học.`,
-                "Sự phát triển mạnh của tảo (tảo nở hoa) có thể làm pH tăng cao vào chiều tối."
-            ];
-            aiRecommendations = [
-                phVal !== undefined && phVal < 7.5
-                    ? "Bón vôi nông nghiệp CaCO3 hoặc vôi tôi Ca(OH)2 liều lượng 10-15 kg/1000m3 để ổn định pH."
-                    : "Sử dụng mật rỉ đường kết hợp men vi sinh để khống chế tảo và hạ pH tự nhiên.",
-                "Hạn chế thay nước đột ngột trong thời gian pH biến động mạnh."
-            ];
-        }
-    }
-
-    const alertsCount = aiAlerts.length;
-    const recommendationsCount = aiRecommendations.length;
-
-    return (
-        <div className="border border-[var(--panel-border-strong)] bg-[#061d24]/65 backdrop-blur-md p-5 rounded-xl text-left flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-full">
-            {/* Header */}
-            <div className="flex items-center mb-5">
-                {/* Sparkles Icon Block */}
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)]">
-                    <Sparkles size={20} className="animate-pulse" />
-                </div>
-
-                {/* Title Text */}
-                <div className="flex flex-col ml-3.5">
-                    <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide">
-                        Trợ lý AI • {pond?.name || "PND-A1"}
-                    </h4>
-                    <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mt-0.5 uppercase">
-                        DỰ BÁO • 24 GIỜ TỚI
-                    </span>
-                </div>
-            </div>
-
-            {/* Tab Bar */}
-            <div className="flex p-1 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl mb-4 gap-1">
-                <button
-                    onClick={() => setActiveTab('prediction')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'prediction'
-                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
-                        }`}
-                >
-                    <Sparkles size={14} />
-                    <span>Dự đoán</span>
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('alerts')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'alerts'
-                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
-                        }`}
-                >
-                    <Bell size={14} />
-                    <span>Cảnh báo</span>
-                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'alerts' ? 'bg-[var(--critical-bg)] text-[var(--critical)]' : 'bg-[var(--panel-bg)] text-[var(--text-muted)]'
-                        }`}>
-                        {alertsCount}
-                    </span>
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('recommendations')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === 'recommendations'
-                            ? 'bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]'
-                        }`}
-                >
-                    <Lightbulb size={14} />
-                    <span>Khuyến nghị</span>
-                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${activeTab === 'recommendations' ? 'bg-[var(--success-bg)] text-[var(--success)]' : 'bg-[var(--panel-bg)] text-[var(--text-muted)]'
-                        }`}>
-                        {recommendationsCount}
-                    </span>
-                </button>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'prediction' && (
-                <div className="flex flex-col flex-1">
-                    {/* Main Prediction */}
-                    <p className="text-sm text-[var(--text-heading)] font-semibold leading-relaxed mb-4">
-                        {predictionText}
-                    </p>
-
-                    {/* Trend & Risk Card */}
-                    <div className="grid grid-cols-2 gap-4 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3.5 mb-5">
-                        {/* Trend */}
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">
-                                Xu hướng
-                            </span>
-                            <div className="flex items-center gap-1.5 text-[var(--text-heading)] font-semibold text-sm">
-                                <TrendingUp size={16} className="text-[var(--accent)]" />
-                                <span>{trendText}</span>
-                            </div>
-                        </div>
-
-                        {/* Risk */}
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">
-                                Mức rủi ro
-                            </span>
-                            <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border self-start ${riskText === 'Rủi ro thấp' || riskText === 'Thấp'
-                                    ? 'bg-[var(--success-bg)] text-[var(--success)] border-transparent'
-                                    : riskText === 'Trung bình'
-                                        ? 'bg-[var(--warning-bg)] text-[var(--warning)] border-transparent'
-                                        : 'bg-[var(--critical-bg)] text-[var(--critical)] border-transparent'
-                                }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${riskText === 'Rủi ro thấp' || riskText === 'Thấp'
-                                        ? 'bg-[var(--success)] shadow-none'
-                                        : riskText === 'Trung bình'
-                                            ? 'bg-[var(--warning)] shadow-none'
-                                            : 'bg-[var(--critical)] shadow-none'
-                                    }`} />
-                                <span>{riskText}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Confidence Meter */}
-                    <div className="mt-auto pt-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider uppercase">
-                                Độ tin cậy
-                            </span>
-                            <span className="text-xs text-[var(--accent)] font-bold">
-                                {confidenceScore}%
-                            </span>
-                        </div>
-                        <div className="w-full h-1.5 bg-[var(--panel-bg-dark)] rounded-full mt-2 overflow-hidden border border-[var(--panel-border)]">
-                            <div
-                                className="h-full bg-[var(--accent)] rounded-full transition-all duration-500 ease-out"
-                                style={{ width: `${confidenceScore}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'alerts' && (
-                <div className="flex flex-col gap-3 flex-1">
-                    {aiAlerts.map((alert, index) => (
-                        <div
-                            key={index}
-                            className="flex gap-3 items-start p-3 bg-[var(--critical-bg)] border border-[var(--critical-bg)] rounded-xl transition-all duration-200"
-                        >
-                            <AlertTriangle size={16} className="text-[var(--critical)] mt-0.5 shrink-0" />
-                            <p className="text-xs text-[var(--text-body)] leading-relaxed">
-                                {alert}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {activeTab === 'recommendations' && (
-                <div className="flex flex-col gap-3 flex-1">
-                    {aiRecommendations.map((rec, index) => (
-                        <div
-                            key={index}
-                            className="flex gap-3 items-start p-3 bg-[var(--success-bg)] border border-[var(--success-bg)] rounded-xl transition-all duration-200"
-                        >
-                            <Info size={16} className="text-[var(--success)] mt-0.5 shrink-0" />
-                            <p className="text-xs text-[var(--text-body)] leading-relaxed">
-                                {rec}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            )}
+  return (
+    <div className="border border-[var(--panel-border-strong)] bg-[#061d24]/65 backdrop-blur-md p-5 rounded-xl text-left flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.35)] w-full">
+      <div className="flex items-center mb-5">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)]">
+          <Sparkles size={20} className="animate-pulse" />
         </div>
-    );
+        <div className="flex flex-col ml-3.5">
+          <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide">
+            Trợ lý AI{pond?.name ? ` • ${pond.name}` : ""}
+          </h4>
+          <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mt-0.5 uppercase">
+            {available ? "DỰ BÁO TỪ BACKEND" : "BACKEND CHƯA CÓ API AI"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex p-1 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl mb-4 gap-1">
+        {([
+          ["prediction", Sparkles, "Dự đoán", predictions.length],
+          ["alerts", Bell, "Cảnh báo", 0],
+          ["recommendations", Lightbulb, "Khuyến nghị", recommendationsText.length],
+        ] as const).map(([tab, Icon, label, count]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer flex-1 transition-all duration-200 ${activeTab === tab
+              ? "bg-[var(--panel-highlight)] text-[var(--text-heading)] border border-[var(--panel-border-strong)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-heading)] border border-transparent hover:bg-[var(--panel-highlight)]"}`}
+          >
+            <Icon size={14} />
+            <span>{label}</span>
+            {(tab === "alerts" || tab === "recommendations") && (
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold bg-[var(--panel-bg)] text-[var(--text-muted)]">
+                {count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "prediction" && (
+        <div className="flex flex-col flex-1">
+          {!available ? emptyState("Backend chưa cung cấp API dự báo AI.") : error ? emptyState(`Không thể tải dự báo: ${error}`) : loading ? emptyState("Đang tải dự báo cho ao đã chọn...") : prediction?.description ? (
+            <>
+              <p className="text-sm text-[var(--text-heading)] font-semibold leading-relaxed mb-4">{prediction.description}</p>
+              <div className="grid grid-cols-2 gap-4 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3.5 mb-5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">Xu hướng</span>
+                  <div className="flex items-center gap-1.5 text-[var(--text-heading)] font-semibold text-sm">
+                    <TrendingUp size={16} className="text-[var(--accent)]" />
+                    <span>{prediction.parameterId || "Chưa xác định"}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">Mức rủi ro</span>
+                  <span className="text-xs font-semibold text-[var(--text-heading)]">{prediction.riskLabel || prediction.riskLevel || "Chưa đánh giá"}</span>
+                </div>
+              </div>
+              {typeof confidenceScore === "number" && (
+                <div className="mt-auto pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider uppercase">Độ tin cậy</span>
+                    <span className="text-xs text-[var(--accent)] font-bold">{confidenceScore}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[var(--panel-bg-dark)] rounded-full mt-2 overflow-hidden border border-[var(--panel-border)]">
+                    <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-500 ease-out" style={{ width: `${confidenceScore}%` }} />
+                  </div>
+                </div>
+              )}
+            </>
+          ) : emptyState("Chưa có dự báo AI từ backend cho ao này.")}
+        </div>
+      )}
+
+      {activeTab === "alerts" && emptyState("Chưa có cảnh báo AI từ backend cho ao này.")}
+
+      {activeTab === "recommendations" && (
+        <div className="flex flex-col gap-3 flex-1">
+          {recommendationsText.length > 0 ? recommendationsText.map((recommendation, index) => (
+            <div key={`${recommendation}-${index}`} className="flex gap-3 items-start p-3 bg-[var(--success-bg)] border border-[var(--success-bg)] rounded-xl">
+              <Info size={16} className="text-[var(--success)] mt-0.5 shrink-0" />
+              <p className="text-xs text-[var(--text-body)] leading-relaxed">{recommendation}</p>
+            </div>
+          )) : emptyState("Chưa có khuyến nghị AI từ backend cho ao này.")}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default AIPrediction;

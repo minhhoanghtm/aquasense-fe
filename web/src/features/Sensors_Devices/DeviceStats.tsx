@@ -2,17 +2,17 @@ import React from "react";
 import { Cpu, Radio, WifiOff, AlertTriangle } from "lucide-react";
 
 export interface DeviceStatsProps {
-  total?: number;
-  active?: number;
-  offline?: number;
-  warning?: number;
+  total: number;
+  active: number;
+  offline: number;
+  warning: number;
 }
 
 export const DeviceStats: React.FC<DeviceStatsProps> = ({
-  total = 6,
-  active = 4,
-  offline = 1,
-  warning = 1,
+  total,
+  active,
+  offline,
+  warning,
 }) => {
   const stats = [
     {

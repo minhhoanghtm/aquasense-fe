@@ -17,16 +17,12 @@ export default function PondList({
 }: PondListProps) {
     const totalArea = ponds.reduce((sum, p) => sum + (p.area || 0), 0);
 
-    const formattedPonds = ponds.map((p) => ({
-        id: p.id,
-        name: p.name,
-        area: p.area,
-        density: p.density || "180 PL/m²",
-        status: (p.status?.toUpperCase() === "DANGER"
-            ? "DANGER"
-            : p.status?.toUpperCase() === "WARNING"
-            ? "WARNING"
-            : "NORMAL") as "NORMAL" | "WARNING" | "DANGER",
+    const formattedPonds = ponds.filter((p) => p.id || p.pondId).map((p) => ({
+        id: p.id || p.pondId || "",
+        name: p.name || p.pondName || "",
+        area: p.area ?? (p.areaM2 !== undefined ? p.areaM2 / 10000 : 0),
+        density: p.density || "Chưa cập nhật",
+        status: (p.status === "ACTIVE" || p.status === "HARVESTED" ? p.status : "EMPTY") as "ACTIVE" | "HARVESTED" | "EMPTY",
     }));
 
     return (
@@ -51,7 +47,7 @@ export default function PondList({
                 </div>
 
                 <p className="text-xs text-(--text-muted) font-light">
-                    {ponds.length} vuông hoạt động · tổng {totalArea.toFixed(1)} ha
+                    Trang này: {ponds.length} vuông · tổng {totalArea.toFixed(1)} ha
                 </p>
             </div>
 

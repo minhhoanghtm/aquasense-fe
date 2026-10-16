@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { X, Droplets, Layers, Ruler, Users } from "lucide-react";
-import type { Pond } from "../../../types/Pond";
+import type { Pond, PondStatus } from "../../../types/Pond";
+import type { CreatePondPayload } from "../../../services/pondApi";
 
 interface PondFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    pondName: string;
-    areaM2: number;
-    depthM: number;
-    shrimpDensity: number;
-    status?: string;
-  }) => Promise<void>;
+  onSubmit: (data: CreatePondPayload) => Promise<void>;
   initialData?: Pond | null;
 }
 
@@ -22,10 +17,12 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
   initialData,
 }) => {
   const [pondName, setPondName] = useState("");
-  const [areaM2, setAreaM2] = useState<number | "">(5000);
-  const [depthM, setDepthM] = useState<number | "">(1.5);
-  const [shrimpDensity, setShrimpDensity] = useState<number | "">(150);
-  const [status, setStatus] = useState("ACTIVE");
+  const [areaM2, setAreaM2] = useState<number | "">("");
+  const [depthM, setDepthM] = useState<number | "">("");
+  const [shrimpDensity, setShrimpDensity] = useState<number | "">("");
+  const [location, setLocation] = useState("");
+  const [capacity, setCapacity] = useState<number | "">("");
+  const [status, setStatus] = useState<PondStatus | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -34,20 +31,24 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
   useEffect(() => {
     if (initialData) {
       setPondName(initialData.pondName || initialData.name || "");
-      setAreaM2(initialData.areaM2 || (initialData.area ? initialData.area * 10000 : 5000));
-      setDepthM(initialData.depthM || 1.5);
+      setAreaM2(initialData.areaM2 ?? (initialData.area !== undefined ? initialData.area * 10000 : ""));
+      setDepthM(initialData.depthM ?? "");
       setShrimpDensity(
         typeof initialData.shrimpDensity === "number"
           ? initialData.shrimpDensity
-          : Number(initialData.density?.replace(/[^0-9]/g, "")) || 150
+          : Number(initialData.density?.replace(/[^0-9]/g, "")) || ""
       );
-      setStatus(initialData.status || "ACTIVE");
+      setStatus(initialData.status === "ACTIVE" || initialData.status === "HARVESTED" || initialData.status === "EMPTY" ? initialData.status : "");
+      setLocation(initialData.location ?? "");
+      setCapacity(initialData.capacity ?? "");
     } else {
       setPondName("");
-      setAreaM2(5000);
-      setDepthM(1.5);
-      setShrimpDensity(150);
-      setStatus("ACTIVE");
+      setAreaM2("");
+      setDepthM("");
+      setShrimpDensity("");
+      setStatus("");
+      setLocation("");
+      setCapacity("");
     }
     setErrorMsg("");
   }, [initialData, isOpen]);
@@ -56,7 +57,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pondName.trim()) {
+    if (pondName.trim().length < 2 || pondName.trim().length > 100) {
       setErrorMsg("Vui lòng nhập tên vuông nuôi.");
       return;
     }
@@ -68,8 +69,12 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
       setErrorMsg("Độ sâu mực nước phải lớn hơn 0 m.");
       return;
     }
-    if (!shrimpDensity || Number(shrimpDensity) <= 0) {
+    if (!shrimpDensity || !Number.isInteger(Number(shrimpDensity)) || Number(shrimpDensity) <= 0) {
       setErrorMsg("Mật độ tôm phải lớn hơn 0 con/m².");
+      return;
+    }
+    if (capacity !== "" && (!Number.isInteger(Number(capacity)) || Number(capacity) < 0)) {
+      setErrorMsg("Sức chứa phải là số nguyên không âm.");
       return;
     }
 
@@ -81,11 +86,13 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
         areaM2: Number(areaM2),
         depthM: Number(depthM),
         shrimpDensity: Number(shrimpDensity),
-        status,
+        ...(location.trim() ? { location: location.trim() } : {}),
+        ...(capacity !== "" ? { capacity: Number(capacity) } : {}),
+        ...(status ? { status } : {}),
       });
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Đã xảy ra lỗi khi lưu thông tin ao nuôi.");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Đã xảy ra lỗi khi lưu thông tin ao nuôi.");
     } finally {
       setSubmitting(false);
     }
@@ -137,7 +144,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
                 type="text"
                 value={pondName}
                 onChange={(e) => setPondName(e.target.value)}
-                placeholder="Ví dụ: Vuông Tôm Thẻ 01 - Cà Mau"
+                placeholder="Nhập tên vuông nuôi"
                 className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none placeholder:text-[var(--text-muted)]"
                 required
               />
@@ -158,7 +165,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
                   step="1"
                   value={areaM2}
                   onChange={(e) => setAreaM2(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="5000"
+                placeholder="Nhập diện tích"
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none"
                   required
                 />
@@ -178,13 +185,22 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
                   step="0.1"
                   value={depthM}
                   onChange={(e) => setDepthM(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="1.5"
+                  placeholder="Nhập độ sâu"
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none"
                   required
                 />
                 <span className="text-[11px] text-[var(--text-muted)] font-mono">m</span>
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="text-xs font-semibold text-[var(--text-body)]">Vị trí
+              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1.5 w-full rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 text-xs text-[var(--text-primary)]" />
+            </label>
+            <label className="text-xs font-semibold text-[var(--text-body)]">Sức chứa (m³)
+              <input type="number" min="0" step="1" value={capacity} onChange={(e) => setCapacity(e.target.value === "" ? "" : Number(e.target.value))} className="mt-1.5 w-full rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 text-xs text-[var(--text-primary)]" />
+            </label>
           </div>
 
           {/* Shrimp Density & Status */}
@@ -201,7 +217,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
                   step="1"
                   value={shrimpDensity}
                   onChange={(e) => setShrimpDensity(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="150"
+                  placeholder="Nhập mật độ"
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none"
                   required
                 />
@@ -216,12 +232,12 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
               <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onChange={(e) => setStatus(e.target.value as PondStatus | "")}
                   className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
                 >
+                  <option value="" className="bg-[#07242e]">Chọn trạng thái</option>
                   <option value="ACTIVE" className="bg-[#07242e]">Đang nuôi</option>
-                  <option value="PREPARING" className="bg-[#07242e]">Đang cải tạo / Chuẩn bị</option>
-                  <option value="HARVESTING" className="bg-[#07242e]">Đang thu hoạch</option>
+                  <option value="HARVESTED" className="bg-[#07242e]">Đã thu hoạch</option>
                   <option value="EMPTY" className="bg-[#07242e]">Ao trống</option>
                 </select>
               </div>

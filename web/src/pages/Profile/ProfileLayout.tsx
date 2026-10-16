@@ -8,7 +8,7 @@ import { usePond } from "../../hooks/usePond";
 import { useDevices } from "../../hooks/useDevices";
 import { getCurrentUser, getProfile } from "../../services/authApi";
 import type { User } from "../../types/User";
-import { User as UserIcon, Shield, Waves, Sliders } from "lucide-react";
+import { User as UserIcon, Shield, Sliders } from "lucide-react";
 
 export interface ProfileContextValue {
   user: User | null;
@@ -65,8 +65,6 @@ export default function ProfileLayout() {
   const handleUserUpdated = (updatedUser: User) => {
     setUser(updatedUser);
   };
-
-  const assignedPondsCount = user?.assignedPondIds?.length ?? (ponds.length > 0 ? ponds.length : undefined);
 
   const tabs = [
     {
@@ -139,16 +137,6 @@ export default function ProfileLayout() {
               >
                 <Icon size={16} />
                 <span>{tab.label}</span>
-                {tab.badge !== undefined && (
-                  <span
-                    className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${active
-                        ? "bg-[var(--bg-primary)]/30 text-white"
-                        : "bg-[var(--panel-bg)] text-[var(--accent)] border border-[var(--panel-border)]"
-                      }`}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

@@ -9,37 +9,10 @@ export interface WaterQualityRiskForecastProps {
   className?: string;
 }
 
-const DEFAULT_ITEMS: PredictionCardProps[] = [
-  {
-    pondName: "Vuông A1",
-    riskLevel: "LOW",
-    riskLabel: "Rủi ro thấp",
-    description: "Điều kiện dự kiến ổn định. DO có thể giảm nhẹ trước bình minh.",
-    confidenceScore: 94,
-    confidenceLabel: "ĐỘ TIN CẬY",
-  },
-  {
-    pondName: "Vuông B2",
-    riskLevel: "MEDIUM",
-    riskLabel: "Rủi ro trung bình",
-    description: "Độ mặn tăng do bay hơi. Nên thay nước một phần.",
-    confidenceScore: 87,
-    confidenceLabel: "ĐỘ TIN CẬY",
-  },
-  {
-    pondName: "Vuông D3",
-    riskLevel: "HIGH",
-    riskLabel: "Rủi ro cao",
-    description: "DO phục hồi chậm hơn bình thường. Tăng sục khí và kiểm tra mẫu.",
-    confidenceScore: 91,
-    confidenceLabel: "ĐỘ TIN CẬY",
-  },
-];
-
 export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> = ({
   title = "Dự báo rủi ro chất lượng nước",
   subtitle = "Dự đoán AI · 24–72 giờ tới",
-  items = DEFAULT_ITEMS,
+  items = [],
   className = "",
 }) => {
   return (
@@ -63,7 +36,7 @@ export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> =
 
       {/* 3-Column Grid of PredictionCards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map((item, index) => (
+        {items.length > 0 ? items.map((item, index) => (
           <PredictionCard
             key={item.pondName || index}
             pondName={item.pondName}
@@ -74,7 +47,7 @@ export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> =
             confidenceLabel={item.confidenceLabel}
             onClick={item.onClick}
           />
-        ))}
+        )) : <p className="col-span-full py-6 text-sm text-(--text-muted)">Chưa có dự báo AI từ hệ thống.</p>}
       </div>
     </div>
   );
