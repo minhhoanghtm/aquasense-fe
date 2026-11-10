@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Title from "../../components/Title";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { usePonds } from "../../hooks/usePonds";
@@ -11,20 +11,43 @@ import StaffTable from "../../features/Staff_Management/components/StaffTable";
 import StaffFormModal from "../../features/Staff_Management/components/StaffFormModal";
 import StaffDetailModal from "../../features/Staff_Management/components/StaffDetailModal";
 import AssignPondModal from "../../features/Staff_Management/components/AssignPondModal";
+import AssignFarmToManagerModal from "../../features/Staff_Management/components/AssignFarmToManagerModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import type { User, UserStatus } from "../../types/User";
-import { getStaffById, type CreateStaffRequest, type UpdateStaffRequest } from "../../services/staffApi";
+import type { Pond } from "../../types/Pond";
+import type { Farm } from "../../types/Farm";
+import { getStaffById, unlockStaffAccount, type CreateStaffRequest, type UpdateStaffRequest } from "../../services/staffApi";
 import { Users, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "../../services/authApi";
-import { assignPondToUser } from "../../services/pondApi";
+import { assignPondToUser, revokePondFromUser } from "../../services/pondApi";
+import { getFarms } from "../../services/farmApi";
 
 import { canManageUser } from "../../lib/rolePermissions";
 export default function StaffManagement() {
   useDocumentTitle("Quản lý nhân viên");
 
   const { ponds, refetch: refetchPonds } = usePonds({ allPages: true });
-  const currentRole = getCurrentUser()?.role;
-  const canAssignPonds = currentRole === "ADMIN" || currentRole === "MANAGER";
+  const currentUser = getCurrentUser();
+  const currentRole = currentUser?.role;
+  const isAdmin = currentRole === "ADMIN";
+  const isManager = currentRole === "MANAGER";
+  const canAssignPonds = isAdmin || isManager;
+  const canAssignFarms = isAdmin;
+
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const loadFarms = useCallback(async () => {
+    try {
+      const res = await getFarms({ limit: 100 });
+      setFarms(res.data || []);
+    } catch (e) {
+      console.error("Error loading farms:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFarms();
+  }, [loadFarms]);
+
   const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
   const { pond, device } = usePond(selectedPondId);
 
@@ -47,6 +70,7 @@ export default function StaffManagement() {
     rejectAccount,
     changeStatus,
     removeStaff,
+    reload,
     pagination,
     setPage,
   } = useStaff();
@@ -60,6 +84,44 @@ export default function StaffManagement() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailStaff, setDetailStaff] = useState<User | null>(null);
   const [assigningStaff, setAssigningStaff] = useState<User | null>(null);
+
+  // Modal phân quyền trại nuôi cho Quản lý (Admin only)
+  const [isAssignFarmOpen, setIsAssignFarmOpen] = useState(false);
+  const [selectedManagerForFarm, setSelectedManagerForFarm] = useState<User | null>(null);
+
+  const handleOpenAssignFarm = (staff: User) => {
+    if (!isAdmin) {
+      showToast("Chỉ Quản trị viên mới có quyền phân công trại nuôi!", "error");
+      return;
+    }
+    setSelectedManagerForFarm(staff);
+    setIsAssignFarmOpen(true);
+  };
+
+  const handleOpenAssignPond = (staff: User) => {
+    if (isManager && staff.role !== "FARMER") {
+      showToast("Quản lý chỉ có quyền phân công vuông nuôi cho Nông dân!", "error");
+      return;
+    }
+    setAssigningStaff(staff);
+  };
+
+  // Lọc danh sách ao nuôi có thể phân công:
+  // - ADMIN: Toàn bộ ao nuôi hệ thống
+  // - MANAGER: Chỉ các ao nuôi thuộc các trang trại do Manager này quản lý (pond.farmId thuộc trại của Manager)
+  const assignablePonds = useMemo(() => {
+    if (isAdmin) return ponds;
+    if (isManager && (currentUser?.userId || currentUser?.id)) {
+      const currentId = currentUser.userId || currentUser.id;
+      const myFarmIds = new Set(
+        farms
+          .filter((f) => f.ownerId === currentId || f.owner?.userId === currentId)
+          .map((f) => f.farmId)
+      );
+      return ponds.filter((p) => p.farmId && myFarmIds.has(p.farmId));
+    }
+    return [];
+  }, [isAdmin, isManager, currentUser, ponds, farms]);
 
 
   // Confirm modal state
@@ -125,13 +187,38 @@ export default function StaffManagement() {
 
   const handleSaveAssignments = async (staffId: string, pondIds: string[]) => {
     try {
-      const freshStaff = await getStaffById(staffId);
-      if (!canManageStaff(freshStaff, "phân công ao nuôi")) {
+      let targetStaff = staffList.find((s) => (s.id || s.userId) === staffId) || null;
+      try {
+        const freshStaff = await getStaffById(staffId);
+        if (freshStaff) targetStaff = freshStaff;
+      } catch {
+        // Fallback silently to targetStaff in local list if getStaffById encounters permission check
+      }
+      if (!canManageStaff(targetStaff, "phân công ao nuôi")) {
          return;
       }
-      for (const pondId of pondIds) await assignPondToUser(pondId, staffId);
+      // Chỉ so sánh với các ao trong phạm vi phân công được phép (assignablePonds)
+      const currentlyAssignedPonds = assignablePonds
+        .filter(
+          (p) =>
+            p.userId === staffId ||
+            p.farmerAssignments?.some((a) => a.farmerId === staffId)
+        )
+        .map((p) => p.pondId || p.id || "")
+        .filter(Boolean);
+
+      const pondsToAdd = pondIds.filter((id) => !currentlyAssignedPonds.includes(id));
+      const pondsToRemove = currentlyAssignedPonds.filter((id) => !pondIds.includes(id));
+
+      for (const pondId of pondsToAdd) {
+        await assignPondToUser(pondId, staffId);
+      }
+      for (const pondId of pondsToRemove) {
+        await revokePondFromUser(pondId, staffId);
+      }
+
       await refetchPonds();
-      showToast(`Đã phân công ${pondIds.length} ao nuôi.`, "success");
+      showToast(`Đã cập nhật phân công vuông nuôi thành công!`, "success");
     } catch (error) {
       await refetchPonds();
       throw error;
@@ -288,12 +375,66 @@ export default function StaffManagement() {
   };
 
   const handleToggleLoginLock = (staff: User) => {
+    const staffId = staff.id || staff.userId || "";
     if (staff.isLocked || staff.is_login_locked) {
       if (!canManageStaff(staff, "mở khóa tài khoản")) return;
-      showToast("Backend hiện chưa cung cấp API mở khóa tài khoản.", "info");
+      setConfirmConfig({
+        isOpen: true,
+        title: "Mở khóa tài khoản",
+        description: (
+          <span>
+            Bạn có chắc chắn muốn mở khóa tài khoản cho nhân sự{" "}
+            <strong className="text-white">{staff.fullName}</strong>? Thao tác này sẽ gọi API hệ thống để gỡ bỏ hạn chế đăng nhập.
+          </span>
+        ),
+        confirmText: "Xác nhận mở khóa",
+        variant: "success",
+        onConfirm: async () => {
+          try {
+            setConfirmConfig((prev) => ({ ...prev, loading: true }));
+            await unlockStaffAccount(staffId, "Quản trị viên mở khóa qua trang quản lý nhân viên");
+            showToast(`Đã mở khóa tài khoản cho ${staff.fullName} thành công!`, "success");
+            await reload();
+          } catch (err: any) {
+            showToast(err.message || "Không thể mở khóa tài khoản", "error");
+          } finally {
+            closeConfirm();
+          }
+        },
+      });
     } else {
-      showToast("Khóa tài khoản thủ công không được hỗ trợ qua giao diện này.", "info");
+      showToast("Tài khoản hiện đang bình thường, không bị khóa đăng nhập.", "info");
     }
+  };
+
+  const handleUnassignSinglePond = (staff: User, pond: Pond) => {
+    const staffId = staff.userId || staff.id;
+    const pondId = pond.pondId || pond.id;
+    if (!staffId || !pondId) return;
+
+    setConfirmConfig({
+      isOpen: true,
+      title: "Bỏ gán vuông nuôi",
+      description: (
+        <span>
+          Bạn có chắc chắn muốn bỏ gán vuông nuôi <strong className="text-white">{pond.pondName || pond.name}</strong> khỏi nhân sự <strong className="text-cyan-400">{staff.fullName}</strong>?
+        </span>
+      ),
+      confirmText: "Xác nhận bỏ gán",
+      variant: "warning",
+      onConfirm: async () => {
+        try {
+          setConfirmConfig((prev) => ({ ...prev, loading: true }));
+          await revokePondFromUser(pondId, staffId);
+          await refetchPonds();
+          showToast(`Đã bỏ gán vuông nuôi ${pond.pondName || pond.name} thành công!`, "success");
+        } catch (err: any) {
+          showToast(err.message || "Không thể bỏ gán ao nuôi", "error");
+        } finally {
+          closeConfirm();
+        }
+      },
+    });
   };
 
   const handleSaveStaff = async (data: CreateStaffRequest | UpdateStaffRequest) => {
@@ -362,13 +503,13 @@ export default function StaffManagement() {
 
       {/* Staff List View: Grid or Table */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-16 rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] text-center">
+        <div className="dashboard-card p-12 text-center flex flex-col items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent mb-3" />
           <p className="text-xs text-[var(--text-muted)]">Đang tải danh sách nhân viên...</p>
         </div>
       ) : filteredStaff.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-16 rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] text-center">
-          <Users className="w-10 h-10 text-cyan-600/40 mb-3" />
+        <div className="dashboard-card p-12 text-center flex flex-col items-center justify-center">
+          <Users className="w-10 h-10 text-[var(--accent)]/40 mb-3" />
           <h4 className="text-sm font-bold text-[var(--text-primary)]">
             Không tìm thấy nhân viên nào
           </h4>
@@ -397,15 +538,18 @@ export default function StaffManagement() {
               key={staff.id}
               staff={staff}
               ponds={ponds}
+              farms={farms}
               onViewDetail={handleViewDetail}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onApprove={handleApprove}
               onReject={handleReject}
               onChangeStatus={handleChangeStatus}
-              onAssignPond={canAssignPonds ? setAssigningStaff : undefined}
+              onAssignPond={canAssignPonds ? handleOpenAssignPond : undefined}
+              onAssignFarm={canAssignFarms ? handleOpenAssignFarm : undefined}
               onToggleLoginLock={handleToggleLoginLock}
               canManage={canManageUI(staff)}
+              canAssignFarms={canAssignFarms}
             />
           ))}
         </div>
@@ -414,15 +558,18 @@ export default function StaffManagement() {
           <StaffTable
             staffList={filteredStaff}
             ponds={ponds}
+            farms={farms}
             onViewDetail={handleViewDetail}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onApprove={handleApprove}
             onReject={handleReject}
             onChangeStatus={handleChangeStatus}
-            onAssignPond={canAssignPonds ? setAssigningStaff : undefined}
+            onAssignPond={canAssignPonds ? handleOpenAssignPond : undefined}
+            onAssignFarm={canAssignFarms ? handleOpenAssignFarm : undefined}
             onToggleLoginLock={handleToggleLoginLock}
             canManage={canManageUI}
+            canAssignFarms={canAssignFarms}
           />
         </div>
       )}
@@ -441,17 +588,39 @@ export default function StaffManagement() {
         onClose={() => setIsDetailOpen(false)}
         staff={detailStaff}
         ponds={ponds}
+        farms={farms}
         onEdit={handleEdit}
         onApprove={handleApprove}
-        onAssignPond={canAssignPonds ? setAssigningStaff : undefined}
+        onAssignPond={canAssignPonds ? handleOpenAssignPond : undefined}
+        onAssignFarm={canAssignFarms ? handleOpenAssignFarm : undefined}
+        onUnassignPond={canAssignPonds ? handleUnassignSinglePond : undefined}
+        canManage={canManageUI(detailStaff)}
+        canAssignFarms={canAssignFarms}
       />
 
+      {/* Modal phân công ao nuôi cho Nông dân */}
       <AssignPondModal
         isOpen={assigningStaff !== null}
         onClose={() => setAssigningStaff(null)}
         staff={assigningStaff}
-        ponds={ponds}
+        ponds={assignablePonds}
         onSave={handleSaveAssignments}
+      />
+
+      {/* Modal phân công trại nuôi cho Quản lý (Admin) */}
+      <AssignFarmToManagerModal
+        isOpen={isAssignFarmOpen}
+        onClose={() => {
+          setIsAssignFarmOpen(false);
+          setSelectedManagerForFarm(null);
+        }}
+        manager={selectedManagerForFarm}
+        farms={farms}
+        onSuccess={async () => {
+          await loadFarms();
+          await refetchPonds();
+          showToast(`Đã cập nhật phân công trại nuôi cho Quản lý thành công!`, "success");
+        }}
       />
 
       {pagination.totalPages > 1 && (

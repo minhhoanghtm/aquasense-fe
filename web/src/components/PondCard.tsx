@@ -1,7 +1,7 @@
 import backgroundImage from "../assets/background.png";
 import type { Alerts } from "../types/Alerts";
 import type { PondWithDevices } from "../types/Pond";
-import { getTimeAgo } from "../utils/date";
+import { getTimeAgo, formatVietnamDateTime } from "../utils/date";
 
 interface PondCardProps {
     pond: PondWithDevices;
@@ -37,10 +37,10 @@ const PondCard = ({ pond, alerts, selected = false, onClick }: PondCardProps) =>
             type="button"
             onClick={onClick}
             aria-pressed={selected}
-            className={`group w-full cursor-pointer overflow-hidden dashboard-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-left ${selected ? "ring-2 ring-[var(--accent)] shadow-lg" : ""}`}
+            className={`group w-full h-full flex flex-col justify-between cursor-pointer overflow-hidden dashboard-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-left ${selected ? "ring-2 ring-[var(--accent)] shadow-lg" : ""}`}
         >
             {/* Image */}
-            <div className="relative h-32 overflow-hidden">
+            <div className="relative h-32 overflow-hidden shrink-0">
                 <img
                     src={backgroundImage}
                     alt={title}
@@ -66,15 +66,18 @@ const PondCard = ({ pond, alerts, selected = false, onClick }: PondCardProps) =>
             </div>
 
             {/* Content */}
-            <div className="p-4 flex flex-col gap-1">
+            <div className="p-3.5 sm:p-4 flex flex-col justify-between flex-1 gap-1">
                 {/* Pond name & location */}
-                <h4 className="font-semibold text-(--text-heading) text-sm group-hover:text-(--accent) transition-colors">
+                <h4 className="font-semibold text-(--text-heading) text-sm group-hover:text-(--accent) transition-colors line-clamp-2 min-h-[40px] leading-snug">
                     {pond.location ? `${title} - ${pond.location}` : title}
                 </h4>
 
                 {/* Subtext */}
-                <p className="text-xs text-(--text-muted) flex items-center gap-1.5">
-                    <span>cập nhật {getTimeAgo(lastUpdated)}</span>
+                <p
+                    className="text-xs text-(--text-muted) flex items-center gap-1.5 mt-auto pt-1"
+                    title={`Cập nhật lần cuối: ${formatVietnamDateTime(lastUpdated)}`}
+                >
+                    <span>Cập nhật {getTimeAgo(lastUpdated)}</span>
                 </p>
             </div>
         </button>

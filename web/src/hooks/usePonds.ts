@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Pond, PondWithDevices } from "../types/Pond";
 import type { Alerts } from "../types/Alerts";
 import { getAllPondsPage, getPondsPage, type PaginatedPonds } from "../services/pondApi";
@@ -22,12 +22,11 @@ export interface PondQuery {
     search?: string;
     status?: PondStatus;
     userId?: string;
+    farmId?: string;
     allPages?: boolean;
 }
 
 export const usePonds = (query: PondQuery = {}) => {
-    // Do not hydrate from module cache: a prior user's permitted ponds must
-    // never be rendered while the current session's authorization is loading.
     const [ponds, setPonds] = useState<Pond[]>([]);
     const [infoPond, setInfoPond] = useState<PondWithDevices[]>([]);
     const [allAlerts, setAllAlerts] = useState<Alerts[]>([]);
@@ -35,22 +34,25 @@ export const usePonds = (query: PondQuery = {}) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [pagination, setPagination] = useState<Omit<PaginatedPonds, "data">>({ total: 0, page: 1, limit: query.limit ?? 100, totalPages: 0 });
+    const lastUserId = useRef<string | undefined>(query.userId);
 
     const fetchPondsData = async () => {
         try {
             setError(null);
             setLoading(true);
-            // Never leave another session's data on screen while the current
-            // user's authorization-scoped request is in flight.
-            setPonds([]);
-            setInfoPond([]);
-            setAllAlerts([]);
+            // Only wipe data if switching user account
+            if (query.userId && lastUserId.current !== query.userId) {
+                setPonds([]);
+                setInfoPond([]);
+                setAllAlerts([]);
+                lastUserId.current = query.userId;
+            }
             setAlertsError(null);
 
             const [pondsResult, alertsResult] = await Promise.allSettled([
                 query.allPages
-                    ? getAllPondsPage({ search: query.search, status: query.status, userId: query.userId })
-                    : getPondsPage({ page: query.page, limit: query.limit ?? 100, search: query.search, status: query.status, userId: query.userId }),
+                    ? getAllPondsPage({ search: query.search, status: query.status, userId: query.userId, farmId: query.farmId })
+                    : getPondsPage({ page: query.page, limit: query.limit ?? 100, search: query.search, status: query.status, userId: query.userId, farmId: query.farmId }),
                 getAlerts(),
             ]);
 
@@ -84,7 +86,7 @@ export const usePonds = (query: PondQuery = {}) => {
 
         window.addEventListener("ponds-updated", handleUpdate);
         return () => window.removeEventListener("ponds-updated", handleUpdate);
-    }, [query.page, query.limit, query.search, query.status, query.userId, query.allPages]);
+    }, [query.page, query.limit, query.search, query.status, query.userId, query.farmId, query.allPages]);
 
     return {
         ponds,

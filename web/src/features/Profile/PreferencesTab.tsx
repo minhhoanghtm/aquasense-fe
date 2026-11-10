@@ -12,6 +12,7 @@ import {
   Sliders,
   Check,
 } from "lucide-react";
+import Dropdown from "../../components/Dropdown";
 
 export default function PreferencesTab() {
   const [preferences, setPreferences] = useState({
@@ -174,7 +175,7 @@ export default function PreferencesTab() {
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
           {/* Chu kỳ cập nhật */}
-          <div className="space-y-2 p-4 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)]">
+          <div className="relative z-20 space-y-2 p-4 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)]">
             <label className="text-xs font-bold text-[var(--text-body)] flex items-center gap-1.5 uppercase tracking-wider">
               <Sliders size={14} className="text-[var(--accent)]" />
               Chu kỳ cập nhật cảm biến
@@ -182,20 +183,23 @@ export default function PreferencesTab() {
             <p className="text-xs text-[var(--text-muted)]">
               Tần suất lấy mẫu dữ liệu từ trạm Gateway đo pH, DO, Salinity
             </p>
-            <select
-              value={preferences.pollInterval}
-              onChange={(e) => handleSelectChange("pollInterval", e.target.value)}
-              className="w-full mt-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 cursor-pointer"
-            >
-              <option value="5">Thời gian thực (5 giây / lần)</option>
-              <option value="10">Tiêu chuẩn (10 giây / lần)</option>
-              <option value="30">Tiết kiệm mạng (30 giây / lần)</option>
-              <option value="60">Định kỳ (1 phút / lần)</option>
-            </select>
+            <div className="mt-2">
+              <Dropdown
+                value={preferences.pollInterval}
+                options={[
+                  { label: "Thời gian thực (5 giây / lần)", value: "5" },
+                  { label: "Tiêu chuẩn (10 giây / lần)", value: "10" },
+                  { label: "Tiết kiệm mạng (30 giây / lần)", value: "30" },
+                  { label: "Định kỳ (1 phút / lần)", value: "60" },
+                ]}
+                onChange={(val) => handleSelectChange("pollInterval", val)}
+                searchPlaceholder="Tìm chu kỳ..."
+              />
+            </div>
           </div>
 
           {/* Tự động phân tích AI */}
-          <div className="space-y-2 p-4 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)]">
+          <div className="relative z-20 space-y-2 p-4 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)]">
             <label className="text-xs font-bold text-[var(--text-body)] flex items-center gap-1.5 uppercase tracking-wider">
               <Sparkles size={14} className="text-[var(--accent)]" />
               Tự động phân tích & Khuyến nghị AI
@@ -203,14 +207,17 @@ export default function PreferencesTab() {
             <p className="text-xs text-[var(--text-muted)]">
               Tự động chẩn đoán bất thường và đề xuất giải pháp xử lý nước
             </p>
-            <select
-              value={preferences.aiAutoRecommend ? "true" : "false"}
-              onChange={(e) => handleSelectChange("aiAutoRecommend", e.target.value === "true")}
-              className="w-full mt-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 cursor-pointer"
-            >
-              <option value="true">Bật - Phân tích & Gợi ý hành động tự động</option>
-              <option value="false">Tắt - Chỉ hiển thị dữ liệu thuần</option>
-            </select>
+            <div className="mt-2">
+              <Dropdown
+                value={preferences.aiAutoRecommend ? "true" : "false"}
+                options={[
+                  { label: "Bật - Phân tích & Gợi ý hành động tự động", value: "true" },
+                  { label: "Tắt - Chỉ hiển thị dữ liệu thuần", value: "false" },
+                ]}
+                onChange={(val) => handleSelectChange("aiAutoRecommend", val === "true")}
+                searchPlaceholder="Tìm tùy chọn..."
+              />
+            </div>
           </div>
         </div>
 

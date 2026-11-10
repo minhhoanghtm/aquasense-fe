@@ -5,8 +5,8 @@ import { formatVietnamDateTime } from "../utils/date";
 import type { Devices } from "../types/Devices";
 
 interface TitleProps {
-  title: String,
-  description: String,
+  title: string,
+  description: string,
   pond: Pond | null;
   // dropdown?: React.ReactNode;
   className?: string;
@@ -29,19 +29,19 @@ const Title = memo(({
     <div className={`flex flex-col w-full min-h-[58px] ${className}`}>
       {/* Top Row: Title*/}
       <div className="flex items-center justify-between w-full">
-        <h1 className="m-0 text-left text-xl sm:text-2xl font-bold tracking-tight text-white">
+        <h1 className="m-0 text-left text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-heading)]">
           {title}
         </h1>
       </div>
 
       {/* Bottom Row: Info Details */}
-      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4 text-xs text-slate-400">
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4 text-xs text-[var(--text-muted)]">
         <span>
           {description}
         </span>
 
         {pond ? (
-          <div className="flex flex-wrap items-center gap-x-4 md:ml-auto md:justify-end text-slate-300 text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 md:ml-auto md:justify-end text-[var(--text-body)] text-xs">
             <div className="flex items-center gap-1.5 whitespace-nowrap">
               <Droplet size={13} className="text-[var(--accent)]" />
               <span>{pond.name}</span>
@@ -69,9 +69,7 @@ const Title = memo(({
               </span>
             </div>
           </div>
-        ) : (
-          <div className="h-4 w-32 bg-white/5 rounded animate-pulse md:ml-auto" />
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -32,6 +32,15 @@ interface BackendProfileResponse {
 const normalizePhoneNumber = (phoneNumber: string): string =>
   phoneNumber.replace(/\s+/g, "").trim();
 
+type RecoveryIdentifier = { phoneNumber: string } | { email: string };
+
+const toRecoveryIdentifier = (identifier: string): RecoveryIdentifier => {
+  const normalized = identifier.trim();
+  return normalized.includes("@")
+    ? { email: normalized.toLowerCase() }
+    : { phoneNumber: normalizePhoneNumber(normalized) };
+};
+
 const persistSession = (session: BackendLoginResponse): AuthResponse => {
   localStorage.setItem(AUTH_TOKEN_KEY, session.accessToken);
   localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, session.refreshToken);
@@ -346,15 +355,12 @@ export const sendOtp = async (phoneNumber: string, purpose: OtpPurpose = "LOGIN"
   });
 };
 
-/**
- * Yêu cầu gửi OTP để quên mật khẩu.
- * Backend only supports phone-number OTP at POST /auth/send-otp.
- */
+/** POST /auth/forgot-password — accepts exactly one: phoneNumber or email. */
 export const forgotPassword = async (identifier: string): Promise<SendOtpResponse> => {
-  if (identifier.includes("@")) {
-    throw new Error("Backend hiện chỉ hỗ trợ khôi phục mật khẩu bằng số điện thoại.");
-  }
-  return sendOtp(identifier, "RESET_PASSWORD");
+  return api<SendOtpResponse>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(toRecoveryIdentifier(identifier)),
+  });
 };
 
 /**
@@ -366,12 +372,9 @@ export const verifyOtp = async (
   otp: string,
   purpose: OtpPurpose = "LOGIN",
 ): Promise<VerifyOtpResponse> => {
-  if (identifier.includes("@")) {
-    throw new Error("Backend hiện chỉ hỗ trợ xác thực OTP bằng số điện thoại.");
-  }
   return api<VerifyOtpResponse>("/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ phoneNumber: normalizePhoneNumber(identifier), otp, purpose }),
+    body: JSON.stringify({ ...toRecoveryIdentifier(identifier), otp, purpose }),
   });
 };
 
@@ -436,12 +439,9 @@ export const resetPassword = async (
   identifier: string,
   newPassword: string,
 ): Promise<{ success: boolean; message: string }> => {
-  if (identifier.includes("@")) {
-    throw new Error("Backend hiện chỉ hỗ trợ đặt lại mật khẩu bằng số điện thoại.");
-  }
   await api<null>("/auth/reset-password", {
     method: "POST",
-    body: JSON.stringify({ phoneNumber: normalizePhoneNumber(identifier), newPassword }),
+    body: JSON.stringify({ ...toRecoveryIdentifier(identifier), newPassword }),
   });
   return { success: true, message: "Đặt lại mật khẩu thành công!" };
 };

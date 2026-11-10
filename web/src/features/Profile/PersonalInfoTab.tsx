@@ -16,6 +16,7 @@ import {
 import type { User as UserType } from "../../types/User";
 import { updateProfile } from "../../services/authApi";
 import { getRoleLabel } from "../../lib/rolePermissions";
+import Dropdown from "../../components/Dropdown";
 
 interface PersonalInfoTabProps {
   user: UserType | null;
@@ -236,21 +237,21 @@ export default function PersonalInfoTab({ user, onUserUpdated }: PersonalInfoTab
             </div>
 
             {/* Giới tính */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 relative z-20">
               <label className="text-xs font-semibold text-[var(--text-body)] flex items-center gap-1.5">
                 <Users size={13} className="text-[var(--accent)]" />
                 Giới tính
               </label>
-              <select
-                name="gender"
+              <Dropdown
                 value={formData.gender}
-                onChange={handleChange as any}
-                className="w-full rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-all duration-200 focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 hover:border-[var(--panel-border-strong)]"
-              >
-                <option value="">Chọn giới tính</option>
-                <option value="MALE">Nam</option>
-                <option value="FEMALE">Nữ</option>
-              </select>
+                options={[
+                  { label: "Chọn giới tính", value: "" },
+                  { label: "Nam", value: "MALE" },
+                  { label: "Nữ", value: "FEMALE" },
+                ]}
+                onChange={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
+                searchPlaceholder="Tìm giới tính..."
+              />
             </div>
 
             {/* Ngày sinh */}

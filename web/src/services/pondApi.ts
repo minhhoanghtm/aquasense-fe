@@ -1,9 +1,10 @@
 // services/pondApi.ts
 
 import type { Pond, PondStatus, PondWithDevices } from "../types/Pond";
+import type { Devices } from "../types/Devices";
 import type { SensorReading } from "../types/SensorReading";
 import { api } from "./api";
-import { getDevicesByPondId } from "./deviceApi";
+import { getDevices, getDevicesByPondId } from "./deviceApi";
 
 export interface ThresholdConfigItem {
   configId: string;
@@ -37,6 +38,7 @@ export interface CreatePondPayload {
   areaM2: number;
   depthM: number;
   shrimpDensity: number;
+  farmId?: string | null;
   location?: string;
   capacity?: number;
   status?: PondStatus;
@@ -48,6 +50,7 @@ export interface UpdatePondPayload {
   areaM2?: number;
   depthM?: number;
   shrimpDensity?: number;
+  farmId?: string | null;
   location?: string;
   capacity?: number;
   status?: PondStatus;
@@ -69,6 +72,7 @@ const normalizePond = (p: Pond): Pond => ({
   density: p.density || (p.shrimpDensity !== undefined ? `${p.shrimpDensity} PL/m²` : undefined),
   status: p.status || "",
   userId: p.userId,
+  farmId: p.farmId,
   createdAt: p.createdAt,
   updatedAt: p.updatedAt,
 });
@@ -91,6 +95,7 @@ export interface PondListQuery {
   search?: string;
   status?: PondStatus;
   userId?: string;
+  farmId?: string;
 }
 
 export const getPondsPage = async (query: PondListQuery = {}): Promise<PaginatedPonds> => {
@@ -133,6 +138,7 @@ export const createPond = async (payload: CreatePondPayload): Promise<Pond> => {
       areaM2: Number(payload.areaM2),
       depthM: Number(payload.depthM),
       shrimpDensity: Number(payload.shrimpDensity),
+      ...(payload.farmId ? { farmId: payload.farmId } : {}),
       ...(payload.location ? { location: payload.location.trim() } : {}),
       ...(payload.capacity !== undefined ? { capacity: Number(payload.capacity) } : {}),
       ...(payload.status ? { status: payload.status } : {}),
@@ -149,6 +155,7 @@ export const updatePond = async (pondId: string, payload: UpdatePondPayload): Pr
   if (payload.areaM2 !== undefined) body.areaM2 = Number(payload.areaM2);
   if (payload.depthM !== undefined) body.depthM = Number(payload.depthM);
   if (payload.shrimpDensity !== undefined) body.shrimpDensity = Number(payload.shrimpDensity);
+  if (payload.farmId !== undefined) body.farmId = payload.farmId;
   if (payload.location !== undefined) body.location = payload.location.trim();
   if (payload.capacity !== undefined) body.capacity = Number(payload.capacity);
   if (payload.status !== undefined) body.status = payload.status;
@@ -169,8 +176,26 @@ export const deletePond = async (pondId: string): Promise<boolean> => {
   return true;
 };
 
-export const assignPondToUser = async (pondId: string, userId: string): Promise<Pond> =>
-  updatePond(pondId, { userId });
+export const assignPondToUser = async (pondId: string, userId: string): Promise<any> => {
+  try {
+    return await api(`/ponds/${pondId}/farmers`, {
+      method: "POST",
+      body: JSON.stringify({ farmerId: userId }),
+    });
+  } catch (err: any) {
+    // Nếu nông dân đã được phân công (409 Conflict), bỏ qua lỗi conflict
+    if (err?.message?.includes("đã được phân công") || err?.message?.includes("Conflict") || err?.status === 409) {
+      return null;
+    }
+    throw err;
+  }
+};
+
+export const revokePondFromUser = async (pondId: string, userId: string): Promise<any> => {
+  return await api(`/ponds/${pondId}/farmers/${userId}`, {
+    method: "DELETE",
+  });
+};
 
 // 2. THRESHOLD CONFIGS
 export const getThresholdConfigs = async (pondId: string): Promise<ThresholdConfigItem[]> => {
@@ -230,6 +255,11 @@ export const getManualTestLogsPage = async (pondId: string, query: { page?: numb
 export const getManualTestLogs = async (pondId: string): Promise<ManualTestLogItem[]> =>
   (await getManualTestLogsPage(pondId, { limit: 100 })).data;
 
+export const getManualTestLogById = async (logId: string): Promise<ManualTestLogItem> => {
+  if (!logId) throw new Error("ID bản ghi không hợp lệ");
+  return api<ManualTestLogItem>(`/ponds/manual-logs/${logId}`);
+};
+
 export const createManualTestLog = async (
   pondId: string,
   dto: { nh3Value: number; no2Value: number; note?: string; testedAt?: string }
@@ -272,22 +302,42 @@ export const deleteManualTestLog = async (logId: string): Promise<boolean> => {
 
 // 4. COMBINED & LEGACY HELPERS
 export const getPondsWithDevices = async (): Promise<PondWithDevices[]> => {
-  const ponds = await getPonds();
-  return Promise.all(
-    ponds.map(async (pond) => {
-      const devices = pond.id ? await getDevicesByPondId(pond.id) : [];
-      return { ...pond, devices: devices || [] };
-    })
-  );
+  const [ponds, allDevices] = await Promise.all([
+    getPonds(),
+    getDevices().catch(() => []),
+  ]);
+  const deviceMap = new Map<string, Devices[]>();
+  allDevices.forEach((d) => {
+    if (d.pondId) {
+      if (!deviceMap.has(d.pondId)) deviceMap.set(d.pondId, []);
+      deviceMap.get(d.pondId)!.push(d);
+    }
+  });
+  return ponds.map((pond) => ({
+    ...pond,
+    devices: pond.id ? (deviceMap.get(pond.id) || []) : [],
+  }));
 };
 
 export const getSensorReadings = async (pondId: string): Promise<SensorReading[]> => {
   const devices = await getDevicesByPondId(pondId);
+  if (!devices || devices.length === 0) return [];
+
+  // Giới hạn tối đa 3 thiết bị tiêu biểu đang Online (hoặc 3 thiết bị đầu tiên) để tránh quá tải request song song
+  const onlineDevices = devices.filter((d) => d.status?.toUpperCase() === "ONLINE" || d.status?.toUpperCase() === "ACTIVE");
+  const targetDevices = (onlineDevices.length > 0 ? onlineDevices : devices).slice(0, 3);
+
   const histories = await Promise.all(
-    devices.map(async (device) => {
-      const res = await api<any>(`/telemetry/device/${device.id}/history?limit=100`);
-      const records = Array.isArray(res) ? res : res?.data || [];
-      return Array.isArray(records) ? records.map((record) => ({
+    targetDevices.map(async (device) => {
+      const res = await api<any>(`/telemetry/device/${device.id}/history?limit=500`);
+      const rawData = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.data?.data)
+            ? res.data.data
+            : [];
+      return rawData.map((record: any) => ({
         ...record,
         id: String(record.id ?? record.telemetryId ?? ""),
         pondId,
@@ -301,7 +351,7 @@ export const getSensorReadings = async (pondId: string): Promise<SensorReading[]
           { name: "turbidity", value: record.turbidity, unit: "NTU" },
           { name: "waterLevel", value: record.waterLevel, unit: "m" },
         ].filter((metric) => metric.value !== null && metric.value !== undefined),
-      })) : [];
+      }));
     }),
   );
   return histories.flat().sort((a, b) =>

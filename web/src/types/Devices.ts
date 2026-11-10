@@ -1,5 +1,16 @@
 export type DeviceStatus = "ONLINE" | "OFFLINE" | "MAINTENANCE";
 
+export interface DevicePondInfo {
+  pondId?: string;
+  pondName?: string;
+  farmId?: string | null;
+  farm?: {
+    farmId?: string;
+    farmName?: string;
+    ownerId?: string;
+  } | null;
+}
+
 export interface Devices {
   // Backend actual fields
   deviceId?: string;
@@ -9,16 +20,20 @@ export interface Devices {
   firmwareVersion?: string | null;
   status: DeviceStatus | string;
   lastActiveAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+
+  pond?: DevicePondInfo | null;
 
   // Frontend aliases / backward compat
   id?: string;
   name?: string;
   serialNumber?: string;
-  createdAt?: string;
   node_code?: string;
   sensors?: string[];
   connection_type?: string;
   signal_strength?: number;
+  battery_level?: number;
 }
 
 export type Device = Devices;

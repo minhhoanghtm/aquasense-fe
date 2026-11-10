@@ -1,4 +1,3 @@
-
 import MetricCard from "../../../components/MetricCard";
 
 interface WaterQualityGridProps {
@@ -7,16 +6,46 @@ interface WaterQualityGridProps {
   error?: string | null;
 }
 
+const PARAM_NAME_MAP: Record<string, string> = {
+  DO: "dissolvedOxygen",
+  temp: "temperature",
+};
+
+const PARAM_DISPLAY_TITLES: Record<string, string> = {
+  temperature: "Nhiệt độ",
+  temp: "Nhiệt độ",
+  pH: "Độ pH",
+  dissolvedOxygen: "Oxy hòa tan (DO)",
+  DO: "Oxy hòa tan (DO)",
+  salinity: "Độ mặn",
+  turbidity: "Độ đục",
+  waterLevel: "Mực nước",
+};
+
 const WaterQualityGrid = ({ waterQuality, loading = false, error }: WaterQualityGridProps) => {
-  if (loading) return <div className="w-full my-3 p-4 rounded-xl border border-cyan-900/40 bg-[#04151c]/60 text-center text-xs text-gray-400">Đang tải dữ liệu cảm biến...</div>;
-  if (error) return <div className="w-full my-3 p-4 rounded-xl border border-red-900/40 bg-[#04151c]/60 text-center text-xs text-[var(--critical)]">Không thể tải dữ liệu cảm biến: {error}</div>;
+  if (loading) {
+    return (
+      <div className="w-full my-2 p-5 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] text-center text-xs text-[var(--text-muted)]">
+        Đang tải dữ liệu cảm biến đo chất lượng nước...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full my-2 p-5 rounded-2xl border border-rose-500/30 bg-rose-950/40 text-center text-xs text-[var(--critical)]">
+        Không thể tải dữ liệu cảm biến: {error}
+      </div>
+    );
+  }
+
   if (!waterQuality) return null;
 
   const sensorReadings = Array.isArray(waterQuality.sensorReadings) ? waterQuality.sensorReadings : [];
   if (sensorReadings.length === 0) {
     return (
-      <div className="w-full my-3 p-4 rounded-xl border border-cyan-900/40 bg-[#04151c]/60 text-center text-xs text-gray-400">
-        Chưa có dữ liệu cảm biến đo thời gian thực cho ao này.
+      <div className="w-full my-2 p-5 rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] text-center text-xs text-[var(--text-muted)]">
+        Chưa có dữ liệu cảm biến đo thời gian thực cho vuông nuôi này.
       </div>
     );
   }
@@ -24,11 +53,6 @@ const WaterQualityGrid = ({ waterQuality, loading = false, error }: WaterQuality
   const lastestReading = sensorReadings[sensorReadings.length - 1];
   const metrics = Array.isArray(lastestReading?.metrics) ? lastestReading.metrics : [];
   const thresholds = Array.isArray(waterQuality.thresholds) ? waterQuality.thresholds : [];
-
-  const PARAM_NAME_MAP: Record<string, string> = {
-    DO: "dissolvedOxygen",
-    temp: "temperature",
-  };
 
   const currentMetrics = metrics.map((metric: any) => {
     const canonicalName = PARAM_NAME_MAP[metric.name] || metric.name;
@@ -49,34 +73,31 @@ const WaterQualityGrid = ({ waterQuality, loading = false, error }: WaterQuality
         }
       : undefined;
 
+    const displayTitle = PARAM_DISPLAY_TITLES[metric.name] || PARAM_DISPLAY_TITLES[canonicalName] || metric.name;
+
     return {
       ...metric,
+      displayTitle,
       parameter: canonicalName,
       unit: metric.unit || "",
       threshold,
     };
   });
 
-  // console.log("Current metrics: ", currentMetrics);
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full my-3">
-      {
-        currentMetrics && (
-          currentMetrics.map((metric: any, index: number) => (
-            <MetricCard
-              key={index}
-              title={metric.name}
-              parameter={metric.parameter || metric.name}
-              value={metric.value}
-              unit={metric.unit}
-              threshold={metric.threshold}
-            />
-          ))
-        )
-      }
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4 w-full">
+      {currentMetrics.map((metric: any, index: number) => (
+        <MetricCard
+          key={index}
+          title={metric.displayTitle}
+          parameter={metric.parameter || metric.name}
+          value={metric.value}
+          unit={metric.unit}
+          threshold={metric.threshold}
+        />
+      ))}
     </div>
-  )
-}
+  );
+};
 
-export default WaterQualityGrid
+export default WaterQualityGrid;

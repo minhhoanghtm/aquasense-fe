@@ -1,4 +1,6 @@
-export const FlowingWave = () => (
+import { memo } from "react";
+
+export const FlowingWave = memo(() => (
   <div className="w-full overflow-hidden h-6 flex">
     <svg
       viewBox="0 0 1200 40"
@@ -19,4 +21,5 @@ export const FlowingWave = () => (
       }
     `}</style>
   </div>
-);
+));
+FlowingWave.displayName = "FlowingWave";

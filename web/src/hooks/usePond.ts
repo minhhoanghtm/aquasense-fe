@@ -6,6 +6,7 @@ import { getPondDashboard } from "../services/pondApi";
 export const usePond = (pondId?: string) => {
     const [pond, setPond] = useState<Pond | null>(null);
     const [device, setDevice] = useState<Devices | null>(null);
+    const [devices, setDevices] = useState<Devices[]>([]);
     const [loading, setLoading] = useState(!!pondId);
     const [error, setError] = useState<string | null>(null);
 
@@ -13,6 +14,7 @@ export const usePond = (pondId?: string) => {
         if (!pondId) {
             setPond(null);
             setDevice(null);
+            setDevices([]);
             setLoading(false);
             return;
         }
@@ -21,8 +23,6 @@ export const usePond = (pondId?: string) => {
         const fetchPond = async () => {
             try {
                 setError(null);
-                setPond(null);
-                setDevice(null);
                 setLoading(true);
 
                 const data = await getPondDashboard(pondId);
@@ -32,6 +32,7 @@ export const usePond = (pondId?: string) => {
                 if (!cancelled) {
                     setPond(data.pond);
                     setDevice(dev);
+                    setDevices(devicesList);
                 }
             } catch (error) {
                 console.error("Lỗi lấy thông tin ao:", error);
@@ -57,6 +58,7 @@ export const usePond = (pondId?: string) => {
     return {
         pond,
         device,
+        devices,
         loading,
         error,
     };

@@ -8,6 +8,7 @@ const statusOptions: DropdownOption[] = [
   { label: "Tất cả trạng thái", value: "ALL" },
   { label: "Trực tuyến", value: "ONLINE" },
   { label: "Ngoại tuyến", value: "OFFLINE" },
+  { label: "Bảo trì / Báo hỏng", value: "MAINTENANCE" },
   { label: "Cảnh báo / Pin yếu", value: "WARNING" },
 ];
 
@@ -16,6 +17,8 @@ interface DeviceListProps {
   onAddNew?: () => void;
   onEditDevice?: (device: DeviceType) => void;
   onDeleteDevice?: (device: DeviceType) => void;
+  onReportFault?: (device: DeviceType) => void;
+  onReportBroken?: (device: DeviceType) => void;
 }
 
 const DeviceList = ({
@@ -23,14 +26,25 @@ const DeviceList = ({
   onAddNew,
   onEditDevice,
   onDeleteDevice,
+  onReportFault,
+  onReportBroken,
 }: DeviceListProps) => {
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+  const handleReport = onReportBroken || onReportFault;
 
   const filteredDevices = devices.filter((device) => {
     const statusUpper = device.status?.toUpperCase() || "";
     if (selectedStatus === "ALL") return true;
     if (selectedStatus === "ONLINE") return statusUpper === "ONLINE" || statusUpper === "ACTIVE" || device.status === "Trực tuyến";
     if (selectedStatus === "OFFLINE") return statusUpper === "OFFLINE" || device.status === "Ngoại tuyến";
+    if (selectedStatus === "MAINTENANCE")
+      return (
+        statusUpper === "MAINTENANCE" ||
+        statusUpper === "BẢO TRÌ" ||
+        statusUpper === "ĐANG BẢO TRÌ" ||
+        statusUpper === "HỎNG" ||
+        device.status === "Bảo trì"
+      );
     if (selectedStatus === "WARNING") return statusUpper === "WARNING" || device.status === "Pin yếu" || device.status === "Cảnh báo";
     return true;
   });
@@ -38,7 +52,7 @@ const DeviceList = ({
   return (
     <div className="flex flex-col gap-4 text-left">
       {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="relative z-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-(--text-heading)">
             Danh sách thiết bị
@@ -63,7 +77,7 @@ const DeviceList = ({
             <button
               type="button"
               onClick={onAddNew}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#2dd4c3] to-[#159d96] text-[#041920] text-xs font-bold hover:brightness-110 shadow-lg shadow-[#2dd4c3]/20 transition cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--text-on-accent)] text-xs font-bold hover:brightness-110 shadow-md shadow-[var(--accent)]/20 transition cursor-pointer whitespace-nowrap"
             >
               <Plus size={14} />
               <span>Thêm thiết bị</span>
@@ -77,8 +91,15 @@ const DeviceList = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredDevices.map((device) => {
             const statusUpper = device.status?.toUpperCase() || "";
-            const statusNorm =
-              statusUpper === "ONLINE" || statusUpper === "ACTIVE" || device.status === "Trực tuyến"
+            const isMaint =
+              statusUpper === "MAINTENANCE" ||
+              statusUpper === "BẢO TRÌ" ||
+              statusUpper === "ĐANG BẢO TRÌ" ||
+              statusUpper === "HỎNG" ||
+              device.status === "Bảo trì";
+            const statusNorm = isMaint
+              ? "MAINTENANCE"
+              : statusUpper === "ONLINE" || statusUpper === "ACTIVE" || device.status === "Trực tuyến"
                 ? "ONLINE"
                 : statusUpper === "OFFLINE" || device.status === "Ngoại tuyến"
                   ? "OFFLINE"
@@ -95,6 +116,8 @@ const DeviceList = ({
                 signal={device.signal_strength}
                 onEdit={onEditDevice ? () => onEditDevice(device) : undefined}
                 onDelete={onDeleteDevice ? () => onDeleteDevice(device) : undefined}
+                onReportFault={handleReport ? () => handleReport(device) : undefined}
+                onReportBroken={handleReport ? () => handleReport(device) : undefined}
               />
             );
           })}

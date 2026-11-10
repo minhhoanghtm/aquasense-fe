@@ -33,7 +33,15 @@ export const usePondAlerts = (pondId: string) => {
         };
 
         fetchAlerts();
-        return () => { cancelled = true; };
+        const onAlertsUpdate = (event: Event) => {
+            const detail = (event as CustomEvent<{ pondId?: string }>).detail;
+            if (detail?.pondId === pondId) void fetchAlerts();
+        };
+        window.addEventListener("alerts-updated", onAlertsUpdate);
+        return () => {
+            cancelled = true;
+            window.removeEventListener("alerts-updated", onAlertsUpdate);
+        };
     }, [pondId]);
 
     return {

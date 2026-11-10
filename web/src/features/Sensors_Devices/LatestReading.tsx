@@ -5,6 +5,7 @@ interface LatestReadingProps {
   deviceCode?: string;
   deviceName?: string;
   metrics?: ReadingMetric[];
+  timestamp?: string;
   className?: string;
 }
 
@@ -12,6 +13,7 @@ export const LatestReading: React.FC<LatestReadingProps> = ({
   deviceCode,
   deviceName,
   metrics,
+  timestamp,
   className = "",
 }) => {
   return (
@@ -19,6 +21,7 @@ export const LatestReading: React.FC<LatestReadingProps> = ({
       deviceCode={deviceCode}
       title={deviceName}
       metrics={metrics}
+      timestamp={timestamp}
       className={className}
     />
   );

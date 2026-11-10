@@ -10,37 +10,45 @@ import {
   Plus,
   Lock,
   Unlock,
+  Building2,
 } from "lucide-react";
 import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import type { Farm } from "../../../types/Farm";
 import { getRoleLabel } from "../../../lib/rolePermissions";
 
 interface StaffTableProps {
   staffList: User[];
   ponds: Pond[];
+  farms?: Farm[];
   onViewDetail: (staff: User) => void;
   onEdit: (staff: User) => void;
   onDelete: (staff: User) => void;
   onAssignPond?: (staff: User) => void;
+  onAssignFarm?: (staff: User) => void;
   onApprove?: (staff: User) => void;
   onReject?: (staff: User) => void;
   onChangeStatus?: (staff: User, status: UserStatus) => void;
   onToggleLoginLock?: (staff: User) => void;
   canManage: (staff: User) => boolean;
+  canAssignFarms?: boolean;
 }
 
 export const StaffTable: React.FC<StaffTableProps> = ({
   staffList,
   ponds,
+  farms = [],
   onViewDetail,
   onEdit: _onEdit,
   onDelete,
   onAssignPond,
+  onAssignFarm,
   onApprove,
   onReject,
   onChangeStatus,
   onToggleLoginLock,
   canManage,
+  canAssignFarms = false,
 }) => {
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
@@ -89,15 +97,15 @@ export const StaffTable: React.FC<StaffTableProps> = ({
   };
 
   return (
-    <div className="w-full overflow-hidden rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-xl">
+    <div className="w-full overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] shadow-md">
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-[var(--divider)] bg-[#051c24]/90 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <tr className="border-b border-[var(--divider)] bg-[var(--panel-bg-dark)] text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               <th className="py-3.5 px-4 sm:px-5">Nhân sự</th>
               <th className="py-3.5 px-4">Liên hệ</th>
               <th className="py-3.5 px-4">Vai trò & Phòng ban</th>
-              <th className="py-3.5 px-4">Vuông nuôi phụ trách</th>
+              <th className="py-3.5 px-4">Phụ trách (Trại / Ao)</th>
               <th className="py-3.5 px-4">Trạng thái</th>
               <th className="py-3.5 px-4 sm:px-5 text-right">Thao tác</th>
             </tr>
@@ -107,7 +115,14 @@ export const StaffTable: React.FC<StaffTableProps> = ({
               const roleInfo = getRoleBadge(staff.role);
               const mayManage = canManage(staff);
               const statusInfo = getStatusBadge(staff.status);
-              const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
+              const staffId = staff.userId || staff.id;
+              const roleUpper = staff.role?.toUpperCase();
+              const isManager = roleUpper === "MANAGER";
+              const isAdmin = roleUpper === "ADMIN";
+              const assignedFarms = farms.filter((f) => f.ownerId === staffId);
+              const assignedPonds = ponds.filter(
+                (p) => p.userId === staffId || p.farmerAssignments?.some((a) => a.farmerId === staffId)
+              );
               const initials = staff.fullName
                 ? staff.fullName
                     .split(" ")
@@ -178,33 +193,79 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                     </div>
                   </td>
 
-                  {/* Assigned Ponds */}
+                  {/* Assigned Farms (for Manager) / Ponds (for Farmer) / Scope (for Admin) */}
                   <td className="py-3.5 px-4">
-                    <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
-                      {assignedPonds.length > 0 ? (
-                        assignedPonds.map((pond) => (
-                          <span
-                            key={pond.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-cyan-950/80 border border-cyan-800 text-cyan-200"
-                          >
-                            <span className="h-1 w-1 rounded-full bg-[var(--accent)]" />
-                            {pond.name}
+                    {isManager ? (
+                      <div className="flex flex-wrap items-center gap-1 max-w-[240px]">
+                        {assignedFarms.length > 0 ? (
+                          assignedFarms.slice(0, 3).map((farm) => (
+                            <span
+                              key={farm.farmId}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-purple-950/80 border border-purple-800 text-purple-200"
+                              title={farm.farmName}
+                            >
+                              <Building2 size={10} className="text-purple-400 shrink-0" />
+                              <span className="truncate max-w-[100px]">{farm.farmName}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-[var(--text-subtle)] italic">
+                            Chưa phân công trại
                           </span>
-                        ))
-                      ) : (
-                        <span className="text-[11px] text-[var(--text-subtle)] italic">
-                          Chưa phân công
-                        </span>
-                      )}
-                      {mayManage && onAssignPond && <button
-                        type="button"
-                        onClick={() => onAssignPond?.(staff)}
-                        className="p-0.5 rounded bg-cyan-900/30 hover:bg-cyan-800/60 text-cyan-300 text-[10px] cursor-pointer"
-                        title="Phân công vuông nuôi"
-                      >
-                        <Plus size={12} />
-                      </button>}
-                    </div>
+                        )}
+                        {assignedFarms.length > 3 && (
+                          <span className="text-[10px] text-purple-300 px-1 py-0.5 rounded bg-purple-950/60 border border-purple-800">
+                            +{assignedFarms.length - 3}
+                          </span>
+                        )}
+                        {canAssignFarms && onAssignFarm && (
+                          <button
+                            type="button"
+                            onClick={() => onAssignFarm(staff)}
+                            className="p-0.5 rounded bg-purple-900/40 hover:bg-purple-800/60 text-purple-300 text-[10px] cursor-pointer"
+                            title="Phân công trại nuôi cho Quản lý"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ) : isAdmin ? (
+                      <span className="text-[11px] text-amber-300/80 italic">Toàn bộ hệ thống</span>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-1 max-w-[240px]">
+                        {assignedPonds.length > 0 ? (
+                          assignedPonds.slice(0, 3).map((pond) => (
+                            <span
+                              key={pond.id || pond.pondId}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-cyan-950/80 border border-cyan-800 text-cyan-200"
+                              title={pond.name || pond.pondName}
+                            >
+                              <span className="h-1 w-1 rounded-full bg-[var(--accent)]" />
+                              <span className="truncate max-w-[90px]">{pond.name || pond.pondName}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-[var(--text-subtle)] italic">
+                            Chưa phân công ao
+                          </span>
+                        )}
+                        {assignedPonds.length > 3 && (
+                          <span className="text-[10px] text-teal-300 px-1 py-0.5 rounded bg-teal-950/60 border border-teal-800">
+                            +{assignedPonds.length - 3}
+                          </span>
+                        )}
+                        {mayManage && onAssignPond && (
+                          <button
+                            type="button"
+                            onClick={() => onAssignPond(staff)}
+                            className="p-0.5 rounded bg-cyan-900/30 hover:bg-cyan-800/60 text-cyan-300 text-[10px] cursor-pointer"
+                            title="Phân công vuông nuôi cho Nông dân"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   {/* Status */}

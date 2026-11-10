@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Sliders, Plus, Trash2, Edit3, Check, AlertCircle, Sparkles } from "lucide-react";
+import { X, Sliders, Plus, Trash2, Edit3, AlertCircle, Sparkles } from "lucide-react";
+import Dropdown from "../../../components/Dropdown";
+import ConfirmModal from "../../../components/ConfirmModal";
+import SuccessModal from "../../../components/SuccessModal";
 import {
   getThresholdConfigs,
   createThresholdConfig,
@@ -28,6 +31,29 @@ const defaultMetricOptions = [
   { value: "no2", label: "Khí độc NO2 (mg/L)", min: 0, max: 0.2 },
 ];
 
+const METRIC_TRANSLATIONS: Record<string, string> = {
+  dissolvedOxygen: "Oxy hòa tan (DO)",
+  DO: "Oxy hòa tan (DO)",
+  temperature: "Nhiệt độ nước",
+  temp: "Nhiệt độ nước",
+  pH: "Độ pH",
+  ph: "Độ pH",
+  salinity: "Độ mặn",
+  turbidity: "Độ đục",
+  waterLevel: "Mực nước ao",
+  nh3: "Khí độc NH3",
+  no2: "Khí độc NO2",
+};
+
+const formatThresholdErrorMessage = (rawMsg: string): string => {
+  let msg = rawMsg;
+  for (const [key, label] of Object.entries(METRIC_TRANSLATIONS)) {
+    msg = msg.split(`"${key}"`).join(`"${label}"`);
+    msg = msg.split(`'${key}'`).join(`"${label}"`);
+  }
+  return msg;
+};
+
 export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
   isOpen,
   onClose,
@@ -36,7 +62,6 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
   const [configs, setConfigs] = useState<ThresholdConfigItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   // New config form state
   const [metricName, setMetricName] = useState("temperature");
@@ -48,6 +73,28 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editMin, setEditMin] = useState<number>(0);
   const [editMax, setEditMax] = useState<number>(0);
+
+  // Modal dialog states
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    configId: string;
+    metricLabel: string;
+  }>({
+    isOpen: false,
+    configId: "",
+    metricLabel: "",
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   const pondId = pond?.pondId || pond?.id;
   const canManage = canManagePonds(getCurrentUser()?.role);
@@ -102,11 +149,16 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
         maxValue: Number(maxValue),
         isActive: true,
       });
-      setSuccessMsg("Thêm cấu hình ngưỡng thành công!");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      const metricLabel = defaultMetricOptions.find((m) => m.value === metricName)?.label || metricName;
+      setSuccessModal({
+        isOpen: true,
+        title: "Thêm thành công!",
+        message: `Đã thiết lập cấu hình ngưỡng an toàn cho ${metricLabel} [${minValue} - ${maxValue}].`,
+      });
       await fetchConfigs();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Lỗi khi thêm cấu hình ngưỡng");
+      const msg = err instanceof Error ? err.message : "Lỗi khi thêm cấu hình ngưỡng";
+      setErrorMsg(formatThresholdErrorMessage(msg));
     } finally {
       setIsAdding(false);
     }
@@ -130,11 +182,15 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
         maxValue: Number(editMax),
       });
       setEditingConfigId(null);
-      setSuccessMsg("Cập nhật ngưỡng thành công!");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      setSuccessModal({
+        isOpen: true,
+        title: "Cập nhật thành công!",
+        message: `Đã lưu cập nhật khoảng ngưỡng an toàn [${editMin} - ${editMax}] thành công.`,
+      });
       await fetchConfigs();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Lỗi cập nhật ngưỡng");
+      const msg = err instanceof Error ? err.message : "Lỗi cập nhật ngưỡng";
+      setErrorMsg(formatThresholdErrorMessage(msg));
     }
   };
 
@@ -149,15 +205,32 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
     }
   };
 
-  const handleDelete = async (configId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa cấu hình ngưỡng này?")) return;
+  const handleDeleteClick = (cfg: ThresholdConfigItem) => {
+    const label = defaultMetricOptions.find((m) => m.value === cfg.metricName)?.label || cfg.metricName;
+    setDeleteConfirm({
+      isOpen: true,
+      configId: cfg.configId,
+      metricLabel: label,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm.configId) return;
     try {
-      await deleteThresholdConfig(configId);
-      setSuccessMsg("Đã xóa cấu hình ngưỡng!");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      setIsDeleting(true);
+      await deleteThresholdConfig(deleteConfirm.configId);
+      const label = deleteConfirm.metricLabel;
+      setDeleteConfirm({ isOpen: false, configId: "", metricLabel: "" });
+      setSuccessModal({
+        isOpen: true,
+        title: "Đã xóa thành công!",
+        message: `Đã xóa cấu hình ngưỡng cảnh báo an toàn cho "${label}".`,
+      });
       await fetchConfigs();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Lỗi khi xóa cấu hình");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -199,51 +272,44 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
             </div>
           )}
 
-          {successMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs">
-              <Check size={15} className="shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
           {/* Add Threshold Form */}
-          {canManage && <form onSubmit={handleCreate} className="p-4 rounded-2xl border border-cyan-900/80 bg-[#051a22] space-y-3">
+          {canManage && <form onSubmit={handleCreate} className="relative z-30 p-4 rounded-2xl border border-cyan-900/80 bg-[#051a22] space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
               <Plus size={13} />
               Thêm ngưỡng cảnh báo chỉ số
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-              <div>
+              <div className="relative z-40">
                 <label className="block text-[11px] font-semibold text-[var(--text-body)] mb-1">
                   Chỉ số đo
                 </label>
-                <select
+                <Dropdown
                   value={metricName}
-                  onChange={(e) => handleMetricSelectChange(e.target.value)}
-                  className="w-full rounded-xl border border-cyan-800 bg-[#07242e] px-3 py-2 text-xs text-white outline-none cursor-pointer"
-                >
-                  {defaultMetricOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  options={defaultMetricOptions.map((opt) => ({
+                    label: opt.label,
+                    value: opt.value,
+                  }))}
+                  onChange={(val) => handleMetricSelectChange(val)}
+                  searchPlaceholder="Tìm chỉ số..."
+                />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-[var(--text-body)] mb-1">
                   Ngưỡng tối thiểu (Min)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={minValue}
-                  onChange={(e) => setMinValue(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="Min"
-                  className="w-full rounded-xl border border-cyan-800 bg-[#07242e] px-3 py-2 text-xs text-white outline-none"
-                  required
-                />
+                <div className="flex items-center gap-2 rounded-xl border border-cyan-800 bg-[#07242e] px-3 py-2 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={minValue}
+                    onChange={(e) => setMinValue(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="Min"
+                    className="w-full bg-transparent text-xs text-white outline-none border-none focus:outline-none focus:ring-0"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
@@ -251,15 +317,17 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                   Ngưỡng tối đa (Max)
                 </label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={maxValue}
-                    onChange={(e) => setMaxValue(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="Max"
-                    className="w-full rounded-xl border border-cyan-800 bg-[#07242e] px-3 py-2 text-xs text-white outline-none"
-                    required
-                  />
+                  <div className="flex-1 flex items-center gap-2 rounded-xl border border-cyan-800 bg-[#07242e] px-3 py-2 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={maxValue}
+                      onChange={(e) => setMaxValue(e.target.value === "" ? "" : Number(e.target.value))}
+                      placeholder="Max"
+                      className="w-full bg-transparent text-xs text-white outline-none border-none focus:outline-none focus:ring-0"
+                      required
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={isAdding}
@@ -273,7 +341,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
           </form>}
 
           {/* Configured Thresholds Table/List */}
-          <div>
+          <div className="relative z-10">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3 flex items-center gap-1.5">
               <Sparkles size={13} className="text-cyan-400" />
               Các ngưỡng đang áp dụng ({configs.length})
@@ -283,7 +351,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
               <div className="p-8 text-center text-xs text-[var(--text-muted)]">
                 Đang tải danh sách ngưỡng...
               </div>
-            ) : errorMsg ? null : configs.length === 0 ? (
+            ) : configs.length === 0 ? (
               <div className="p-8 rounded-2xl border border-cyan-900/40 bg-[#051c24] text-center text-xs text-[var(--text-muted)]">
                 Chưa có cấu hình ngưỡng nào cho vuông nuôi này. Hãy thêm ngưỡng an toàn phía trên!
               </div>
@@ -298,11 +366,10 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                   return (
                     <div
                       key={cfg.configId}
-                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-2xl border transition ${
-                        cfg.isActive
-                          ? "border-cyan-900/80 bg-[#062029]"
-                          : "border-slate-800 bg-[#04151c] opacity-60"
-                      }`}
+                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-2xl border transition ${cfg.isActive
+                        ? "border-cyan-900/80 bg-[#062029]"
+                        : "border-slate-800 bg-[#04151c] opacity-60"
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-300 font-bold text-xs">
@@ -357,11 +424,10 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
                         <button
                           type="button"
                           onClick={() => toggleActive(cfg)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
-                            cfg.isActive
-                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                              : "bg-slate-800 text-slate-400 border-slate-700"
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${cfg.isActive
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            : "bg-slate-800 text-slate-400 border-slate-700"
+                            }`}
                         >
                           {cfg.isActive ? "Đang bật" : "Đã tắt"}
                         </button>
@@ -379,7 +445,7 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
 
                         <button
                           type="button"
-                          onClick={() => handleDelete(cfg.configId)}
+                          onClick={() => handleDeleteClick(cfg)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
                           title="Xóa cấu hình"
                         >
@@ -405,6 +471,34 @@ export const ThresholdConfigModal: React.FC<ThresholdConfigModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, configId: "", metricLabel: "" })}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận xóa cấu hình ngưỡng"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa cấu hình ngưỡng cảnh báo cho thông số{" "}
+            <strong className="text-white">{deleteConfirm.metricLabel}</strong>?
+            Hệ thống sẽ ngừng giám sát ngưỡng an toàn cho chỉ số này.
+          </span>
+        }
+        confirmText="Xóa cấu hình"
+        cancelText="Hủy"
+        variant="danger"
+        loading={isDeleting}
+      />
+
+      {/* Success Notification Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ isOpen: false, title: "", message: "" })}
+        title={successModal.title}
+        message={successModal.message}
+        confirmText="Đồng ý"
+      />
     </div>
   );
 };

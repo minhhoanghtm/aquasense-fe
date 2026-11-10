@@ -30,7 +30,7 @@ const ProfileHeader = memo(function ProfileHeader({
     : "?";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 sm:p-6 backdrop-blur-xl shadow-lg">
+    <div className="dashboard-card relative overflow-hidden p-5 sm:p-6 shadow-md">
       {/* Ambient background glow */}
       <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[var(--accent)]/10 blur-3xl"></div>
       <div className="pointer-events-none absolute -left-16 -bottom-16 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl"></div>

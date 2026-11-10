@@ -193,14 +193,14 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full relative overflow-hidden bg-transparent text-white font-sans selection:bg-(--accent) selection:text-(--text-on-accent)">
+    <div className="min-h-screen w-full relative flex flex-col justify-between overflow-y-auto bg-transparent text-white font-sans selection:bg-[var(--accent)] selection:text-[var(--text-on-accent)]">
       {/* Background Glow Effects using App Color Tokens */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[var(--accent)]/10 blur-[160px] pointer-events-none" />
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[var(--accent-bright)]/5 blur-[160px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-teal-500/5 blur-[160px] pointer-events-none" />
 
       {/* Top Brand & Status Bar */}
-      <header className="absolute top-0 left-0 right-0 w-full px-6 sm:px-10 lg:px-14 py-4 flex items-center justify-between z-20">
+      <header className="w-full px-6 sm:px-10 lg:px-14 py-4 flex items-center justify-between z-20 shrink-0">
         {/* Left Brand */}
         <Link to="/" className="shrink-0">
           <div className="flex shrink-0 items-center gap-2">
@@ -220,7 +220,7 @@ export const Login: React.FC = () => {
       </header>
 
       {/* Center Main Form Card */}
-      <main className="absolute inset-0 flex items-center justify-center p-4 z-10">
+      <main className="flex-1 flex items-center justify-center p-4 py-8 z-10">
         <div className="w-full max-w-[400px] rounded-[32px] border border-[var(--panel-border-strong)] bg-[#051c23]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center transition-all">
 
           {/* Centered Wave Icon Badge */}

@@ -55,7 +55,11 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+// The backend exposes REST controllers at the origin (Swagger alone is under
+// /api/docs).  Deployments can supply a different origin through Vite env.
+const API_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+export const getApiBaseUrl = (): string => API_URL;
 
 export const getAccessToken = (): string | null => {
   return localStorage.getItem("accessToken");
@@ -70,6 +74,7 @@ export const clearAuthStorage = () => {
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("aquasense_user");
   window.dispatchEvent(new Event("storage"));
+  window.dispatchEvent(new Event("auth-cleared"));
 };
 
 let refreshPromise: Promise<string> | null = null;
@@ -214,7 +219,10 @@ export const api = async <T>(
       try {
         const errorData: unknown = await retryResponse.json();
         if (isErrorEnvelope(errorData)) {
-          errorMessage = errorData.message;
+          errorMessage =
+            Array.isArray(errorData.errors) && errorData.errors.length > 0
+              ? errorData.errors.join("; ")
+              : errorData.message;
           errorCode = errorData.errorCode;
           retryAfter ??= errorData.retryAfterSeconds ?? errorData.retryAfter;
         }
@@ -234,7 +242,10 @@ export const api = async <T>(
     try {
       const errorData: unknown = await response.json();
       if (isErrorEnvelope(errorData)) {
-        errorMessage = errorData.message;
+        errorMessage =
+          Array.isArray(errorData.errors) && errorData.errors.length > 0
+            ? errorData.errors.join("; ")
+            : errorData.message;
         errorCode = errorData.errorCode;
         retryAfter ??= errorData.retryAfterSeconds ?? errorData.retryAfter;
       }

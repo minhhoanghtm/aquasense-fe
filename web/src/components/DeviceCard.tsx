@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio, Edit3, Trash2 } from "lucide-react";
+import { Radio, Edit3, Trash2, AlertTriangle } from "lucide-react";
 
 export interface DeviceCardProps {
   icon?: React.ReactNode;
@@ -21,22 +21,24 @@ export interface DeviceCardProps {
   className?: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onReportFault?: () => void;
+  onReportBroken?: () => void;
 }
 
 const SignalBars = ({ value }: { value: number }) => {
   return (
     <div className="flex items-end gap-[3px] h-3.5">
       <span
-        className={`w-1 h-1.5 rounded-xs transition-colors ${value >= 20 ? "bg-(--accent)" : "bg-slate-600"}`}
+        className={`w-1 h-1.5 rounded-xs transition-colors ${value >= 20 ? "bg-[var(--accent)]" : "bg-slate-700/60"}`}
       />
       <span
-        className={`w-1 h-2.5 rounded-xs transition-colors ${value >= 40 ? "bg-(--accent)" : "bg-slate-600"}`}
+        className={`w-1 h-2.5 rounded-xs transition-colors ${value >= 40 ? "bg-[var(--accent)]" : "bg-slate-700/60"}`}
       />
       <span
-        className={`w-1 h-3.5 rounded-xs transition-colors ${value >= 60 ? "bg-(--accent)" : "bg-slate-600"}`}
+        className={`w-1 h-3.5 rounded-xs transition-colors ${value >= 60 ? "bg-[var(--accent)]" : "bg-slate-700/60"}`}
       />
       <span
-        className={`w-1 h-4.5 rounded-xs transition-colors ${value >= 80 ? "bg-(--accent)" : "bg-slate-600"}`}
+        className={`w-1 h-4.5 rounded-xs transition-colors ${value >= 80 ? "bg-[var(--accent)]" : "bg-slate-700/60"}`}
       />
     </div>
   );
@@ -54,11 +56,19 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
   className = "",
   onEdit,
   onDelete,
+  onReportFault,
+  onReportBroken,
 }) => {
+  const handleReport = onReportBroken || onReportFault;
   // Chuẩn hóa trạng thái
   const normalizedStatus = status.toUpperCase();
   const isOnline =
     normalizedStatus === "ONLINE" || normalizedStatus === "TRỰC TUYẾN";
+  const isMaintenance =
+    normalizedStatus === "MAINTENANCE" ||
+    normalizedStatus === "BẢO TRÌ" ||
+    normalizedStatus === "ĐANG BẢO TRÌ" ||
+    normalizedStatus === "HỎNG";
   const isWarning =
     normalizedStatus === "WARNING" || normalizedStatus === "CẢNH BÁO";
   const isDanger =
@@ -70,27 +80,33 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     ? "Chưa cập nhật"
     : isOnline
     ? "Trực tuyến"
-    : isWarning
-      ? "Cảnh báo"
-      : isDanger
-        ? "Nguy hiểm"
-        : "Ngoại tuyến";
+    : isMaintenance
+      ? "Đang bảo trì"
+      : isWarning
+        ? "Cảnh báo"
+        : isDanger
+          ? "Nguy hiểm"
+          : "Ngoại tuyến";
 
   const statusBadgeClass = isOnline
     ? "bg-[var(--success-bg)] text-[var(--success)] border-transparent"
-    : isWarning
-      ? "bg-[var(--warning-bg)] text-[var(--warning)] border-transparent"
-      : isDanger
-        ? "bg-[var(--critical-bg)] text-[var(--critical)] border-transparent"
-        : "bg-[var(--panel-bg-dark)] text-[var(--text-muted)] border-transparent";
+    : isMaintenance
+      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      : isWarning
+        ? "bg-[var(--warning-bg)] text-[var(--warning)] border-transparent"
+        : isDanger
+          ? "bg-[var(--critical-bg)] text-[var(--critical)] border-transparent"
+          : "bg-[var(--panel-bg-dark)] text-[var(--text-muted)] border-transparent";
 
   const statusDotClass = isOnline
     ? "bg-[var(--success)]"
-    : isWarning
-      ? "bg-[var(--warning)]"
-      : isDanger
-        ? "bg-[var(--critical)]"
-        : "bg-[var(--text-subtle)]";
+    : isMaintenance
+      ? "bg-amber-400"
+      : isWarning
+        ? "bg-[var(--warning)]"
+        : isDanger
+          ? "bg-[var(--critical)]"
+          : "bg-[var(--text-subtle)]";
 
   return (
     <div
@@ -109,6 +125,18 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
             <span>{statusLabel}</span>
           </div>
+
+          {handleReport && (
+            <button
+              type="button"
+              onClick={handleReport}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl border border-rose-500/30 bg-rose-950/30 text-rose-300 hover:bg-rose-900/50 hover:text-white transition cursor-pointer text-xs font-semibold"
+              title="Báo cáo thiết bị hỏng"
+            >
+              <AlertTriangle size={12} className="text-rose-400 shrink-0" />
+              <span>Báo hỏng</span>
+            </button>
+          )}
 
           {onEdit && (
             <button

@@ -20,7 +20,7 @@ export type StepProgressProps = {
     onStepClick?: (step: StepItem | string, index: number) => void;
 };
 
-export const StepProgress: React.FC<StepProgressProps> = ({
+export const StepProgress: React.FC<StepProgressProps> = React.memo(({
     steps,
     currentStep,
     orientation = "horizontal",
@@ -223,6 +223,7 @@ export const StepProgress: React.FC<StepProgressProps> = ({
             </div>
         </div>
     );
-};
+});
+StepProgress.displayName = "StepProgress";
 
 export default StepProgress;

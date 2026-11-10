@@ -1,4 +1,5 @@
 import React from "react";
+import { formatVietnamDateTime } from "../utils/date";
 
 export interface ReadingMetric {
   id?: string | number;
@@ -12,6 +13,7 @@ export interface LatestReadingCardProps {
   subtitle?: string;
   title?: string;
   metrics?: ReadingMetric[];
+  timestamp?: string;
   className?: string;
   children?: React.ReactNode;
 }
@@ -48,24 +50,31 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
   subtitle,
   title,
   metrics = [],
+  timestamp,
   className = "",
   children,
 }) => {
+  const formattedTime = timestamp ? formatVietnamDateTime(timestamp) : "";
   const headerSubtitle =
-    subtitle || (deviceCode ? `GIÁ TRỊ ĐO GẦN NHẤT · ${deviceCode}` : "GIÁ TRỊ ĐO GẦN NHẤT");
+    subtitle ||
+    (deviceCode
+      ? `GIÁ TRỊ ĐO GẦN NHẤT · ${deviceCode}${formattedTime ? ` (${formattedTime})` : ""}`
+      : formattedTime
+      ? `GIÁ TRỊ ĐO GẦN NHẤT · ${formattedTime}`
+      : "GIÁ TRỊ ĐO GẦN NHẤT");
 
   const displayMetrics = Array.isArray(metrics) ? metrics : [];
 
   return (
     <div
-      className={`w-full rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-6 shadow-lg transition-all duration-300 ${className}`}
+      className={`w-full dashboard-card p-6 shadow-md ${className}`}
     >
       {/* Header: Subtitle & Title */}
       <div className="mb-5 flex flex-col items-start gap-1">
-        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-(--text-muted) font-mono">
+        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] font-mono">
           {headerSubtitle}
         </span>
-        <h2 className="text-xl md:text-2xl font-bold text-(--text-heading) leading-tight">
+        <h2 className="text-xl md:text-2xl font-bold text-[var(--text-heading)] leading-tight">
           {title || "Giá trị đo gần nhất"}
         </h2>
       </div>
@@ -76,16 +85,16 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
           {displayMetrics.map((metric, index) => (
             <div
               key={metric.id ?? index}
-              className="flex flex-col justify-between rounded-2xl border border-slate-700/40 bg-[#07242c]/70 p-4 transition-all duration-200 hover:border-cyan-500/40 hover:bg-[#07242c]"
+              className="flex flex-col justify-between rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] p-4 transition-all duration-200 hover:border-[var(--panel-border-strong)]"
             >
               {/* Metric Label */}
-              <span className="text-[11px] font-bold uppercase tracking-wider text-(--text-muted)">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {metric.label}
               </span>
 
               {/* Metric Value */}
               <div className="mt-3">
-                <span className="text-xl md:text-2xl font-extrabold text-(--text-primary) font-mono tracking-tight">
+                <span className="text-xl md:text-2xl font-extrabold text-[var(--text-primary)] font-mono tracking-tight">
                   {metric.value}
                 </span>
               </div>
@@ -95,7 +104,7 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
             </div>
           ))}
         </div>
-      ) : <p className="py-6 text-sm text-(--text-muted)">Chưa có dữ liệu đo từ thiết bị này.</p>)}
+      ) : <p className="py-6 text-sm text-[var(--text-muted)]">Chưa có dữ liệu đo từ thiết bị này.</p>)}
     </div>
   );
 };

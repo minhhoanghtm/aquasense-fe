@@ -7,20 +7,31 @@ import {
   AlertTriangle,
   BellRing,
   Lock,
+  Calendar,
+  UserMinus,
+  Building2,
+  Shield,
 } from "lucide-react";
 import type { User as UserType, UserStatus } from "../../../types/User";
 import type { Pond, PondStatus } from "../../../types/Pond";
+import type { Farm } from "../../../types/Farm";
 import { getRoleLabel } from "../../../lib/rolePermissions";
+import { formatVietnamDateTime } from "../../../utils/date";
+import { getCurrentUser } from "../../../services/authApi";
 
 interface StaffDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   staff: UserType | null;
   ponds: Pond[];
+  farms?: Farm[];
   onEdit?: (staff: UserType) => void;
   onAssignPond?: (staff: UserType) => void;
+  onAssignFarm?: (staff: UserType) => void;
+  onUnassignPond?: (staff: UserType, pond: Pond) => void;
   onApprove?: (staff: UserType) => void;
   canManage?: boolean;
+  canAssignFarms?: boolean;
 }
 
 export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
@@ -28,14 +39,38 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   onClose,
   staff,
   ponds,
+  farms = [],
   onEdit: _onEdit,
   onAssignPond,
+  onAssignFarm,
+  onUnassignPond,
   onApprove,
   canManage = false,
+  canAssignFarms = false,
 }) => {
   if (!isOpen || !staff) return null;
 
-  const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
+  const staffId = staff?.userId || staff?.id || "";
+  const roleUpper = staff?.role?.toUpperCase();
+  const isManager = roleUpper === "MANAGER";
+  const isAdmin = roleUpper === "ADMIN";
+  const assignedFarms = farms.filter((f) => f.ownerId === staffId);
+  const assignedPonds = ponds.filter(
+    (p) => p.userId === staffId || p.farmerAssignments?.some((a) => a.farmerId === staffId)
+  );
+
+  const currentActor = getCurrentUser();
+  const isActorAdmin = currentActor?.role?.toUpperCase() === "ADMIN";
+  const myManagedFarmIds = new Set(
+    farms
+      .filter(
+        (f) =>
+          f.ownerId === currentActor?.userId ||
+          f.ownerId === currentActor?.id ||
+          f.owner?.userId === currentActor?.userId
+      )
+      .map((f) => f.farmId)
+  );
 
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
@@ -239,60 +274,150 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {staff.createdAt && (
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#051c24] border border-cyan-900/40">
+                  <Calendar size={15} className="text-teal-400 shrink-0" />
+                  <div>
+                    <div className="text-[10px] text-[var(--text-subtle)]">Ngày tham gia hệ thống</div>
+                    <div className="text-[var(--text-primary)] font-medium">
+                      {formatVietnamDateTime(staff.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Assigned Ponds List */}
+          {/* Responsibility List (Farms for MANAGER, Ponds for FARMER, Scope for ADMIN) */}
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                <Layers size={14} className="text-cyan-400" />
-                Danh sách vuông nuôi phụ trách ({assignedPonds.length})
-              </h4>
-              {canManage && onAssignPond && <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onAssignPond?.(staff);
-                }}
-                className="text-xs text-[var(--accent)] hover:text-[var(--accent-bright)] font-semibold transition cursor-pointer"
-              >
-                + Thay đổi phân công
-              </button>}
-            </div>
+            {isManager ? (
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Building2 size={14} className="text-purple-400" />
+                    Danh sách trại nuôi phụ trách ({assignedFarms.length})
+                  </h4>
+                  {canAssignFarms && onAssignFarm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onAssignFarm(staff);
+                      }}
+                      className="text-xs text-purple-400 hover:text-purple-300 font-semibold transition cursor-pointer"
+                    >
+                      + Thay đổi phân công trại
+                    </button>
+                  )}
+                </div>
 
-            {assignedPonds.length === 0 ? (
-              <div className="p-5 rounded-2xl bg-[#051c24] border border-dashed border-cyan-900/50 text-center text-xs text-[var(--text-muted)]">
-                Nhân viên này chưa được phân công vuông nuôi nào.
+                {assignedFarms.length === 0 ? (
+                  <div className="p-5 rounded-2xl bg-[#051c24] border border-dashed border-purple-900/50 text-center text-xs text-[var(--text-muted)]">
+                    Quản lý này chưa được phân công trại nuôi nào.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {assignedFarms.map((farm) => (
+                      <div
+                        key={farm.farmId}
+                        className="p-3 rounded-xl bg-[#051c24] border border-purple-900/40 flex items-start justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-semibold text-xs text-purple-200 flex items-center gap-1.5">
+                            <Building2 size={13} className="text-purple-400 shrink-0" />
+                            {farm.farmName}
+                          </div>
+                          <div className="text-[10px] text-[var(--text-subtle)] mt-1 flex flex-col gap-0.5">
+                            <span>Địa chỉ: {farm.address || "Chưa cập nhật"}</span>
+                            <span>
+                              Diện tích: {farm.totalArea ? `${Number(farm.totalArea).toLocaleString()} m²` : "Chưa cập nhật"}
+                              {farm.pondCount !== undefined ? ` · ${farm.pondCount} ao nuôi` : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : isAdmin ? (
+              <div className="p-4 rounded-2xl bg-[#051c24] border border-amber-900/40 text-xs">
+                <div className="flex items-center gap-2 text-amber-300 font-semibold mb-1">
+                  <Shield size={14} />
+                  Phạm vi quyền hạn Quản trị viên (ADMIN)
+                </div>
+                <p className="text-[var(--text-body)]">
+                  Có toàn quyền truy cập, tạo, sửa, xóa và phân công đối với tất cả các trại nuôi, vuông nuôi, thiết bị cảm biến và tài khoản trong toàn bộ hệ thống AquaSense IoT.
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {assignedPonds.map((pond) => (
-                  <div
-                    key={pond.id}
-                    className="p-3 rounded-xl bg-[#051c24] border border-cyan-900/40 flex items-start justify-between gap-2"
-                  >
-                    <div>
-                      <div className="font-semibold text-xs text-[var(--text-heading)]">
-                        {pond.pondName || pond.name}
-                      </div>
-                      <div className="text-[10px] text-[var(--text-subtle)] mt-0.5 flex items-center gap-1.5">
-                        <span>{pond.areaM2 !== undefined ? `${pond.areaM2.toLocaleString()} m²` : pond.area !== undefined ? `${pond.area} ha` : "Diện tích chưa cập nhật"}</span>
-                        <span>·</span>
-                        <span>Độ sâu: {pond.depthM !== undefined ? `${pond.depthM}m` : "chưa cập nhật"}</span>
-                        <span>·</span>
-                        <span>Mật độ: {pond.shrimpDensity !== undefined ? `${pond.shrimpDensity} con/m²` : "chưa cập nhật"}</span>
-                      </div>
-                    </div>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold ${getPondStatusBadge(
-                        pond.status
-                      )}`}
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Layers size={14} className="text-cyan-400" />
+                    Danh sách vuông nuôi phụ trách ({assignedPonds.length})
+                  </h4>
+                  {canManage && onAssignPond && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onAssignPond(staff);
+                      }}
+                      className="text-xs text-[var(--accent)] hover:text-[var(--accent-bright)] font-semibold transition cursor-pointer"
                     >
-                      {pond.status || "Chưa cập nhật"}
-                    </span>
+                      + Thay đổi phân công
+                    </button>
+                  )}
+                </div>
+
+                {assignedPonds.length === 0 ? (
+                  <div className="p-5 rounded-2xl bg-[#051c24] border border-dashed border-cyan-900/50 text-center text-xs text-[var(--text-muted)]">
+                    Nhân viên này chưa được phân công vuông nuôi nào.
                   </div>
-                ))}
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {assignedPonds.map((pond) => (
+                      <div
+                        key={pond.id || pond.pondId}
+                        className="p-3 rounded-xl bg-[#051c24] border border-cyan-900/40 flex items-start justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-semibold text-xs text-[var(--text-heading)]">
+                            {pond.pondName || pond.name}
+                          </div>
+                          <div className="text-[10px] text-[var(--text-subtle)] mt-0.5 flex items-center gap-1.5">
+                            <span>{pond.areaM2 !== undefined ? `${pond.areaM2.toLocaleString()} m²` : pond.area !== undefined ? `${pond.area} ha` : "Diện tích chưa cập nhật"}</span>
+                            <span>·</span>
+                            <span>Độ sâu: {pond.depthM !== undefined && pond.depthM !== null ? `${parseFloat(Number(pond.depthM).toFixed(2))} m` : "chưa cập nhật"}</span>
+                            <span>·</span>
+                            <span>Mật độ: {pond.shrimpDensity !== undefined ? `${pond.shrimpDensity} con/m²` : "chưa cập nhật"}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold ${getPondStatusBadge(
+                              pond.status
+                            )}`}
+                          >
+                            {pond.status || "Chưa cập nhật"}
+                          </span>
+                          {canManage && onUnassignPond && (isActorAdmin || (pond.farmId && myManagedFarmIds.has(pond.farmId))) && (
+                            <button
+                              type="button"
+                              title="Bỏ gán ao này"
+                              onClick={() => onUnassignPond(staff, pond)}
+                              className="p-1 rounded-md text-rose-400 hover:text-rose-200 hover:bg-rose-950/70 border border-rose-500/30 transition cursor-pointer"
+                            >
+                              <UserMinus size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

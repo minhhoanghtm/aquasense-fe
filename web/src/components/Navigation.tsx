@@ -1,7 +1,8 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
+  Building2,
   Waves,
   Cpu,
   BellRing,
@@ -17,6 +18,12 @@ const navigation = [
     label: "Tổng quan",
     link: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Quản lý trại nuôi",
+    link: "/farms",
+    icon: Building2,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
   {
     label: "Quản lý vuông nuôi",
@@ -60,12 +67,13 @@ export const Navigation = memo(() => {
     };
   }, []);
 
-  const filteredNavigation = navigation.filter((item) =>
-    canAccessRoute(currentUser?.role, item.allowedRoles),
+  const filteredNavigation = useMemo(
+    () => navigation.filter((item) => canAccessRoute(currentUser?.role, item.allowedRoles)),
+    [currentUser?.role]
   );
 
   return (
-    <nav className="flex items-center gap-1 xl:gap-2">
+    <nav className="flex items-center gap-0.5 xl:gap-1.5 2xl:gap-2">
       {filteredNavigation.map((item) => {
         const isActive = location.pathname === item.link || 
           (item.link === "/dashboard" && location.pathname === "/");
@@ -78,11 +86,12 @@ export const Navigation = memo(() => {
               flex
               items-center
               rounded-xl
-              px-2.5
-              xl:px-3
+              px-2
+              xl:px-2.5
+              2xl:px-3
               py-1.5
               text-xs
-              xl:text-sm
+              2xl:text-sm
               font-medium
               whitespace-nowrap
               border
@@ -121,8 +130,9 @@ export const MobileNavigation = memo(({
     };
   }, []);
 
-  const filteredNavigation = navigation.filter((item) =>
-    canAccessRoute(currentUser?.role, item.allowedRoles),
+  const filteredNavigation = useMemo(
+    () => navigation.filter((item) => canAccessRoute(currentUser?.role, item.allowedRoles)),
+    [currentUser?.role]
   );
 
   return (
@@ -151,8 +161,8 @@ export const MobileNavigation = memo(({
               cursor-pointer
               ${
                 isActive
-                  ? "bg-[var(--panel-bg-dark)] text-[var(--accent)] font-semibold border border-[var(--panel-border-strong)]"
-                  : "text-[var(--text-body)] hover:bg-[var(--panel-highlight)] hover:text-[var(--text-heading)] border border-transparent"
+                  ? "bg-[#0b2f3a] text-cyan-300 font-semibold border border-cyan-500/50 shadow-sm"
+                  : "text-slate-200 hover:bg-[#07242e] hover:text-white border border-transparent"
               }
             `}
           >

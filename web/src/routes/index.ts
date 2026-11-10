@@ -5,6 +5,7 @@ import Alerts from "../pages/Alerts_History";
 import Devices from "../pages/Sensors_Devices";
 import AIAnalysis from "../pages/AI_Analysis";
 import StaffManagement from "../pages/Staff_Management";
+import FarmManagement from "../pages/Farm_Management";
 import Login from "../pages/Login";
 import ForgotPassword from "../pages/ForgotPassword";
 import {
@@ -75,6 +76,11 @@ export const routes: RouteConfig[] = [
   {
     path: "/dashboard",
     element: Dashboard,
+  },
+  {
+    path: "/farms",
+    element: FarmManagement,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
   {
     path: "/monitoring",

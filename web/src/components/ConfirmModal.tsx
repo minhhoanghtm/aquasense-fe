@@ -60,7 +60,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
-      <div className="w-full max-w-md rounded-3xl border border-[#134958] bg-[#07242e] p-6 shadow-[0_25px_60px_rgba(0,0,0,0.85)] text-left flex flex-col gap-4 relative overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)] p-6 shadow-2xl text-left flex flex-col gap-4 relative overflow-hidden backdrop-blur-xl">
         {/* Header Icon + Close */}
         <div className="flex items-start justify-between">
           <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${style.iconBg} shadow-md`}>
@@ -70,7 +70,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="p-1.5 -mr-1.5 rounded-lg text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -78,7 +78,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
         {/* Content */}
         <div>
-          <h3 className="text-lg font-bold text-white tracking-tight leading-snug">
+          <h3 className="text-lg font-bold text-[var(--text-heading)] tracking-tight leading-snug">
             {title}
           </h3>
           <div className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
@@ -87,12 +87,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="pt-3 border-t border-cyan-900/40 flex items-center justify-end gap-3">
+        <div className="pt-3 border-t border-[var(--divider)] flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[var(--text-body)] hover:text-white hover:bg-[var(--panel-highlight)] transition cursor-pointer disabled:opacity-50"
           >
             {cancelText}
           </button>

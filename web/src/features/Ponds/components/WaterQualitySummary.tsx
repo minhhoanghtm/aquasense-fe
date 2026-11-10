@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import ProgressBar from "../../../components/ProgressBar";
 import { Bubbles } from "lucide-react";
 
@@ -12,7 +12,7 @@ interface WaterQualitySummaryProps {
   metrics?: WaterQualityMetric[];
 }
 
-const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = ({
+const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = memo(({
   metrics = [],
 }) => {
   return (
@@ -33,7 +33,8 @@ const WaterQualitySummary: React.FC<WaterQualitySummaryProps> = ({
       </div>
     </div>
   );
-};
+});
+WaterQualitySummary.displayName = "WaterQualitySummary";
 
 export default WaterQualitySummary;
 

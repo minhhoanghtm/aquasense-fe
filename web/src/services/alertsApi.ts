@@ -8,6 +8,14 @@ export interface AlertRule {
     subtitle: string;
 }
 
+export interface AlertQuery {
+    pondId?: string;
+    isResolved?: boolean;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+}
+
 export const normalizeAlert = (raw: any): Alerts => {
     if (!raw) return {} as Alerts;
     const alertId = raw.alertId || raw.id || "";
@@ -41,18 +49,30 @@ export const normalizeAlert = (raw: any): Alerts => {
 };
 
 export const getAlertPondById = async (pondId: string): Promise<Alerts[]> => {
-    // QueryAlertDto supports deviceId and isResolved, but not pondId. Fetching
-    // the verified collection route and filtering its returned pond relation
-    // avoids silently sending an ignored query parameter.
-    const alerts = await getAlerts();
+    const alerts = await getAlerts({ pondId });
     return alerts.filter((alert) => alert.pondId === pondId);
 };
 
-export const getAlerts = async (): Promise<Alerts[]> => {
-    const res = await api<any>("/alerts");
+export const getAlerts = async (query?: AlertQuery): Promise<Alerts[]> => {
+    const params = new URLSearchParams({ limit: String(query?.limit ?? 500) });
+    if (query?.pondId) params.set("pondId", query.pondId);
+    if (query?.isResolved !== undefined) params.set("isResolved", String(query.isResolved));
+    if (query?.startDate) params.set("startDate", query.startDate);
+    if (query?.endDate) params.set("endDate", query.endDate);
+
+    const res = await api<any>(`/alerts?${params.toString()}`);
     // Backend returns the paginated payload inside the common response envelope.
     const rawList = res?.data ?? (Array.isArray(res) ? res : []);
     return Array.isArray(rawList) ? rawList.map(normalizeAlert) : [];
+};
+
+/** PATCH /alerts/:id/resolve — authorization is enforced by the backend. */
+export const resolveAlert = async (alertId: string, resolutionNote?: string): Promise<Alerts> => {
+    const result = await api<any>(`/alerts/${alertId}/resolve`, {
+        method: "PATCH",
+        body: JSON.stringify(resolutionNote?.trim() ? { resolutionNote: resolutionNote.trim() } : {}),
+    });
+    return normalizeAlert(result);
 };
 
 export const getAlertRules = async (): Promise<AlertRule[]> => {

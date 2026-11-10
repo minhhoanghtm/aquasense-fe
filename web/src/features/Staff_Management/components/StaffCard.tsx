@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Mail,
   Phone,
@@ -15,36 +15,60 @@ import {
 } from "lucide-react";
 import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import type { Farm } from "../../../types/Farm";
 import { getRoleLabel } from "../../../lib/rolePermissions";
+import StaffAssignedPondsModal from "./StaffAssignedPondsModal";
 
 interface StaffCardProps {
   staff: User;
   ponds: Pond[];
+  farms?: Farm[];
   onViewDetail: (staff: User) => void;
   onEdit: (staff: User) => void;
   onDelete: (staff: User) => void;
   onAssignPond?: (staff: User) => void;
+  onAssignFarm?: (staff: User) => void;
   onApprove?: (staff: User) => void;
   onReject?: (staff: User) => void;
   onChangeStatus?: (staff: User, status: UserStatus) => void;
   onToggleLoginLock?: (staff: User) => void;
   canManage: boolean;
+  canAssignFarms?: boolean;
 }
 
 export const StaffCard: React.FC<StaffCardProps> = ({
   staff,
   ponds,
+  farms = [],
   onViewDetail,
   onEdit: _onEdit,
   onDelete,
   onAssignPond,
+  onAssignFarm,
   onApprove,
   onReject,
   onChangeStatus,
   onToggleLoginLock,
   canManage,
+  canAssignFarms = false,
 }) => {
-  const assignedPonds = ponds.filter((p) => p.userId === (staff.userId || staff.id));
+  const [isAllPondsModalOpen, setIsAllPondsModalOpen] = useState(false);
+  const staffId = staff.userId || staff.id;
+  const roleUpper = staff.role?.toUpperCase();
+  const isManager = roleUpper === "MANAGER";
+  const isAdmin = roleUpper === "ADMIN";
+
+  // Farms assigned to Manager
+  const assignedFarms = farms.filter((f) => f.ownerId === staffId);
+  const hasMoreFarms = assignedFarms.length > 5;
+  const visibleFarms = hasMoreFarms ? assignedFarms.slice(0, 4) : assignedFarms;
+
+  // Ponds assigned to Farmer
+  const assignedPonds = ponds.filter(
+    (p) => p.userId === staffId || p.farmerAssignments?.some((a) => a.farmerId === staffId)
+  );
+  const hasMorePonds = assignedPonds.length > 6;
+  const visiblePonds = hasMorePonds ? assignedPonds.slice(0, 5) : assignedPonds;
 
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
@@ -108,9 +132,9 @@ export const StaffCard: React.FC<StaffCardProps> = ({
   return (
     <div className="flex flex-col justify-between rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-5 shadow-lg transition-all duration-300 hover:border-[var(--accent)]/50 text-left relative group">
       <div>
-        {/* Card Header: Avatar, Name, Role, Status */}
+        {/* Card Header: Avatar, Name, Role */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Avatar */}
             <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#159d96] to-[#35e1d0] text-[#062621] font-bold text-sm shadow-md">
               {initials}
@@ -120,8 +144,8 @@ export const StaffCard: React.FC<StaffCardProps> = ({
             </div>
 
             {/* Name and Position */}
-            <div>
-              <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug hover:text-[var(--accent)] cursor-pointer" onClick={() => onViewDetail(staff)}>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-[var(--text-primary)] leading-snug hover:text-[var(--accent)] cursor-pointer truncate" onClick={() => onViewDetail(staff)}>
                 {staff.fullName}
               </h3>
               <p className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 mt-0.5">
@@ -131,30 +155,22 @@ export const StaffCard: React.FC<StaffCardProps> = ({
             </div>
           </div>
 
-          {/* Status Badge */}
+          {/* Role Badge (di chuyển thay thế Badge trạng thái ở góc trên bên phải) */}
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold border whitespace-nowrap ${statusInfo.badgeColor}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${statusInfo.dotColor}`} />
-            {statusInfo.label}
-          </span>
-        </div>
-
-        {/* Role and Department */}
-        <div className="mt-3.5 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium border ${roleInfo.color}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold border whitespace-nowrap shrink-0 ${roleInfo.color}`}
           >
             <Shield size={12} />
             {roleInfo.label}
           </span>
+        </div>
 
-          {staff.department && (
+        {staff.department && staff.department !== staff.position && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="rounded-xl px-2.5 py-1 text-xs text-[var(--text-subtle)] bg-[#041a22] border border-cyan-950 truncate max-w-[200px]">
               {staff.department}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Contact Info */}
         <div className="mt-4 flex flex-col gap-2 rounded-2xl bg-[#06222b]/70 border border-cyan-900/30 p-3 text-xs text-[var(--text-body)]">
@@ -176,39 +192,137 @@ export const StaffCard: React.FC<StaffCardProps> = ({
           )}
         </div>
 
-        {/* Assigned Ponds Section */}
+        {/* Assignment Section (Farms for MANAGER, Ponds for FARMER, System Scope for ADMIN) */}
         <div className="mt-4">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="text-[var(--text-muted)] font-medium flex items-center gap-1.5">
-              <Layers size={13} className="text-[var(--accent)]" />
-              Vuông nuôi phụ trách ({assignedPonds.length}):
-            </span>
-            {canManage && onAssignPond && <button
-              type="button"
-              onClick={() => onAssignPond?.(staff)}
-              className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
-            >
-              + Phân công
-            </button>}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 min-h-[30px] items-center">
-            {assignedPonds.length > 0 ? (
-              assignedPonds.map((pond) => (
-                <span
-                  key={pond.id}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-cyan-950/70 border border-cyan-700/50 text-cyan-200"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                  {pond.name}
+          {isManager ? (
+            <div>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-[var(--text-muted)] font-medium flex items-center gap-1.5">
+                  <Building2 size={13} className="text-purple-400" />
+                  Trại nuôi phụ trách ({assignedFarms.length}):
                 </span>
-              ))
-            ) : (
-              <span className="text-xs text-[var(--text-subtle)] italic">
-                Chưa được phân công vuông nuôi nào
-              </span>
-            )}
-          </div>
+                {canAssignFarms && onAssignFarm && (
+                  <button
+                    type="button"
+                    onClick={() => onAssignFarm(staff)}
+                    className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold hover:underline cursor-pointer"
+                  >
+                    + Phân công trại
+                  </button>
+                )}
+              </div>
+
+              {/* Danh sách trại nuôi của Quản lý */}
+              <div className="flex flex-wrap gap-1.5 min-h-[30px] max-h-[64px] overflow-hidden items-center">
+                {assignedFarms.length > 0 ? (
+                  <>
+                    {visibleFarms.map((farm) => (
+                      <span
+                        key={farm.farmId}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-purple-950/60 border border-purple-700/50 text-purple-200 truncate max-w-[150px]"
+                        title={farm.farmName}
+                      >
+                        <Building2 size={11} className="text-purple-400 shrink-0" />
+                        <span className="truncate">{farm.farmName}</span>
+                      </span>
+                    ))}
+                    {hasMoreFarms && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (canAssignFarms && onAssignFarm) onAssignFarm(staff);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 border border-purple-500/50 text-purple-300 hover:bg-purple-500/30 transition cursor-pointer shrink-0"
+                        title={`Xem thêm ${assignedFarms.length - visibleFarms.length} trại nuôi khác`}
+                      >
+                        <span>+ Xem thêm ({assignedFarms.length - visibleFarms.length})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-[var(--text-subtle)] italic">
+                    Chưa được phân công trại nuôi nào
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : isAdmin ? (
+            <div>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-[var(--text-muted)] font-medium flex items-center gap-1.5">
+                  <Shield size={13} className="text-amber-400" />
+                  Phạm vi quản trị:
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 min-h-[30px]">
+                <span className="text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                  Toàn quyền quản trị hệ thống (Tất cả trại & vuông nuôi)
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-[var(--text-muted)] font-medium flex items-center gap-1.5">
+                  <Layers size={13} className="text-[var(--accent)]" />
+                  Vuông nuôi phụ trách ({assignedPonds.length}):
+                </span>
+                <div className="flex items-center gap-2">
+                  {hasMorePonds && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAllPondsModalOpen(true)}
+                      className="text-[11px] text-teal-400 hover:text-teal-300 font-semibold hover:underline cursor-pointer"
+                    >
+                      Xem thêm
+                    </button>
+                  )}
+                  {canManage && onAssignPond && (
+                    <button
+                      type="button"
+                      onClick={() => onAssignPond(staff)}
+                      className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                    >
+                      + Phân công
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Giới hạn hiển thị 2 dòng các ao nuôi và nút xem thêm */}
+              <div className="flex flex-wrap gap-1.5 min-h-[30px] max-h-[64px] overflow-hidden items-center">
+                {assignedPonds.length > 0 ? (
+                  <>
+                    {visiblePonds.map((pond) => (
+                      <span
+                        key={pond.id || pond.pondId}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-cyan-950/70 border border-cyan-700/50 text-cyan-200 truncate max-w-[140px]"
+                        title={pond.name || pond.pondName}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] shrink-0" />
+                        <span className="truncate">{pond.name || pond.pondName}</span>
+                      </span>
+                    ))}
+
+                    {hasMorePonds && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAllPondsModalOpen(true)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-500/20 border border-teal-500/50 text-teal-300 hover:bg-teal-500/30 hover:border-teal-400 transition cursor-pointer shrink-0"
+                        title={`Xem thêm ${assignedPonds.length - visiblePonds.length} ao nuôi khác`}
+                      >
+                        <span>+ Xem thêm ({assignedPonds.length - visiblePonds.length})</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-[var(--text-subtle)] italic">
+                    Chưa được phân công vuông nuôi nào
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -319,6 +433,17 @@ export const StaffCard: React.FC<StaffCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal toàn bộ ao nuôi khi bấm Xem thêm */}
+      {isAllPondsModalOpen && (
+        <StaffAssignedPondsModal
+          isOpen={isAllPondsModalOpen}
+          onClose={() => setIsAllPondsModalOpen(false)}
+          staff={staff}
+          assignedPonds={assignedPonds}
+          onAssignPond={canManage && onAssignPond ? () => onAssignPond(staff) : undefined}
+        />
+      )}
     </div>
   );
 };

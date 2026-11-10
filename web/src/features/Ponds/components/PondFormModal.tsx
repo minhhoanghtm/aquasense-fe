@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { X, Droplets, Layers, Ruler, Users } from "lucide-react";
+import { X, Droplets, Layers, Ruler, Users, MapPin, Box, Building2 } from "lucide-react";
 import type { Pond, PondStatus } from "../../../types/Pond";
+import type { Farm } from "../../../types/Farm";
 import type { CreatePondPayload } from "../../../services/pondApi";
+import { getCurrentUser } from "../../../services/authApi";
+import Dropdown from "../../../components/Dropdown";
 
 interface PondFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreatePondPayload) => Promise<void>;
   initialData?: Pond | null;
+  farms?: Farm[];
 }
 
 export const PondFormModal: React.FC<PondFormModalProps> = ({
@@ -15,8 +19,10 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
   onClose,
   onSubmit,
   initialData,
+  farms = [],
 }) => {
   const [pondName, setPondName] = useState("");
+  const [farmId, setFarmId] = useState<string>("");
   const [areaM2, setAreaM2] = useState<number | "">("");
   const [depthM, setDepthM] = useState<number | "">("");
   const [shrimpDensity, setShrimpDensity] = useState<number | "">("");
@@ -31,6 +37,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
   useEffect(() => {
     if (initialData) {
       setPondName(initialData.pondName || initialData.name || "");
+      setFarmId(initialData.farmId ?? "");
       setAreaM2(initialData.areaM2 ?? (initialData.area !== undefined ? initialData.area * 10000 : ""));
       setDepthM(initialData.depthM ?? "");
       setShrimpDensity(
@@ -43,6 +50,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
       setCapacity(initialData.capacity ?? "");
     } else {
       setPondName("");
+      setFarmId(farms.length === 1 ? farms[0].farmId : "");
       setAreaM2("");
       setDepthM("");
       setShrimpDensity("");
@@ -51,12 +59,18 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
       setCapacity("");
     }
     setErrorMsg("");
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, farms]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const currentUser = getCurrentUser();
+    const isManager = currentUser?.role?.toUpperCase() === "MANAGER";
+    if (isManager && !farmId) {
+      setErrorMsg("Quản lý bắt buộc phải chọn trang trại phụ trách cho vuông nuôi.");
+      return;
+    }
     if (pondName.trim().length < 2 || pondName.trim().length > 100) {
       setErrorMsg("Vui lòng nhập tên vuông nuôi.");
       return;
@@ -86,6 +100,7 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
         areaM2: Number(areaM2),
         depthM: Number(depthM),
         shrimpDensity: Number(shrimpDensity),
+        ...(farmId ? { farmId } : {}),
         ...(location.trim() ? { location: location.trim() } : {}),
         ...(capacity !== "" ? { capacity: Number(capacity) } : {}),
         ...(status ? { status } : {}),
@@ -151,6 +166,31 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
             </div>
           </div>
 
+          {/* Farm Selection */}
+          {farms.length > 0 && (
+            <div className="relative z-30">
+              <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
+                Trại nuôi trực thuộc
+              </label>
+              <Dropdown
+                value={farmId}
+                options={[
+                  { label: "-- Không chọn / Trại riêng --", value: "" },
+                  ...farms.map((f) => ({
+                    label: f.farmName,
+                    description: f.address || undefined,
+                    badge: f.pondCount !== undefined ? `${f.pondCount} ao` : undefined,
+                    value: f.farmId,
+                  })),
+                ]}
+                onChange={setFarmId}
+                icon={<Building2 size={15} className="text-purple-400" />}
+                placeholder="-- Chọn trại nuôi trực thuộc (Tùy chọn) --"
+                searchPlaceholder="Tìm kiếm trại nuôi..."
+              />
+            </div>
+          )}
+
           {/* Area & Depth */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -194,13 +234,42 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
             </div>
           </div>
 
+          {/* Location & Capacity */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="text-xs font-semibold text-[var(--text-body)]">Vị trí
-              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1.5 w-full rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 text-xs text-[var(--text-primary)]" />
-            </label>
-            <label className="text-xs font-semibold text-[var(--text-body)]">Sức chứa (m³)
-              <input type="number" min="0" step="1" value={capacity} onChange={(e) => setCapacity(e.target.value === "" ? "" : Number(e.target.value))} className="mt-1.5 w-full rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 text-xs text-[var(--text-primary)]" />
-            </label>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
+                Vị trí vuông nuôi
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
+                <MapPin size={15} className="text-emerald-400 shrink-0" />
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ví dụ: Khu A - Dãy 1"
+                  className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none placeholder:text-[var(--text-muted)]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
+                Sức chứa (m³)
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
+                <Box size={15} className="text-cyan-400 shrink-0" />
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="Nhập sức chứa"
+                  className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none"
+                />
+                <span className="text-[11px] text-[var(--text-muted)] font-mono">m³</span>
+              </div>
+            </div>
           </div>
 
           {/* Shrimp Density & Status */}
@@ -225,22 +294,22 @@ export const PondFormModal: React.FC<PondFormModalProps> = ({
               </div>
             </div>
 
-            <div>
+            <div className="relative z-20">
               <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
                 Trạng thái hoạt động
               </label>
-              <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2.5 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as PondStatus | "")}
-                  className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
-                >
-                  <option value="" className="bg-[#07242e]">Chọn trạng thái</option>
-                  <option value="ACTIVE" className="bg-[#07242e]">Đang nuôi</option>
-                  <option value="HARVESTED" className="bg-[#07242e]">Đã thu hoạch</option>
-                  <option value="EMPTY" className="bg-[#07242e]">Ao trống</option>
-                </select>
-              </div>
+              <Dropdown
+                value={status}
+                options={[
+                  { label: "Chọn trạng thái", value: "" },
+                  { label: "Đang nuôi", value: "ACTIVE" },
+                  { label: "Đã thu hoạch", value: "HARVESTED" },
+                  { label: "Ao trống", value: "EMPTY" },
+                ]}
+                onChange={(val) => setStatus(val as PondStatus | "")}
+                placeholder="Chọn trạng thái"
+                searchPlaceholder="Tìm trạng thái..."
+              />
             </div>
           </div>
 

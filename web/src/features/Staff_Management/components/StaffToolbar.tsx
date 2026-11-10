@@ -123,7 +123,7 @@ export const StaffToolbar: React.FC<StaffToolbarProps> = ({
             <button
               type="button"
               onClick={onAddNew}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#2dd4c3] to-[#159d96] text-[#041920] text-xs sm:text-sm font-bold hover:brightness-110 shadow-lg shadow-[#2dd4c3]/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--accent)] text-[var(--text-on-accent)] text-xs sm:text-sm font-bold hover:brightness-110 shadow-md shadow-[var(--accent)]/20 transition cursor-pointer"
             >
               <UserPlus size={15} />
               <span>Thêm nhân viên</span>

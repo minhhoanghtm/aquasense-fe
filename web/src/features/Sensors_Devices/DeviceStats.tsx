@@ -62,10 +62,10 @@ export const DeviceStats: React.FC<DeviceStatsProps> = ({
       {stats.map((item) => (
         <div
           key={item.id}
-          className="flex flex-col justify-between rounded-3xl border border-(--panel-border) bg-(--panel-bg) p-5 shadow-lg transition-all duration-300 hover:border-(--accent)/40"
+          className="dashboard-card p-5 shadow-md flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-(--text-muted)">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               {item.label}
             </span>
             <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${item.colorClass}`}>
@@ -77,12 +77,12 @@ export const DeviceStats: React.FC<DeviceStatsProps> = ({
             <span className={`text-3xl font-extrabold font-mono tracking-tight ${item.valueColor}`}>
               {item.value}
             </span>
-            <span className="text-xs font-medium text-(--text-muted)">
+            <span className="text-xs font-medium text-[var(--text-muted)]">
               {item.unit}
             </span>
           </div>
 
-          <p className="mt-2 text-xs text-(--text-subtle)">
+          <p className="mt-2 text-xs text-[var(--text-subtle)]">
             {item.subtext}
           </p>
         </div>

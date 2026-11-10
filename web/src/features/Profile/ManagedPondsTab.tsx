@@ -183,7 +183,7 @@ export default function ManagedPondsTab({ ponds, devices, user }: ManagedPondsTa
                       Độ sâu mực nước:
                     </span>
                     <span className="font-semibold text-[var(--text-primary)]">
-                      {depthM !== undefined ? `${depthM} m` : "Chưa cập nhật"}
+                      {depthM !== undefined && depthM !== null ? `${Number(depthM).toFixed(1)} m` : "Chưa cập nhật"}
                     </span>
                   </div>
 

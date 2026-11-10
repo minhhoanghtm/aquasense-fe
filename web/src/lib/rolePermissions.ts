@@ -13,6 +13,12 @@ export const hasManagementAccess = (role?: string | null): boolean =>
 export const canManagePonds = hasManagementAccess;
 export const canManageDevices = hasManagementAccess;
 
+/** All roles (Farmer, Manager, Admin) who have access to the device can report broken / faulty devices. */
+export const canReportBrokenDevice = (role?: string | null): boolean => {
+  const normalized = (role || "").toUpperCase();
+  return normalized === "FARMER" || normalized === "MANAGER" || normalized === "ADMIN";
+};
+
 /** Mirrors the current Backend P0-4 target-user policy. */
 export const canManageUser = (
   actorRole?: string | null,

@@ -55,7 +55,7 @@ export const StaffStats: React.FC<StaffStatsProps> = ({ stats }) => {
       {statCards.map((item) => (
         <div
           key={item.id}
-          className="flex flex-col justify-between rounded-3xl border border-[var(--panel-border)] bg-[var(--panel-bg)] p-4 sm:p-5 shadow-lg transition-all duration-300 hover:border-[var(--accent)]/40"
+          className="dashboard-card p-4 sm:p-5 shadow-md flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">

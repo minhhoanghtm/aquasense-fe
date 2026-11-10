@@ -29,18 +29,18 @@ const AlertRules: React.FC<AlertRulesProps> = ({
 }) => {
   return (
     <div
-      className={`bg-(--panel-bg) border border-(--panel-border) rounded-2xl lg:rounded-3xl p-3.5 sm:p-4 shadow-lg flex flex-col text-left ${className}`}
+      className={`dashboard-card p-4 sm:p-5 shadow-md flex flex-col text-left ${className}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-sm sm:text-base font-bold text-(--text-heading)">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm sm:text-base font-bold text-[var(--text-heading)] m-0">
           Quy tắc cảnh báo
         </h3>
-        <ShieldCheck className="w-4.5 h-4.5 text-(--accent)" />
+        <ShieldCheck className="w-4.5 h-4.5 text-[var(--accent)]" />
       </div>
 
       {/* Rules list using existing DeviceItem */}
-      <div className="divide-y divide-(--panel-border)">
+      <div className="divide-y divide-[var(--panel-border)]">
         {rules.length > 0 ? rules.map((rule) => (
           <DeviceItem
             key={rule.id}

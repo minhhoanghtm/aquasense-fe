@@ -62,7 +62,7 @@ const getStatusConfig = (status?: string) => {
 };
 
 const AlertItem: React.FC<AlertItemProps> = ({
-  time = "18/06 · 09:30",
+  time = "",
   title,
   pondName,
   value,

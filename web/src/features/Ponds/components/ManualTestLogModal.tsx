@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, TestTube, Plus, Trash2, Calendar, AlertCircle, Check, Clock } from "lucide-react";
+import { X, TestTube, Plus, Trash2, Calendar, AlertCircle, Clock } from "lucide-react";
+import ConfirmModal from "../../../components/ConfirmModal";
+import SuccessModal from "../../../components/SuccessModal";
 import {
   getManualTestLogsPage,
   createManualTestLog,
@@ -7,6 +9,7 @@ import {
   type ManualTestLogItem,
 } from "../../../services/pondApi";
 import type { Pond } from "../../../types/Pond";
+import { formatVietnamDateTime } from "../../../utils/date";
 
 interface ManualTestLogModalProps {
   isOpen: boolean;
@@ -22,7 +25,6 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
   const [logs, setLogs] = useState<ManualTestLogItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
@@ -35,6 +37,28 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
   const [note, setNote] = useState("");
   const [testedAt, setTestedAt] = useState(() => new Date().toISOString().slice(0, 16));
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal dialog states
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    logId: string;
+    logTime: string;
+  }>({
+    isOpen: false,
+    logId: "",
+    logTime: "",
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
 
   const pondId = pond?.pondId || pond?.id;
 
@@ -80,11 +104,14 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
         testedAt: new Date(testedAt).toISOString(),
       });
 
-      setSuccessMsg("Ghi nhận kết quả đo thủ công thành công!");
+      setSuccessModal({
+        isOpen: true,
+        title: "Ghi nhận thành công!",
+        message: `Đã lưu kết quả đo thủ công: NH3 (${nh3Value} mg/L), NO2 (${no2Value} mg/L).`,
+      });
       setNh3Value("");
       setNo2Value("");
       setNote("");
-      setTimeout(() => setSuccessMsg(""), 3000);
       await fetchLogs();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Lỗi khi lưu kết quả đo");
@@ -93,15 +120,30 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
     }
   };
 
-  const handleDelete = async (logId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bản ghi đo này?")) return;
+  const handleDeleteClick = (log: ManualTestLogItem) => {
+    setDeleteConfirm({
+      isOpen: true,
+      logId: log.logId,
+      logTime: formatVietnamDateTime(log.testedAt),
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm.logId) return;
     try {
-      await deleteManualTestLog(logId);
-      setSuccessMsg("Đã xóa bản ghi thành công!");
-      setTimeout(() => setSuccessMsg(""), 3000);
+      setIsDeleting(true);
+      await deleteManualTestLog(deleteConfirm.logId);
+      setDeleteConfirm({ isOpen: false, logId: "", logTime: "" });
+      setSuccessModal({
+        isOpen: true,
+        title: "Đã xóa thành công!",
+        message: "Đã xóa bản ghi nhật ký đo thủ công thành công.",
+      });
       await fetchLogs();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Lỗi khi xóa bản ghi");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -140,13 +182,6 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
             <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs">
               <AlertCircle size={15} className="shrink-0" />
               <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs">
-              <Check size={15} className="shrink-0" />
-              <span>{successMsg}</span>
             </div>
           )}
 
@@ -292,7 +327,7 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         <button
                           type="button"
-                          onClick={() => handleDelete(log.logId)}
+                          onClick={() => handleDeleteClick(log)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
                           title="Xóa bản ghi"
                         >
@@ -323,6 +358,34 @@ export const ManualTestLogModal: React.FC<ManualTestLogModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, logId: "", logTime: "" })}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận xóa bản ghi đo"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa bản ghi đo lúc{" "}
+            <strong className="text-white">{deleteConfirm.logTime}</strong>?
+            Hành động này không thể hoàn tác.
+          </span>
+        }
+        confirmText="Xóa bản ghi"
+        cancelText="Hủy"
+        variant="danger"
+        loading={isDeleting}
+      />
+
+      {/* Success Notification Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ isOpen: false, title: "", message: "" })}
+        title={successModal.title}
+        message={successModal.message}
+        confirmText="Đồng ý"
+      />
     </div>
   );
 };

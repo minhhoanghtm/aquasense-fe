@@ -78,11 +78,11 @@ const MetricCard = ({
     <div className="flex flex-col justify-center dashboard-card px-4 py-4">
       {/* Title */}
       <div className="flex flex-wrap items-center justify-between">
-        <span className="text-sm font-medium text-(--text-body)">
+        <span className="text-xs sm:text-sm font-semibold text-[var(--text-body)] truncate max-w-[130px]">
           {title}
         </span>
 
-        <div className="text-(--leaf-highlight)">
+        <div className="text-[var(--leaf-highlight)]">
           {icon}
         </div>
       </div>
@@ -99,12 +99,12 @@ const MetricCard = ({
           size={120}
           strokeWidth={10}
           status={level}
-        /> : <span className="text-3xl font-semibold text-(--text-primary)">{value} {unit}</span>}
+        /> : <span className="text-3xl font-semibold text-[var(--text-primary)]">{value} {unit}</span>}
       </div>
 
       {/* Threshold */}
-      <div className="py-1 text-center text-xs text-(--text-muted)">
-        {hasThreshold ? <>Ngưỡng an toàn: <span className="text-(--text-body)">{normalMin} - {normalMax} {unit}</span></> : "Chưa có ngưỡng được cấu hình từ backend."}
+      <div className="py-1 text-center text-xs text-[var(--text-muted)]">
+        {hasThreshold ? <>Ngưỡng an toàn: <span className="text-[var(--text-body)] font-medium">{normalMin} - {normalMax} {unit}</span></> : "Chưa có ngưỡng được cấu hình từ backend."}
       </div>
 
       {/* Level */}

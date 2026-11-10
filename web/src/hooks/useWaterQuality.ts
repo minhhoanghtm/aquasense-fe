@@ -17,7 +17,6 @@ export const useWaterQuality = (pondId?: string) => {
         const fetchWaterQuality = async () => {
             try {
                 setError(null);
-                setWaterQuality(null);
                 setLoading(true);
 
                 const data = await getCurrentWaterQuality(pondId);
@@ -32,7 +31,15 @@ export const useWaterQuality = (pondId?: string) => {
         };
 
         fetchWaterQuality();
-        return () => { cancelled = true; };
+        const onTelemetryUpdate = (event: Event) => {
+            const detail = (event as CustomEvent<{ pondId?: string }>).detail;
+            if (detail?.pondId === pondId) void fetchWaterQuality();
+        };
+        window.addEventListener("telemetry-updated", onTelemetryUpdate);
+        return () => {
+            cancelled = true;
+            window.removeEventListener("telemetry-updated", onTelemetryUpdate);
+        };
     }, [pondId]);
 
     return {

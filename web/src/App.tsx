@@ -70,6 +70,9 @@ function renderRoutes(routeList: RouteConfig[]) {
   });
 }
 
+const mainRouteConfigs = routes.filter((r) => r.path !== '/login' && r.path !== '/forgot-password');
+const renderedMainRoutes = renderRoutes(mainRouteConfigs);
+
 function App() {
   return (
     <Routes>
@@ -79,7 +82,7 @@ function App() {
          <Route index element={<UnauthorizedPage />} />
       </Route>
       <Route element={<MainLayout />}>
-        {renderRoutes(routes.filter((r) => r.path !== '/login' && r.path !== '/forgot-password'))}
+        {renderedMainRoutes}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

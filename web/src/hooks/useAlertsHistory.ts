@@ -30,6 +30,8 @@ export const useAlertsHistory = () => {
         };
 
         fetchAlertsData();
+        window.addEventListener("alerts-updated", fetchAlertsData);
+        return () => window.removeEventListener("alerts-updated", fetchAlertsData);
     }, []);
 
     const safeAlerts = Array.isArray(alerts) ? alerts : [];
@@ -60,5 +62,8 @@ export const useAlertsHistory = () => {
         },
         loading,
         error,
+        refetch: () => {
+            window.dispatchEvent(new Event("alerts-updated"));
+        },
     };
 };

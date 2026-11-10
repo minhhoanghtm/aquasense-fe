@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { X, Cpu, Radio, Layers, Wifi, Activity } from "lucide-react";
 import type { Devices } from "../../types/Devices";
 import type { Pond } from "../../types/Pond";
+import Dropdown, { type DropdownOption } from "../../components/Dropdown";
 
 interface DeviceFormModalProps {
   isOpen: boolean;
@@ -31,6 +32,30 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const pondOptions = useMemo<DropdownOption[]>(() => {
+    return ponds.map((p) => {
+      const pId = p.pondId || p.id || "";
+      const areaDesc =
+        p.areaM2 !== undefined
+          ? `${p.areaM2.toLocaleString()} m²`
+          : p.area !== undefined
+          ? `${p.area} ha`
+          : undefined;
+      return {
+        label: p.name || p.pondName || "Ao nuôi chưa đặt tên",
+        value: pId,
+        badge: areaDesc,
+      };
+    });
+  }, [ponds]);
+
+  const statusOptions: DropdownOption[] = [
+    { label: "Chọn trạng thái", value: "" },
+    { label: "Trực tuyến", value: "ONLINE" },
+    { label: "Ngoại tuyến", value: "OFFLINE" },
+    { label: "Bảo trì", value: "MAINTENANCE" },
+  ];
 
   const isEditing = !!initialData;
 
@@ -161,28 +186,18 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
           </div>
 
           {/* Row 2: Assigned Pond */}
-          <div>
+          <div className="relative z-30">
             <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
               Vuông nuôi gắn kết <span className="text-rose-400">*</span>
             </label>
-            <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
-              <Layers size={15} className="text-amber-400 shrink-0" />
-              <select
-                value={pondId}
-                onChange={(e) => setPondId(e.target.value)}
-                className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
-                required
-              >
-                {ponds.map((p) => {
-                  const pId = p.pondId || p.id;
-                  return (
-                    <option key={pId} value={pId} className="bg-[#07242e]">
-                      {p.name || p.pondName || "Ao nuôi chưa đặt tên"} ({p.areaM2 !== undefined ? `${p.areaM2.toLocaleString()} m²` : p.area !== undefined ? `${p.area} ha` : "diện tích chưa cập nhật"})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <Dropdown
+              value={pondId}
+              options={pondOptions}
+              onChange={setPondId}
+              icon={<Layers size={15} className="text-amber-400" />}
+              placeholder="Chọn vuông nuôi"
+              searchPlaceholder="Tìm kiếm vuông nuôi..."
+            />
           </div>
 
           {/* Row 3: Firmware & Status */}
@@ -203,23 +218,18 @@ export const DeviceFormModal: React.FC<DeviceFormModalProps> = ({
               </div>
             </div>
 
-            <div>
+            <div className="relative z-20">
               <label className="block text-xs font-semibold text-[var(--text-body)] mb-1.5">
                 Trạng thái hoạt động
               </label>
-              <div className="flex items-center gap-2 rounded-xl border border-cyan-800/80 bg-[#051c24] px-3 py-2 transition-all duration-200 hover:border-cyan-500 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40 shadow-sm">
-                <Activity size={15} className="text-emerald-400 shrink-0" />
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none cursor-pointer"
-                >
-                  <option value="" className="bg-[#07242e]">Chọn trạng thái</option>
-                  <option value="ONLINE" className="bg-[#07242e]">Trực tuyến</option>
-                  <option value="OFFLINE" className="bg-[#07242e]">Ngoại tuyến</option>
-                  <option value="MAINTENANCE" className="bg-[#07242e]">Bảo trì</option>
-                </select>
-              </div>
+              <Dropdown
+                value={status}
+                options={statusOptions}
+                onChange={setStatus}
+                icon={<Activity size={15} className="text-emerald-400" />}
+                placeholder="Chọn trạng thái"
+                searchPlaceholder="Tìm trạng thái..."
+              />
             </div>
           </div>
 

@@ -98,6 +98,36 @@ export const updateStaff = async (id: string, staffData: UpdateStaffRequest): Pr
   return normalizeStaff(response.user);
 };
 
+export interface AdminCreateUserRequest {
+  fullName: string;
+  phoneNumber: string;
+  password: string;
+  email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth?: string;
+  role?: Role;
+  mustChangePassword?: boolean;
+}
+
+export const createUserByAdmin = async (userData: AdminCreateUserRequest): Promise<User> => {
+  const response = await api<{ message: string; user: BackendUser }>("/users", {
+    method: "POST",
+    body: JSON.stringify(userData),
+  });
+  return normalizeStaff(response.user);
+};
+
+export const unlockStaffAccount = async (
+  id: string,
+  reason: string = "Mở khóa tài khoản bởi Quản trị viên"
+): Promise<{ message: string; userId: string }> => {
+  if (!id) throw new Error("ID nhân viên không hợp lệ");
+  return api<{ message: string; userId: string }>(`/users/${id}/unlock`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason }),
+  });
+};
+
 export const approveStaffAccount = (id: string): Promise<User> =>
   updateStaff(id, { isActive: true });
 
@@ -111,5 +141,6 @@ export const deleteStaff = async (id: string): Promise<boolean> => {
   await api<unknown>(`/users/${id}`, { method: "DELETE" });
   return true;
 };
+
 
 

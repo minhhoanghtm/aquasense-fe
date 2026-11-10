@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Radio, Wind, Activity, Cpu } from "lucide-react";
 import DeviceItem from "../../../components/DeviceItem";
 import type { Devices } from "../../../types/Devices";
@@ -19,7 +20,7 @@ interface PondDevicesProps {
   devices?: Devices[];
 }
 
-const PondDevices = ({ devices = [] }: PondDevicesProps) => {
+const PondDevices = memo(({ devices = [] }: PondDevicesProps) => {
   const displayDevices =
     devices.length > 0
       ? devices.map((d) => {
@@ -64,7 +65,8 @@ const PondDevices = ({ devices = [] }: PondDevicesProps) => {
       </div>
     </div>
   );
-};
+});
+PondDevices.displayName = "PondDevices";
 
 export default PondDevices;
 

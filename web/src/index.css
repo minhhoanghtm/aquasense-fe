@@ -17,7 +17,7 @@
      PANEL
      ================================ */
   --panel-bg: rgba(8, 39, 49, 0.64);
-  --panel-bg-dark: rgba(8, 39, 49, 0.64);
+  --panel-bg-dark: rgba(4, 22, 28, 0.85);
   --panel-highlight: rgba(77, 190, 190, 0.08);
   --panel-border: rgba(45, 212, 195, 0.22);
   --panel-border-strong: rgba(45, 212, 195, 0.38);
@@ -74,8 +74,6 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* Removed zoom: 0.9, as scaling should be responsive, not hardcoded zoom */
-
   background-color: var(--bg-primary);
   
   /*
@@ -94,6 +92,8 @@ body {
 
   color: var(--text-primary);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -109,9 +109,9 @@ body {
 
 @layer base {
   h1, h2, h3, h4 {
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-heading);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 
   h1 {
@@ -124,7 +124,7 @@ body {
 
   h2 {
     font-size: 18px;
-    line-height: 1.3;
+    line-height: 1.35;
     margin: 0 0 4px;
     @media (max-width: 1024px) {
       font-size: 16px;
@@ -133,13 +133,13 @@ body {
 
   h3 {
     font-size: 15px;
-    line-height: 1.3;
+    line-height: 1.35;
     margin: 0 0 2px;
   }
 
   h4 {
     font-size: 14px;
-    line-height: 1.3;
+    line-height: 1.35;
     margin: 0;
   }
 
@@ -171,102 +171,141 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgba(45, 212, 195, 0.35);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(45, 212, 195, 0.6);
 }
 
 /* ================================
-   CARD HOVER GLOW EFFECT
+   DASHBOARD CARD & PANELS
    ================================ */
 .dashboard-card {
   background-color: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dashboard-card:hover {
-  border-color: rgba(45, 212, 195, 0.58) !important;
-  background-color: rgba(10, 48, 60, 0.82);
-  box-shadow: 0 10px 28px -4px rgba(45, 212, 195, 0.24), 0 0 20px rgba(45, 212, 195, 0.18);
+/* Scoped hover effect strictly for interactive elements/cards */
+button.dashboard-card:hover,
+a.dashboard-card:hover,
+.dashboard-card-interactive:hover {
+  border-color: var(--panel-border-strong);
+  background-color: rgba(10, 48, 60, 0.78);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 0 16px rgba(45, 212, 195, 0.12);
 }
 
-/* Prevent parent card from glowing when hovering a child interactive element */
-.dashboard-card:has(button:hover),
-.dashboard-card:has(a:hover),
-.dashboard-card:has(.dashboard-card:hover) {
-  border-color: var(--panel-border) !important;
-  background-color: var(--panel-bg) !important;
-  box-shadow: none !important;
-  transform: none !important;
+/* ========================================================
+   CLEAN & ACCESSIBLE INPUT / FORM FOCUS & HOVER STYLING
+   Chỉ sáng ở viền tổng (wrapper/container), không sáng phần input ở trong.
+   ======================================================== */
+
+/* 1. Global reset: xóa outline mặc định của trình duyệt */
+input,
+textarea,
+select {
+  outline: none;
 }
 
-.rounded-3xl.border,
-.rounded-2xl.border:not(input):not(textarea):not(select),
-[class*="bg-(--panel-bg)"]:not(input):not(textarea):not(select),
-[class*="bg-[var(--panel-bg)]"]:not(input):not(textarea):not(select) {
-  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.rounded-3xl.border:hover,
-[class*="bg-(--panel-bg)"]:not(input):not(textarea):not(select):hover,
-[class*="bg-[var(--panel-bg)]"]:not(input):not(textarea):not(select):hover {
-  border-color: rgba(45, 212, 195, 0.58) !important;
-  background-color: rgba(10, 48, 60, 0.82);
-  box-shadow: 0 10px 28px -4px rgba(45, 212, 195, 0.24), 0 0 20px rgba(45, 212, 195, 0.18);
-}
-
-.rounded-2xl.border:not(input):not(textarea):not(select):hover {
-  border-color: rgba(45, 212, 195, 0.58) !important;
-  background-color: rgba(10, 48, 60, 0.82);
-  box-shadow: 0 10px 28px -4px rgba(45, 212, 195, 0.24), 0 0 20px rgba(45, 212, 195, 0.18);
-  transform: translateY(-2px);
-}
-
-.rounded-3xl.border:has(.rounded-2xl.border:hover),
-.rounded-3xl.border:has(.rounded-xl.border:hover),
-.rounded-3xl.border:has(.rounded-lg.border:hover),
-.rounded-3xl.border:has(.rounded-md.border:hover),
-.rounded-3xl.border:has(button:hover),
-.rounded-3xl.border:has(a:hover),
-.rounded-2xl.border:has(.rounded-2xl.border:hover),
-.rounded-2xl.border:has(.rounded-xl.border:hover),
-.rounded-2xl.border:has(.rounded-lg.border:hover),
-.rounded-2xl.border:has(.rounded-md.border:hover),
-.rounded-2xl.border:has(button:hover),
-.rounded-2xl.border:has(a:hover),
-[class*="bg-(--panel-bg)"]:has(.rounded-2xl.border:hover),
-[class*="bg-(--panel-bg)"]:has(.rounded-xl.border:hover),
-[class*="bg-(--panel-bg)"]:has(.rounded-lg.border:hover),
-[class*="bg-(--panel-bg)"]:has(.rounded-md.border:hover),
-[class*="bg-(--panel-bg)"]:has(button:hover),
-[class*="bg-(--panel-bg)"]:has(a:hover),
-[class*="bg-[var(--panel-bg)]"]:has(.rounded-2xl.border:hover),
-[class*="bg-[var(--panel-bg)]"]:has(.rounded-xl.border:hover),
-[class*="bg-[var(--panel-bg)]"]:has(.rounded-lg.border:hover),
-[class*="bg-[var(--panel-bg)]"]:has(.rounded-md.border:hover),
-[class*="bg-[var(--panel-bg)]"]:has(button:hover),
-[class*="bg-[var(--panel-bg)]"]:has(a:hover) {
-  border-color: var(--panel-border) !important;
-  background-color: var(--panel-bg) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-/* Form controls focus */
 input:focus,
 textarea:focus,
 select:focus {
   outline: none !important;
+}
+
+/* Khử hoàn toàn border/outline/box-shadow cho input bên trong bất kỳ container nào */
+div[class*="border"] > input,
+div[class*="border"] > textarea,
+div[class*="border"] > select,
+div[class*="rounded"] > input,
+div[class*="rounded"] > textarea {
+  border-width: 0 !important;
+  border-style: none !important;
+  outline: none !important;
   box-shadow: none !important;
 }
 
+/* 2. Các ô input lồng bên trong wrapper/khung viền tổng (có icon, prefix, suffix...):
+   TUYỆT ĐỐI không hiển thị viền/outline/box-shadow bên trong ô input khi hover, click hay focus */
+input[class*="bg-transparent"],
+textarea[class*="bg-transparent"],
+select[class*="bg-transparent"],
+[class*="focus-within"] input,
+[class*="focus-within"] textarea,
+[class*="focus-within"] select,
+.input-wrapper input,
+.input-wrapper textarea,
+.input-wrapper select {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-box-shadow: none !important;
+}
 
+input[class*="bg-transparent"]:hover,
+input[class*="bg-transparent"]:focus,
+input[class*="bg-transparent"]:focus-visible,
+input[class*="bg-transparent"]:active,
+textarea[class*="bg-transparent"]:hover,
+textarea[class*="bg-transparent"]:focus,
+textarea[class*="bg-transparent"]:focus-visible,
+textarea[class*="bg-transparent"]:active,
+select[class*="bg-transparent"]:hover,
+select[class*="bg-transparent"]:focus,
+select[class*="bg-transparent"]:focus-visible,
+select[class*="bg-transparent"]:active,
+[class*="focus-within"] input:hover,
+[class*="focus-within"] input:focus,
+[class*="focus-within"] input:focus-visible,
+[class*="focus-within"] input:active,
+[class*="focus-within"] textarea:hover,
+[class*="focus-within"] textarea:focus,
+[class*="focus-within"] textarea:focus-visible,
+[class*="focus-within"] textarea:active,
+[class*="focus-within"] select:hover,
+[class*="focus-within"] select:focus,
+[class*="focus-within"] select:focus-visible,
+[class*="focus-within"] select:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* 3. Các ô input độc lập (tự bản thân là viền tổng) */
+input:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+select:not([class*="bg-transparent"]):not([class*="border-none"]):hover {
+  border-color: var(--accent-bright);
+}
+
+input:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input:not([class*="bg-transparent"]):not([class*="border-none"]):focus-visible,
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]):focus-visible,
+select:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+select:not([class*="bg-transparent"]):not([class*="border-none"]):focus-visible {
+  border-color: var(--accent) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px rgba(45, 212, 195, 0.4) !important;
+}
+
+/* 4. Focus phím tab cho button / link */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
