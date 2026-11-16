@@ -1,6 +1,7 @@
 import React from "react";
 import ProgressCircle from "./ProgressCircle";
 import { getMetricStatus } from "../utils/metricStatus";
+import { formatMetricValue } from "../utils/formatNumber";
 import {
   DropletsIcon,
   ThermometerIcon,
@@ -99,7 +100,7 @@ const MetricCard = ({
           size={120}
           strokeWidth={10}
           status={level}
-        /> : <span className="text-3xl font-semibold text-[var(--text-primary)]">{value} {unit}</span>}
+      /> : <span className="text-3xl font-semibold text-[var(--text-primary)]">{formatMetricValue(value)} {unit}</span>}
       </div>
 
       {/* Threshold */}

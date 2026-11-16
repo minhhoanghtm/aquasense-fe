@@ -78,8 +78,12 @@ export default function AIAnalysis() {
         if (!selectedPondId) return;
         setTriggering(true);
         try {
-            await triggerPondPrediction(selectedPondId);
-            showToast("Đã kích hoạt tính toán AI cho ao thành công!");
+            const prediction = await triggerPondPrediction(selectedPondId);
+            showToast(
+                prediction.isFallback
+                    ? "Dự báo đang dùng quy tắc dự phòng; kiểm tra dữ liệu cảm biến và trạng thái dịch vụ AI."
+                    : "Đã kích hoạt tính toán AI cho ao thành công!",
+            );
             await loadHistory(selectedPondId);
             window.dispatchEvent(new Event("telemetry-updated"));
         } catch (err: any) {

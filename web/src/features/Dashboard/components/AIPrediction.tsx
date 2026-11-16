@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Sparkles, Bell, Lightbulb, TrendingUp, Info, Clock } from "lucide-react";
 import type { Pond } from "../../../types/Pond";
 import { useAIAnalysis } from "../../../hooks/useAIAnalysis";
@@ -8,9 +9,12 @@ interface AIPredictionProps {
   pondId: string;
   pond?: Pond | null;
   alerts?: any[];
+  className?: string;
 }
 
-const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
+const DASHBOARD_ALERT_PREVIEW_LIMIT = 5;
+
+const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) => {
   const [activeTab, setActiveTab] = useState<"prediction" | "alerts" | "recommendations">("prediction");
   const { predictions, recommendations, loading, error, available } = useAIAnalysis(pondId, false);
 
@@ -72,15 +76,16 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
       : smartFallbackRecommendation
       ? [smartFallbackRecommendation]
       : [];
+  const visibleAlerts = pondAlerts.slice(0, DASHBOARD_ALERT_PREVIEW_LIMIT);
 
   const emptyState = (text: string) => (
     <p className="py-5 text-xs text-[var(--text-muted)] text-center">{text}</p>
   );
 
   return (
-    <div className="dashboard-card p-5 sm:p-6 text-left flex flex-col flex-1 min-h-[300px] shadow-md w-full">
+    <div className={`dashboard-card p-5 sm:p-6 text-left flex flex-col shadow-md w-full flex-[0_0_auto] ${className || ""}`}>
       {/* Title */}
-      <div className="flex items-center mb-5">
+      <div className="flex items-center mb-4 shrink-0">
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)] shrink-0">
           <Sparkles size={20} className="animate-pulse" />
         </div>
@@ -95,7 +100,7 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl mb-4 gap-1">
+      <div className="flex p-1 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl mb-3.5 gap-1 shrink-0">
         {([
           ["prediction", Sparkles, "Dự đoán", prediction ? 1 : 0],
           ["alerts", Bell, "Cảnh báo", pondAlerts.length],
@@ -128,7 +133,7 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
 
       {/* Tab: Dự đoán */}
       {activeTab === "prediction" && (
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col pr-1">
           {!available ? (
             emptyState("Backend chưa cung cấp API dự báo AI.")
           ) : error ? (
@@ -137,10 +142,10 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
             emptyState("Đang tải dự báo cho ao đã chọn...")
           ) : prediction?.description ? (
             <>
-              <p className="text-sm text-[var(--text-heading)] font-semibold leading-relaxed mb-4">
+              <p className="text-sm text-[var(--text-heading)] font-semibold leading-relaxed mb-3">
                 {prediction.description}
               </p>
-              <div className="grid grid-cols-2 gap-3.5 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3.5 mb-4">
+              <div className="grid grid-cols-2 gap-3 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3 mb-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">
                     Xu hướng
@@ -160,7 +165,7 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
                 </div>
               </div>
               {typeof confidenceScore === "number" && (
-                <div className="mt-auto pt-1">
+                <div className="pt-1 pb-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider uppercase">
                       Độ tin cậy
@@ -186,30 +191,40 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
 
       {/* Tab: Cảnh báo */}
       {activeTab === "alerts" && (
-        <div className="flex flex-col gap-2 flex-1 min-h-0 max-h-[360px] overflow-y-auto custom-scrollbar pr-1 pb-2">
+        <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1 pb-1">
           {pondAlerts.length > 0 ? (
-            pondAlerts.map((alert: any, index: number) => (
-              <div
-                key={alert.id ?? index}
-                className="relative flex flex-col w-full pl-3.5 pr-2.5 py-2.5 bg-[var(--panel-bg-dark)]/40 border border-[var(--panel-border)]/50 hover:border-cyan-500/30 hover:bg-[var(--panel-highlight)] rounded-xl transition-all shadow-sm text-left"
-              >
-                <span className="absolute left-1.5 top-3 bottom-3 w-[3px] bg-[var(--critical)] rounded-full" />
-                <p className="font-semibold text-xs text-[var(--text-heading)] leading-snug">
-                  {alert.message || alert.title || "Cảnh báo chỉ số"}
-                </p>
-                <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mt-1.5 pt-1 border-t border-[var(--panel-border)]/20">
-                  <span className="flex items-center gap-1 font-mono text-cyan-300/80">
-                    <Clock size={10} />
-                    {formatVietnamDateTime(alert.createdAt || alert.time, {
-                      showSeconds: false,
-                    })}
-                  </span>
-                  <span className="text-slate-400 font-medium">
-                    {getTimeAgo(alert.createdAt || alert.time)}
-                  </span>
+            <>
+              {visibleAlerts.map((alert: any, index: number) => (
+                <div
+                  key={alert.id ?? index}
+                  className="relative flex flex-col w-full pl-3.5 pr-2.5 py-2.5 bg-[var(--panel-bg-dark)]/40 border border-[var(--panel-border)]/50 hover:border-cyan-500/30 hover:bg-[var(--panel-highlight)] rounded-xl transition-all shadow-sm text-left"
+                >
+                  <span className="absolute left-1.5 top-3 bottom-3 w-[3px] bg-[var(--critical)] rounded-full" />
+                  <p className="font-semibold text-xs text-[var(--text-heading)] leading-snug">
+                    {alert.message || alert.title || "Cảnh báo chỉ số"}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mt-1.5 pt-1 border-t border-[var(--panel-border)]/20">
+                    <span className="flex items-center gap-1 font-mono text-cyan-300/80">
+                      <Clock size={10} />
+                      {formatVietnamDateTime(alert.createdAt || alert.time, {
+                        showSeconds: false,
+                      })}
+                    </span>
+                    <span className="text-slate-400 font-medium">
+                      {getTimeAgo(alert.createdAt || alert.time)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+              {pondAlerts.length > DASHBOARD_ALERT_PREVIEW_LIMIT && (
+                <Link
+                  to="/alerts"
+                  className="text-center text-xs font-medium text-teal-400 hover:text-teal-300 py-1"
+                >
+                  Xem tất cả {pondAlerts.length} cảnh báo
+                </Link>
+              )}
+            </>
           ) : (
             emptyState(`Ao "${pond?.name || "này"}" không có cảnh báo nào.`)
           )}
@@ -218,7 +233,7 @@ const AIPrediction = ({ pondId, pond, alerts }: AIPredictionProps) => {
 
       {/* Tab: Khuyến nghị */}
       {activeTab === "recommendations" && (
-        <div className="flex flex-col gap-2.5 flex-1 min-h-0 max-h-[360px] overflow-y-auto custom-scrollbar pr-1 pb-2">
+        <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto custom-scrollbar pr-1 pb-1">
           {displayedRecommendations.length > 0 ? (
             displayedRecommendations.map((recommendation, index) => (
               <div

@@ -31,6 +31,7 @@ import {
   type AggregatedChartPoint,
 } from "../utils/waterQualityAggregation";
 import { formatVietnamDateTime } from "../../../utils/date";
+import { formatMetricValue } from "../../../utils/formatNumber";
 
 interface WaterQualityChartProps {
   waterQuality: any;
@@ -215,7 +216,7 @@ const WaterQualityChart = ({
               {currentParam.name}:
             </span>
             <span className="text-sm font-mono font-bold text-white ml-auto">
-              {data.avg} {currentParam.unit}
+              {formatMetricValue(data.avg)} {currentParam.unit}
             </span>
           </div>
 
@@ -225,7 +226,7 @@ const WaterQualityChart = ({
                 <div className="flex items-center gap-1.5 text-rose-400 font-medium">
                   <AlertTriangle size={12} className="shrink-0" />
                   <span>
-                    Vượt ngưỡng (chuẩn: {thresholdMin} - {thresholdMax} {currentParam.unit})
+                    Vượt ngưỡng (chuẩn: {formatMetricValue(thresholdMin)} - {formatMetricValue(thresholdMax)} {currentParam.unit})
                   </span>
                 </div>
               ) : (
@@ -244,7 +245,7 @@ const WaterQualityChart = ({
             {data.count > 1 ? (
               <div className="mt-1 flex justify-between items-center text-[10px] text-[var(--text-muted)]">
                 <span>
-                  Dao động: {data.min} - {data.max} {currentParam.unit}
+                  Dao động: {formatMetricValue(data.min)} - {formatMetricValue(data.max)} {currentParam.unit}
                 </span>
                 <span className="font-mono text-cyan-300">({data.count} mẫu đo)</span>
               </div>
@@ -346,7 +347,7 @@ const WaterQualityChart = ({
           </span>
           <div className="flex items-baseline gap-1 my-0.5">
             <span className="text-base sm:text-lg font-bold font-mono text-white">
-              {stats.latestValue !== null ? stats.latestValue : "--"}
+              {stats.latestValue !== null ? formatMetricValue(stats.latestValue) : "--"}
             </span>
             <span className="text-xs text-[var(--text-muted)]">
               {currentParam.unit}
@@ -382,7 +383,7 @@ const WaterQualityChart = ({
           </span>
           <div className="flex items-baseline gap-1 my-0.5">
             <span className="text-base sm:text-lg font-bold font-mono text-cyan-300">
-              {stats.minValue !== null ? stats.minValue : "--"}
+              {stats.minValue !== null ? formatMetricValue(stats.minValue) : "--"}
             </span>
             <span className="text-xs text-[var(--text-muted)]">
               {currentParam.unit}
@@ -400,7 +401,7 @@ const WaterQualityChart = ({
           </span>
           <div className="flex items-baseline gap-1 my-0.5">
             <span className="text-base sm:text-lg font-bold font-mono text-amber-300">
-              {stats.maxValue !== null ? stats.maxValue : "--"}
+              {stats.maxValue !== null ? formatMetricValue(stats.maxValue) : "--"}
             </span>
             <span className="text-xs text-[var(--text-muted)]">
               {currentParam.unit}
@@ -418,7 +419,7 @@ const WaterQualityChart = ({
           </span>
           <div className="flex items-baseline gap-1 my-0.5">
             <span className="text-base sm:text-lg font-bold font-mono text-teal-300">
-              {stats.avgValue !== null ? stats.avgValue : "--"}
+              {stats.avgValue !== null ? formatMetricValue(stats.avgValue) : "--"}
             </span>
             <span className="text-xs text-[var(--text-muted)]">
               {currentParam.unit}
@@ -524,7 +525,7 @@ const WaterQualityChart = ({
               axisLine={false}
               dx={-4}
               domain={yDomain}
-              tickFormatter={(val) => `${val}`}
+              tickFormatter={(val) => formatMetricValue(Number(val))}
               padding={{ top: 12, bottom: 12 }}
             />
 
@@ -543,7 +544,7 @@ const WaterQualityChart = ({
                 strokeWidth={1.2}
                 strokeOpacity={0.8}
                 label={{
-                  value: `Min: ${thresholdMin} ${currentParam.unit}`,
+                  value: `Min: ${formatMetricValue(thresholdMin)} ${currentParam.unit}`,
                   fill: "#fb7185",
                   fontSize: 10,
                   position: "insideBottomLeft",
@@ -558,7 +559,7 @@ const WaterQualityChart = ({
                 strokeWidth={1.2}
                 strokeOpacity={0.8}
                 label={{
-                  value: `Max: ${thresholdMax} ${currentParam.unit}`,
+                  value: `Max: ${formatMetricValue(thresholdMax)} ${currentParam.unit}`,
                   fill: "#fb7185",
                   fontSize: 10,
                   position: "insideTopLeft",
@@ -624,7 +625,7 @@ const WaterQualityChart = ({
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 border-t border-dashed border-rose-400" />
               <span className="text-rose-300">
-                Ngưỡng an toàn ({thresholdMin} - {thresholdMax} {currentParam.unit})
+                Ngưỡng an toàn ({formatMetricValue(thresholdMin)} - {formatMetricValue(thresholdMax)} {currentParam.unit})
               </span>
             </div>
           )}

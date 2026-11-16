@@ -1,4 +1,8 @@
-export type DeviceStatus = "ONLINE" | "OFFLINE" | "MAINTENANCE";
+/**
+ * `ONLINE`, `OFFLINE` and `MAINTENANCE` are confirmed by the API. `UNKNOWN`
+ * is a presentation-only value used when the API has not supplied a status.
+ */
+export type DeviceStatus = "ONLINE" | "OFFLINE" | "MAINTENANCE" | "UNKNOWN";
 
 export interface DevicePondInfo {
   pondId?: string;

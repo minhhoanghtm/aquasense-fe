@@ -1,5 +1,6 @@
 import React from "react";
 import { formatVietnamDateTime } from "../utils/date";
+import { formatMetricValue } from "../utils/formatNumber";
 
 export interface ReadingMetric {
   id?: string | number;
@@ -95,7 +96,7 @@ export const LatestReadingCard: React.FC<LatestReadingCardProps> = ({
               {/* Metric Value */}
               <div className="mt-3">
                 <span className="text-xl md:text-2xl font-extrabold text-[var(--text-primary)] font-mono tracking-tight">
-                  {metric.value}
+                  {typeof metric.value === "number" ? formatMetricValue(metric.value) : metric.value}
                 </span>
               </div>
 

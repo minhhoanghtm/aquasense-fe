@@ -165,6 +165,11 @@ body {
 }
 
 /* Custom Scrollbar Styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 212, 195, 0.35) transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -194,6 +199,25 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (min-width: 1280px) {
+  .dashboard-main-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    align-items: stretch;
+  }
+
+  .dashboard-right-column {
+    height: 0 !important;
+    min-height: 100% !important;
+  }
 }
 
 /* Scoped hover effect strictly for interactive elements/cards */

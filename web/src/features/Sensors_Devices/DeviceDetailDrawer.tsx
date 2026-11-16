@@ -26,6 +26,7 @@ import {
   getLatestTelemetry,
   getTelemetryHistory,
 } from "../../services/deviceApi";
+import { formatMetricValue } from "../../utils/formatNumber";
 
 interface DeviceDetailDrawerProps {
   isOpen: boolean;
@@ -146,7 +147,7 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({
     {
       key: "ph",
       name: "Độ pH",
-      value: latestData?.ph !== undefined ? Number(latestData.ph).toFixed(2) : "—",
+      value: latestData?.ph !== undefined ? formatMetricValue(Number(latestData.ph)) : "—",
       unit: "pH",
       optimal: "7.5 - 8.5",
       color: "text-teal-400",
@@ -154,7 +155,7 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({
     {
       key: "dissolvedOxygen",
       name: "Oxy hòa tan (DO)",
-      value: latestData?.dissolvedOxygen !== undefined ? Number(latestData.dissolvedOxygen).toFixed(2) : "—",
+      value: latestData?.dissolvedOxygen !== undefined ? formatMetricValue(Number(latestData.dissolvedOxygen)) : "—",
       unit: "mg/L",
       optimal: "≥ 5.0",
       color: "text-cyan-400",
@@ -162,7 +163,7 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({
     {
       key: "temperature",
       name: "Nhiệt độ nước",
-      value: latestData?.temperature !== undefined ? Number(latestData.temperature).toFixed(1) : "—",
+      value: latestData?.temperature !== undefined ? formatMetricValue(Number(latestData.temperature)) : "—",
       unit: "°C",
       optimal: "28 - 32",
       color: "text-amber-400",
@@ -170,7 +171,7 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({
     {
       key: "salinity",
       name: "Độ mặn",
-      value: latestData?.salinity !== undefined ? Number(latestData.salinity).toFixed(1) : "—",
+      value: latestData?.salinity !== undefined ? formatMetricValue(Number(latestData.salinity)) : "—",
       unit: "‰",
       optimal: "15 - 25",
       color: "text-indigo-400",

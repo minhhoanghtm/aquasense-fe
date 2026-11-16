@@ -8,6 +8,7 @@ interface AlertsPondProps {
   pondName?: string;
   loading?: boolean;
   error?: string | null;
+  className?: string;
 }
 
 const AlertsPond = ({
@@ -16,6 +17,7 @@ const AlertsPond = ({
   pondName,
   loading = false,
   error,
+  className,
 }: AlertsPondProps) => {
   const rawAlerts = Array.isArray(alerts) ? alerts : [];
 
@@ -40,9 +42,9 @@ const AlertsPond = ({
   const count = safeAlerts.length;
 
   return (
-    <div className="dashboard-card p-5 sm:p-6 text-left flex-1 min-h-[340px] flex flex-col shadow-md w-full">
+    <div className={`dashboard-card p-5 sm:p-6 text-left flex flex-col shadow-md w-full flex-[1_1_auto] min-h-0 max-h-[480px] xl:max-h-none overflow-hidden ${className || ""}`}>
       {/* Title + action */}
-      <div className="flex justify-between items-center w-full mb-3.5 shrink-0">
+      <div className="flex justify-between items-center w-full mb-3 shrink-0">
         <div className="flex flex-col items-start min-w-0 pr-2">
           <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide truncate">
             Cảnh báo vuông nuôi{pondName ? ` • ${pondName}` : ""}
@@ -70,7 +72,7 @@ const AlertsPond = ({
       </div>
 
       {/* List alert */}
-      <div className="flex-1 min-h-0 flex flex-col w-full overflow-y-auto custom-scrollbar pr-1.5 space-y-2 pb-2">
+      <div className="flex-1 min-h-0 flex flex-col w-full overflow-y-auto custom-scrollbar pr-1.5 space-y-2 pb-1">
         {loading && (
           <p className="text-xs text-[var(--text-muted)] py-4 text-center">
             Đang tải cảnh báo...
@@ -115,9 +117,9 @@ const AlertsPond = ({
       </div>
 
       {/* Subtle footer info when there are multiple alerts */}
-      {count > 3 && (
+      {count > 0 && (
         <div className="mt-auto pt-2.5 border-t border-[var(--panel-border)]/40 flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0">
-          <span>Tổng cộng {count} cảnh báo (cuộn để xem tiếp)</span>
+          <span>Tổng cộng {count} cảnh báo</span>
           <Link
             to="/alerts"
             className="text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1 transition-colors"

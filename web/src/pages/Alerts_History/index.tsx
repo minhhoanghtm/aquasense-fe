@@ -12,6 +12,7 @@ import { useAlertsHistory } from "../../hooks/useAlertsHistory";
 import { resolveAlert } from "../../services/alertsApi";
 import { getCurrentUser } from "../../services/authApi";
 import { formatVietnamDateTime } from "../../utils/date";
+import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
 import { CheckCircle2, X, Info } from "lucide-react";
 
 export default function Alerts() {
@@ -19,8 +20,9 @@ export default function Alerts() {
 
     const { ponds } = usePonds();
     const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
-    const { pond, device } = usePond(selectedPondId);
+    const { pond, device, devices } = usePond(selectedPondId);
     const { alerts, rules, summary, loading, error, refetch } = useAlertsHistory();
+    useTelemetryRealtime(selectedPondId);
 
     const currentUser = getCurrentUser();
     const roleUpper = currentUser?.role?.toUpperCase();
@@ -175,6 +177,7 @@ export default function Alerts() {
                 description="Hệ thống giám sát chất lượng nước vuông nuôi tôm sử dụng IoT và AI"
                 pond={pond}
                 device={device}
+                devices={devices}
             />
 
             {toastMessage && (

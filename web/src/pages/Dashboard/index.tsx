@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Building2, RefreshCw, Waves } from "lucide-react";
 import Title from "../../components/Title";
 import WaterQualityGrid from "../../features/Dashboard/components/WaterQualityGrid";
 import WaterQualityChart from "../../features/Dashboard/components/WaterQualityChart";
@@ -11,6 +13,7 @@ import { usePond } from "../../hooks/usePond";
 import { useWaterQuality } from "../../hooks/useWaterQuality";
 import { usePondAlerts } from "../../hooks/usePondAlerts";
 import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
+import { getCurrentUser } from "../../services/authApi";
 
 const SELECTED_POND_STORAGE_KEY = "dashboard:selectedPondId";
 
@@ -19,7 +22,9 @@ const Dashboard = () => {
 
   const [selectedPondId, setSelectedPondId] = useState("");
   const { ponds, infoPond, allAlerts, loading: pondsLoading, error: pondsError, alertsError: allAlertsError } = usePonds();
-  const { pond, device, loading: pondLoading, error: pondError } = usePond(selectedPondId);
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role?.toUpperCase() === "ADMIN";
+  const { pond, device, devices, loading: pondLoading, error: pondError } = usePond(selectedPondId);
   const { waterQuality, loading: waterQualityLoading, error: waterQualityError } = useWaterQuality(selectedPondId);
   const { alerts, loading: alertsLoading, error: alertsError } = usePondAlerts(selectedPondId);
   useTelemetryRealtime(selectedPondId);
@@ -120,12 +125,29 @@ const Dashboard = () => {
     return <div className="w-full p-6 text-sm text-[var(--text-muted)]">Đang tải danh sách ao nuôi...</div>;
   }
 
-  if (ponds.length === 0) {
-    return <div className="w-full p-6 text-sm text-[var(--text-muted)]">Chưa có ao nuôi để hiển thị.</div>;
-  }
-
   if (pondsError) {
     return <div className="w-full p-6 text-sm text-[var(--critical)]">Không thể tải danh sách ao nuôi: {pondsError}</div>;
+  }
+
+  if (ponds.length === 0) {
+    return (
+      <div className="w-full px-4 py-6 sm:px-6">
+        <section className="dashboard-card mx-auto max-w-2xl p-6 sm:p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/25 bg-teal-400/10 text-teal-300"><Waves size={28} /></div>
+          <h1 className="mt-4 text-xl font-bold text-[var(--text-heading)]">{isAdmin ? "Chưa có dữ liệu trại hoặc ao nuôi" : "Chưa có ao nuôi để hiển thị"}</h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[var(--text-muted)]">
+            {isAdmin ? "Bạn vẫn có thể sử dụng hệ thống. Hãy kiểm tra lại danh sách trại, hoặc tạo trại và ao nuôi đầu tiên để bắt đầu theo dõi vận hành." : "Dữ liệu ao nuôi hiện chưa sẵn sàng. Vui lòng kiểm tra lại sau."}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {isAdmin && <>
+              <Link to="/farms" className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-[var(--text-on-accent)] hover:brightness-110"><Building2 size={16} />Quản lý trại nuôi</Link>
+              <Link to="/monitoring" className="inline-flex items-center gap-2 rounded-xl border border-[var(--panel-border-strong)] px-4 py-2.5 text-sm font-semibold text-[var(--text-body)] hover:bg-[var(--panel-highlight)]"><Waves size={16} />Thêm ao nuôi</Link>
+            </>}
+            <button type="button" onClick={() => window.dispatchEvent(new Event("ponds-updated"))} className="inline-flex items-center gap-2 rounded-xl border border-[var(--panel-border-strong)] px-4 py-2.5 text-sm font-semibold text-[var(--text-body)] hover:bg-[var(--panel-highlight)]"><RefreshCw size={16} />Kiểm tra lại</button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -136,6 +158,7 @@ const Dashboard = () => {
           description="Hệ thống giám sát chất lượng nước vuông nuôi tôm sử dụng IoT và AI"
           pond={pond}
           device={device}
+          devices={devices}
         />
       </div>
       {allAlertsError && (
@@ -146,8 +169,10 @@ const Dashboard = () => {
       <div>
         <WaterQualityGrid waterQuality={waterQuality} loading={waterQualityLoading || pondLoading} error={waterQualityError || pondError} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-        <div className="lg:col-span-2 flex flex-col justify-between h-full gap-4 sm:gap-5">
+      {/* Khu vực nội dung chính: Grid 2 cột (>= 1280px), 1 cột (< 1280px) */}
+      <div className="dashboard-main-grid grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-6 items-stretch w-full">
+        {/* Cột trái: Xu hướng chất lượng nước + Danh sách vuông nuôi */}
+        <div className="flex flex-col gap-6 min-w-0">
           <WaterQualityChart waterQuality={waterQuality} loading={waterQualityLoading} error={waterQualityError} />
           <PondList
             ponds={dashboardPonds}
@@ -158,14 +183,22 @@ const Dashboard = () => {
             onSelectPond={handleSelectPond}
           />
         </div>
-        <div className="lg:col-span-1 flex flex-col h-full gap-4 sm:gap-5">
-          <AIPrediction pondId={selectedPondId} pond={pond} alerts={pondAlerts} />
+
+        {/* Cột phải: Trợ lý AI + Cảnh báo vuông nuôi */}
+        <div className="dashboard-right-column flex flex-col gap-6 min-w-0 h-full">
+          <AIPrediction
+            pondId={selectedPondId}
+            pond={pond}
+            alerts={pondAlerts}
+            className="flex-[0_0_auto]"
+          />
           <AlertsPond
             alerts={pondAlerts}
             pondId={selectedPondId}
             pondName={pond?.name || pond?.pondName}
             loading={alertsLoading}
             error={alertsError}
+            className="flex-[1_1_auto] min-h-0 overflow-hidden"
           />
         </div>
       </div>

@@ -36,7 +36,12 @@ export const usePond = (pondId?: string) => {
                 }
             } catch (error) {
                 console.error("Lỗi lấy thông tin ao:", error);
-                if (!cancelled) setError(error instanceof Error ? error.message : "Không thể tải thông tin ao.");
+                if (!cancelled) {
+                    // Do not leave a stale ONLINE value visible when the API is unavailable.
+                    setDevice(null);
+                    setDevices([]);
+                    setError(error instanceof Error ? error.message : "Không thể tải thông tin ao.");
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -49,9 +54,27 @@ export const usePond = (pondId?: string) => {
         };
 
         window.addEventListener("ponds-updated", handleUpdate);
+        const handleTelemetryUpdate = (event: Event) => {
+            const detail = (event as CustomEvent<{ pondId?: string }>).detail;
+            // The event only triggers a re-fetch; it never decides ONLINE locally.
+            if (detail?.pondId === pondId) void fetchPond();
+        };
+        window.addEventListener("telemetry-updated", handleTelemetryUpdate);
+
+        const intervalId = window.setInterval(() => {
+            if (document.visibilityState === "visible") void fetchPond();
+        }, 30_000);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") void fetchPond();
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => {
             cancelled = true;
             window.removeEventListener("ponds-updated", handleUpdate);
+            window.removeEventListener("telemetry-updated", handleTelemetryUpdate);
+            window.clearInterval(intervalId);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [pondId]);
 

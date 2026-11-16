@@ -3,6 +3,7 @@ import type { Pond } from "../types/Pond";
 import { Droplet, MapPin, Calendar } from "lucide-react";
 import { formatVietnamDateTime } from "../utils/date";
 import type { Devices } from "../types/Devices";
+import { getPondConnectionStatus } from "../utils/deviceConnection";
 
 interface TitleProps {
   title: string,
@@ -11,6 +12,7 @@ interface TitleProps {
   // dropdown?: React.ReactNode;
   className?: string;
   device?: Devices | null;
+  devices?: Devices[];
 }
 
 const Title = memo(({
@@ -19,11 +21,13 @@ const Title = memo(({
   pond,
   // dropdown,
   className = "",
-  device
+  device,
+  devices
 }: TitleProps) => {
   const updatedAt = pond?.updatedAt ?? pond?.createdAt;
-  const isConnected = !!(device && device.status && device.status.toUpperCase() === "ACTIVE");
-  const statusText = isConnected ? "Đã kết nối" : "Mất kết nối";
+  // Prefer the full pond device list. `device` remains for pages that have not
+  // loaded the list yet, and is never used as a browser/WebSocket proxy.
+  const connection = getPondConnectionStatus(devices ?? (device ? [device] : []));
 
   return (
     <div className={`flex flex-col w-full min-h-[58px] ${className}`}>
@@ -61,11 +65,11 @@ const Title = memo(({
 
             <div className="flex items-center gap-1.5 whitespace-nowrap">
               <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"} opacity-75`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? "bg-[var(--success)]" : "bg-[var(--critical)]"}`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${connection.dotClass} opacity-75`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${connection.dotClass}`}></span>
               </span>
-              <span className={`${isConnected ? "text-[var(--success)]" : "text-[var(--critical)]"} font-medium`}>
-                {statusText}
+              <span className={`${connection.colorClass} font-medium`}>
+                {connection.label}
               </span>
             </div>
           </div>

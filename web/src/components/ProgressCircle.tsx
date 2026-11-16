@@ -66,7 +66,7 @@ const ProgressCircle = ({
 
       {/* Value */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-(--text-primary)">
-        <p className="text-4xl font-semibold leading-none">{value}</p>
+        <p className="text-4xl font-semibold leading-none">{formatMetricValue(value)}</p>
 
         {title && <p className="pt-3 text-sm text-(--text-muted)">{title}</p>}
       </div>
@@ -75,4 +75,6 @@ const ProgressCircle = ({
 };
 
 export default ProgressCircle;
+
+import { formatMetricValue } from "../utils/formatNumber";
 

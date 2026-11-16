@@ -1,4 +1,5 @@
 import React from "react";
+import { formatMetricValue } from "../utils/formatNumber";
 
 export type AlertLevel = "NORMAL" | "WARNING" | "DANGER";
 export type AlertStatus = "UNRESOLVED" | "PENDING" | "RESOLVED" | string;
@@ -76,9 +77,15 @@ const AlertItem: React.FC<AlertItemProps> = ({
   const levelStyle = levelBadgeStyles[level] || levelBadgeStyles.DANGER;
   const currentStatusConfig = getStatusConfig(statusText || status);
 
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))
+        ? Number(value)
+        : null;
   const displayValue =
     value !== undefined && value !== null
-      ? `${value}${unit ? ` ${unit}` : ""}`
+      ? `${numericValue !== null ? formatMetricValue(numericValue) : value}${unit ? ` ${unit}` : ""}`
       : null;
 
   return (
