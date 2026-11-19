@@ -89,8 +89,11 @@ const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) =>
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--accent)] shrink-0">
           <Sparkles size={20} className="animate-pulse" />
         </div>
-        <div className="flex flex-col ml-3.5 min-w-0">
-          <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide truncate">
+        <div className="flex flex-col ml-3.5 min-w-0 flex-1">
+          <h4
+            className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide truncate block w-full"
+            title={`Trợ lý AI${pond?.name ? ` • ${pond.name}` : ""}`}
+          >
             Trợ lý AI{pond?.name ? ` • ${pond.name}` : ""}
           </h4>
           <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mt-0.5 uppercase">

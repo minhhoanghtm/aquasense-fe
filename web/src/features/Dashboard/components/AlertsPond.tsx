@@ -44,31 +44,51 @@ const AlertsPond = ({
   return (
     <div className={`dashboard-card p-5 sm:p-6 text-left flex flex-col shadow-md w-full flex-[1_1_auto] min-h-0 max-h-[480px] xl:max-h-none overflow-hidden ${className || ""}`}>
       {/* Title + action */}
-      <div className="flex justify-between items-center w-full mb-3 shrink-0">
-        <div className="flex flex-col items-start min-w-0 pr-2">
-          <h4 className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide truncate">
-            Cảnh báo vuông nuôi{pondName ? ` • ${pondName}` : ""}
-          </h4>
-          <p className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider mt-0.5 uppercase">
-            {count > 0 ? `${count} cảnh báo cần xử lý` : "Không có cảnh báo nào"}
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-2.5 w-full mb-3.5 shrink-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 transition-colors ${
+              count > 0
+                ? "bg-rose-500/10 border border-rose-500/20 text-[var(--critical)]"
+                : "bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] text-[var(--text-muted)]"
+            }`}
+          >
+            <TriangleAlert size={20} />
+          </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          {count > 0 && (
-            <Link
-              to="/alerts"
-              className="text-xs text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1 transition-colors"
-              title="Xem tất cả cảnh báo"
+          <div className="flex flex-col min-w-0 flex-1">
+            <h4
+              className="text-[var(--text-heading)] font-semibold text-base leading-tight tracking-wide truncate block w-full"
+              title={`Cảnh báo vuông nuôi${pondName ? ` • ${pondName}` : ""}`}
             >
-              <span>Xem tất cả</span>
-              <ArrowUpRight size={13} />
-            </Link>
-          )}
-          <div className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[var(--critical)]">
-            <TriangleAlert size={16} />
+              Cảnh báo vuông nuôi
+            </h4>
+            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+              {pondName && (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 truncate max-w-[120px] sm:max-w-[150px] shrink-0"
+                  title={pondName}
+                >
+                  {pondName}
+                </span>
+              )}
+              <span className="text-[10px] text-[var(--text-muted)] font-semibold tracking-wider uppercase truncate">
+                {count > 0 ? `${count} cảnh báo cần xử lý` : "Không có cảnh báo nào"}
+              </span>
+            </div>
           </div>
         </div>
+
+        {count > 0 && (
+          <Link
+            to="/alerts"
+            className="text-xs text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1 transition-colors shrink-0 whitespace-nowrap px-2 py-1 rounded-lg hover:bg-teal-500/10"
+            title="Xem tất cả cảnh báo"
+          >
+            <span>Xem tất cả</span>
+            <ArrowUpRight size={13} />
+          </Link>
+        )}
       </div>
 
       {/* List alert */}
