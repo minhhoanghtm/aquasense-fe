@@ -20,30 +20,36 @@ export const usePond = (pondId?: string) => {
         }
 
         let cancelled = false;
+        let requestVersion = 0;
         const fetchPond = async () => {
+            const requestId = ++requestVersion;
             try {
                 setError(null);
                 setLoading(true);
+                // Never display the previous pond while a new selection is loading.
+                setPond(null);
+                setDevice(null);
+                setDevices([]);
 
                 const data = await getPondDashboard(pondId);
                 const devicesList = Array.isArray(data.devices) ? data.devices : [];
                 const dev = devicesList.length > 0 ? (devicesList[0] as Devices) : null;
 
-                if (!cancelled) {
+                if (!cancelled && requestId === requestVersion) {
                     setPond(data.pond);
                     setDevice(dev);
                     setDevices(devicesList);
                 }
             } catch (error) {
                 console.error("Lỗi lấy thông tin ao:", error);
-                if (!cancelled) {
-                    // Do not leave a stale ONLINE value visible when the API is unavailable.
+                if (!cancelled && requestId === requestVersion) {
                     setDevice(null);
                     setDevices([]);
+                    setPond(null);
                     setError(error instanceof Error ? error.message : "Không thể tải thông tin ao.");
                 }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled && requestId === requestVersion) setLoading(false);
             }
         };
 

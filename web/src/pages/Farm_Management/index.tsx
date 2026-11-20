@@ -150,8 +150,6 @@ export default function FarmManagement() {
       setIsFormOpen(false);
       setEditingFarm(null);
       await fetchFarmsList();
-    } catch (err: any) {
-      throw err;
     } finally {
       setFormSubmitting(false);
     }

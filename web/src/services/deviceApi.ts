@@ -1,5 +1,6 @@
 import type { Devices } from "../types/Devices";
 import { api } from "./api";
+import { assertBackendPondId } from "../utils/uuid";
 
 export interface CreateDevicePayload {
   deviceName: string;
@@ -36,6 +37,10 @@ const normalizeDevice = (d: any): Devices => ({
 export const getDevices = async (
   query: { pondId?: string; status?: string; search?: string; page?: number; limit?: number } = {}
 ): Promise<Devices[]> => {
+  if (query.pondId !== undefined) {
+    assertBackendPondId(query.pondId);
+  }
+
   // Backend enforces @Max(100) per page on FindDevicesQueryDto
   const safeLimit = Math.min(Math.max(query.limit ?? 100, 1), 100);
   const params = new URLSearchParams({ limit: String(safeLimit) });
@@ -66,6 +71,7 @@ export const getDevices = async (
 };
 
 export const getDevicesByPondId = async (pondId: string): Promise<Devices[]> => {
+  assertBackendPondId(pondId);
   return getDevices({ pondId });
 };
 

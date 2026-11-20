@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Title from "../../components/Title";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import WaterQualityRiskForecast from "../../features/AI_Analysis/components/WaterQualityRiskForecast";
@@ -33,8 +33,21 @@ export default function AIAnalysis() {
         [ponds]
     );
 
+    const verifiedPondNames = useMemo(
+        () => new Map(
+            ponds.flatMap((pond) => {
+                const pondId = pond.id || pond.pondId;
+                const pondName = pond.name || pond.pondName;
+                return pondId && pondName ? [[pondId, pondName] as const] : [];
+            }),
+        ),
+        [ponds],
+    );
+
     const [history, setHistory] = useState<RawAiPrediction[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
+    const historyRequestId = useRef(0);
     const [triggering, setTriggering] = useState(false);
     const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
@@ -57,20 +70,41 @@ export default function AIAnalysis() {
 
     const loadHistory = async (pondId: string) => {
         if (!pondId) return;
+
+        const requestId = ++historyRequestId.current;
+
         setHistoryLoading(true);
+        setHistoryError(null);
+        setHistory([]);
+
         try {
             const data = await getPredictionHistory(pondId, 10);
-            setHistory(data);
-        } catch {
-            setHistory([]);
+            if (requestId === historyRequestId.current) {
+                setHistory(data);
+            }
+        } catch (err) {
+            if (requestId === historyRequestId.current) {
+                setHistoryError(
+                    err instanceof Error
+                        ? err.message
+                        : "Không thể tải lịch sử dự báo."
+                );
+            }
         } finally {
-            setHistoryLoading(false);
+            if (requestId === historyRequestId.current) {
+                setHistoryLoading(false);
+            }
         }
     };
 
     useEffect(() => {
         if (selectedPondId) {
             loadHistory(selectedPondId);
+        } else {
+            historyRequestId.current += 1;
+            setHistory([]);
+            setHistoryError(null);
+            setHistoryLoading(false);
         }
     }, [selectedPondId]);
 
@@ -108,14 +142,22 @@ export default function AIAnalysis() {
         }
     };
 
-    const forecastItems = predictions.map((pred) => ({
-        pondName: pred.pondName || pond?.name || `Vuông ${pred.pondId}`,
-        riskLevel: pred.riskLevel,
-        riskLabel: pred.riskLabel || (pred.riskLevel === "LOW" ? "Rủi ro thấp" : pred.riskLevel === "MEDIUM" ? "Rủi ro trung bình" : "Rủi ro cao"),
-        description: pred.description || `Dự báo ${pred.parameterId} đạt ${pred.predictedValue} ${pred.unit}`,
-        confidenceScore: pred.confidenceScore ?? (typeof pred.confidence === "number" ? Math.round(pred.confidence * 100) : undefined),
-        confidenceLabel: pred.confidenceLabel || "ĐỘ TIN CẬY",
-    }));
+    const forecastItems = predictions.map((pred) => {
+        const predictionPondId = pred.pondId || selectedPondId;
+        const verifiedPondName = predictionPondId ? verifiedPondNames.get(predictionPondId) : undefined;
+
+        return {
+            // Only trust a pond name that came from the currently verified pond list.
+            pondName: verifiedPondName || `Ao nuôi · mã ${predictionPondId || "không xác định"}`,
+            riskLevel: pred.riskLevel,
+            riskLabel: pred.riskLabel || (pred.riskLevel === "LOW" ? "Rủi ro thấp" : pred.riskLevel === "MEDIUM" ? "Rủi ro trung bình" : "Rủi ro cao"),
+            description: pred.description || `Dự báo ${pred.parameterId} đạt ${pred.predictedValue} ${pred.unit}`,
+            confidenceScore: pred.confidenceScore ?? (typeof pred.confidence === "number" ? Math.round(pred.confidence * 100) : undefined),
+            confidenceLabel: pred.confidenceLabel || "ĐỘ TIN CẬY",
+            predictionSource: pred.predictionSource,
+            isFallback: pred.isFallback,
+        };
+    });
 
     return (
         <div className="w-full mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4 text-left">
@@ -218,9 +260,13 @@ export default function AIAnalysis() {
 
                 {historyLoading ? (
                     <div className="py-6 text-center text-xs text-[var(--text-muted)]">Đang tải lịch sử dự báo...</div>
+                ) : historyError ? (
+                    <div role="alert" className="py-6 text-center text-xs text-rose-400">
+                        Không thể tải lịch sử dự báo: {historyError}
+                    </div>
                 ) : history.length === 0 ? (
                     <div className="py-6 text-center text-xs text-[var(--text-muted)]">
-                        Chưa có bản ghi dự báo nào cho vuông nuôi này. Nhấn "Dự báo vuông này" để chạy tính toán.
+                        Chưa có bản ghi dự báo nào cho vuông nuôi này.
                     </div>
                 ) : (
                     <div className="overflow-x-auto custom-scrollbar">
@@ -264,7 +310,11 @@ export default function AIAnalysis() {
                                             </span>
                                         </td>
                                         <td className="py-2.5 px-3 text-[11px] text-[var(--text-muted)]">
-                                            {h.isFallback ? "Quy tắc Heuristic (Dự phòng)" : h.predictionSource || "AI Microservice"}
+                                            {h.isFallback === true || h.predictionSource === "HEURISTIC_RULE"
+                                                ? "Quy tắc Heuristic (Dự phòng)"
+                                                : h.isFallback === false && h.predictionSource === "AI_MICROSERVICE"
+                                                    ? "AI Microservice"
+                                                    : "Chưa xác định nguồn dự báo"}
                                         </td>
                                     </tr>
                                 ))}

@@ -11,7 +11,7 @@ export interface WaterQualityRiskForecastProps {
 
 export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> = ({
   title = "Dự báo rủi ro chất lượng nước",
-  subtitle = "Dự đoán AI · 24–72 giờ tới",
+  subtitle = "Dự báo ngắn hạn · 2 giờ tới",
   items = [],
   className = "",
 }) => {
@@ -45,9 +45,11 @@ export const WaterQualityRiskForecast: React.FC<WaterQualityRiskForecastProps> =
             description={item.description}
             confidenceScore={item.confidenceScore}
             confidenceLabel={item.confidenceLabel}
+            predictionSource={item.predictionSource}
+            isFallback={item.isFallback}
             onClick={item.onClick}
           />
-        )) : <p className="col-span-full py-6 text-sm text-(--text-muted)">Chưa có dự báo AI từ hệ thống.</p>}
+        )) : <p className="col-span-full py-6 text-sm text-(--text-muted)">Chưa có dự báo từ hệ thống.</p>}
       </div>
     </div>
   );

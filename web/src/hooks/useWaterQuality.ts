@@ -14,19 +14,26 @@ export const useWaterQuality = (pondId?: string) => {
         }
 
         let cancelled = false;
+        let requestVersion = 0;
         const fetchWaterQuality = async () => {
+            const requestId = ++requestVersion;
             try {
                 setError(null);
                 setLoading(true);
+                // Clear data from the prior pond before the new request can resolve.
+                setWaterQuality(null);
 
                 const data = await getCurrentWaterQuality(pondId);
 
-                if (!cancelled) setWaterQuality(data);
+                if (!cancelled && requestId === requestVersion) setWaterQuality(data);
             } catch (error) {
                 console.error("Lỗi lấy chỉ số nước:", error);
-                if (!cancelled) setError(error instanceof Error ? error.message : "Không thể tải dữ liệu cảm biến.");
+                if (!cancelled && requestId === requestVersion) {
+                    setWaterQuality(null);
+                    setError(error instanceof Error ? error.message : "Không thể tải dữ liệu cảm biến.");
+                }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled && requestId === requestVersion) setLoading(false);
             }
         };
 

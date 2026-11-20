@@ -205,8 +205,8 @@ export const calculateYAxisDomain = (
   }
 
   if (values.length === 0) {
-    let yMin = 0;
-    let yMax = 10;
+    let yMin: number;
+    let yMax: number;
     switch (paramId) {
       case "pH":
       case "ph":
@@ -265,17 +265,12 @@ export const calculateYAxisDomain = (
   }
 
   const diff = rawMax - rawMin;
-  let yMin = rawMin;
-  let yMax = rawMax;
-
-  if (diff < minSpan) {
-    const center = (rawMin + rawMax) / 2;
-    yMin = center - minSpan / 2;
-    yMax = center + minSpan / 2;
-  } else {
-    yMin = rawMin - padding;
-    yMax = rawMax + padding;
-  }
+  let [yMin, yMax] = diff < minSpan
+    ? [
+        (rawMin + rawMax) / 2 - minSpan / 2,
+        (rawMin + rawMax) / 2 + minSpan / 2,
+      ]
+    : [rawMin - padding, rawMax + padding];
 
   // Prevent values from going below logical physical limits
   if (paramId === "pH" || paramId === "ph") {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { X, Building2, MapPin, Maximize2, Loader2, AlertCircle, Shield } from "lucide-react";
 import type { Farm, CreateFarmPayload, UpdateFarmPayload } from "../../../types/Farm";
 import type { User } from "../../../types/User";
@@ -32,13 +32,7 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
   const [loadingManagers, setLoadingManagers] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && isAdmin) {
-      fetchManagers();
-    }
-  }, [isOpen, isAdmin]);
-
-  const fetchManagers = async () => {
+  const fetchManagers = useCallback(async () => {
     setLoadingManagers(true);
     try {
       const res = await getStaffList({ limit: 100 });
@@ -49,7 +43,13 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
     } finally {
       setLoadingManagers(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && isAdmin) {
+      fetchManagers();
+    }
+  }, [isOpen, isAdmin, fetchManagers]);
 
   useEffect(() => {
     if (initialData) {

@@ -164,12 +164,15 @@ export const formatLastActiveTime = (timestamp?: string | null) => {
   const now = new Date();
   const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  let relative = "";
-  if (diffSec < 60) relative = "Vừa xong";
-  else if (diffSec < 3600) relative = `${Math.floor(diffSec / 60)} phút trước`;
-  else if (diffSec < 86400) relative = `${Math.floor(diffSec / 3600)} giờ trước`;
-  else if (diffSec < 86400 * 7) relative = `${Math.floor(diffSec / 86400)} ngày trước`;
-  else relative = formatVietnamDateTime(date);
+  const relative = diffSec < 60
+    ? "Vừa xong"
+    : diffSec < 3600
+      ? `${Math.floor(diffSec / 60)} phút trước`
+      : diffSec < 86400
+        ? `${Math.floor(diffSec / 3600)} giờ trước`
+        : diffSec < 86400 * 7
+          ? `${Math.floor(diffSec / 86400)} ngày trước`
+          : formatVietnamDateTime(date);
 
   return {
     relative,

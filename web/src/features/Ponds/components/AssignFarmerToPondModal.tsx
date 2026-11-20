@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   X,
   UserPlus,
@@ -49,6 +49,21 @@ export const AssignFarmerToPondModal: React.FC<AssignFarmerToPondModalProps> = (
 
   const pondId = pond?.pondId || pond?.id || "";
 
+  const fetchFarmers = useCallback(async () => {
+    setLoadingFarmers(true);
+    try {
+      const res = await getStaffList({ limit: 100 });
+      const onlyFarmers = (res.data || []).filter(
+        (u) => u.role?.toUpperCase() === "FARMER"
+      );
+      setFarmers(onlyFarmers);
+    } catch (err: any) {
+      setError(err?.message || "Không thể tải danh sách Nông dân (Farmer).");
+    } finally {
+      setLoadingFarmers(false);
+    }
+  }, []);
+
   // Tải danh sách Nông dân (FARMER)
   useEffect(() => {
     if (!isOpen) return;
@@ -67,22 +82,7 @@ export const AssignFarmerToPondModal: React.FC<AssignFarmerToPondModalProps> = (
     } else {
       fetchFarmers();
     }
-  }, [isOpen, externalStaffList]);
-
-  const fetchFarmers = async () => {
-    setLoadingFarmers(true);
-    try {
-      const res = await getStaffList({ limit: 100 });
-      const onlyFarmers = (res.data || []).filter(
-        (u) => u.role?.toUpperCase() === "FARMER"
-      );
-      setFarmers(onlyFarmers);
-    } catch (err: any) {
-      setError(err?.message || "Không thể tải danh sách Nông dân (Farmer).");
-    } finally {
-      setLoadingFarmers(false);
-    }
-  };
+  }, [isOpen, externalStaffList, fetchFarmers]);
 
   // Khi mở modal cho vuông nuôi, đồng bộ danh sách Farmer đã phân công
   useEffect(() => {

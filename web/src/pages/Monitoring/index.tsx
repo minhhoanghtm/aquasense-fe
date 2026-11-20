@@ -97,6 +97,7 @@ export const Monitoring = () => {
   });
   const [selectedPondId, setSelectedPondId] = useState<string>("");
   const [pondDevices, setPondDevices] = useState<Devices[]>([]);
+  const [pondDevicesError, setPondDevicesError] = useState<string | null>(null);
   const [feedingSchedules, setFeedingSchedules] = useState<FeedingScheduleItem[]>([]);
 
   // Modals state
@@ -141,17 +142,39 @@ export const Monitoring = () => {
   const { waterQuality, loading: waterQualityLoading } = useWaterQuality(selectedPondId);
 
   useEffect(() => {
-    if (selectedPondId) {
-      getDevicesByPondId(selectedPondId).then((devs) => {
-        if (devs) setPondDevices(devs);
-      });
-      getFeedingSchedules(selectedPondId).then((scheds) => {
-        if (scheds) setFeedingSchedules(scheds);
-      });
-    } else {
-      setPondDevices([]);
-      setFeedingSchedules([]);
-    }
+    let cancelled = false;
+
+    setPondDevices([]);
+    setFeedingSchedules([]);
+    setPondDevicesError(null);
+
+    if (!selectedPondId) return () => { cancelled = true; };
+
+    void (async () => {
+      try {
+        const [devices, schedules] = await Promise.all([
+          getDevicesByPondId(selectedPondId),
+          getFeedingSchedules(selectedPondId),
+        ]);
+
+        if (!cancelled) {
+          setPondDevices(devices);
+          setFeedingSchedules(schedules);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPondDevices([]);
+          setFeedingSchedules([]);
+          setPondDevicesError(
+            error instanceof Error
+              ? error.message
+              : `Không thể tải thiết bị cho mã ao ${selectedPondId}.`,
+          );
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [selectedPondId]);
 
   // Handlers
@@ -337,7 +360,13 @@ export const Monitoring = () => {
                 staffList={staffList}
                 onAssignFarmer={canManage ? handleOpenAssignFarmer : undefined}
               />
-              <PondDevices devices={pondDevices} />
+              {pondDevicesError ? (
+                <div role="alert" className="rounded-2xl border border-rose-500/40 bg-rose-950/40 p-4 text-xs text-rose-200">
+                  {pondDevicesError}
+                </div>
+              ) : (
+                <PondDevices devices={pondDevices} />
+              )}
             </div>
 
             {/* Cột phải: Thông số chi tiết & Thao tác */}

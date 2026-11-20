@@ -16,7 +16,7 @@ const DASHBOARD_ALERT_PREVIEW_LIMIT = 5;
 
 const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) => {
   const [activeTab, setActiveTab] = useState<"prediction" | "alerts" | "recommendations">("prediction");
-  const { predictions, recommendations, loading, error, available } = useAIAnalysis(pondId, false);
+  const { predictions, recommendations, loading, error, available, predictionAvailability } = useAIAnalysis(pondId, false);
 
   // Lọc chỉ thông tin của ao đang được chọn
   const prediction = useMemo(() => {
@@ -82,6 +82,20 @@ const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) =>
     <p className="py-5 text-xs text-[var(--text-muted)] text-center">{text}</p>
   );
 
+  const predictionErrorMessage = () => {
+    switch (predictionAvailability) {
+      case "TELEMETRY_STALE":
+        return "Dữ liệu cảm biến đã quá 15 phút; hãy cập nhật telemetry trước khi dự báo.";
+      case "TELEMETRY_FUTURE":
+        return "Dấu thời gian telemetry không hợp lệ (nằm trong tương lai).";
+      case "TELEMETRY_MISSING":
+      case "TELEMETRY_INVALID":
+        return "Thiếu hoặc không hợp lệ dữ liệu cảm biến cần thiết; chưa tạo dự báo.";
+      default:
+        return `Dịch vụ dự báo Backend/AI chưa sẵn sàng: ${error ?? "không rõ lỗi"}`;
+    }
+  };
+
   return (
     <div className={`dashboard-card p-5 sm:p-6 text-left flex flex-col shadow-md w-full flex-[0_0_auto] ${className || ""}`}>
       {/* Title */}
@@ -140,7 +154,7 @@ const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) =>
           {!available ? (
             emptyState("Backend chưa cung cấp API dự báo AI.")
           ) : error ? (
-            emptyState(`Không thể tải dự báo: ${error}`)
+            emptyState(predictionErrorMessage())
           ) : loading ? (
             emptyState("Đang tải dự báo cho ao đã chọn...")
           ) : prediction?.description ? (
@@ -148,6 +162,11 @@ const AIPrediction = ({ pondId, pond, alerts, className }: AIPredictionProps) =>
               <p className="text-sm text-[var(--text-heading)] font-semibold leading-relaxed mb-3">
                 {prediction.description}
               </p>
+              {prediction.isFallback && (
+                <p className="text-xs text-amber-300 border border-amber-500/40 bg-amber-950/30 rounded-lg px-3 py-2 mb-3">
+                  Kết quả ước tính theo HEURISTIC_RULE — không phải AI model đã được phê duyệt.
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-3 bg-[var(--panel-bg-dark)] border border-[var(--panel-border)] rounded-xl p-3 mb-3">
                 <div className="flex flex-col">
                   <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-wider mb-1.5 uppercase">

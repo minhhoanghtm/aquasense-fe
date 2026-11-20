@@ -10,6 +10,8 @@ export interface PredictionCardProps {
   description?: string;
   confidenceScore?: number;
   confidenceLabel?: string;
+  predictionSource?: string;
+  isFallback?: boolean;
   className?: string;
   onClick?: () => void;
 }
@@ -55,6 +57,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   description,
   confidenceScore,
   confidenceLabel,
+  predictionSource,
+  isFallback,
   className = "",
   onClick,
 }) => {
@@ -85,6 +89,16 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       <p className="text-xs text-(--text-body) leading-relaxed line-clamp-2 min-h-[32px]">
         {description || "Chưa có mô tả dự báo."}
       </p>
+
+      {(isFallback === true || predictionSource) && (
+        <p className="text-[11px] text-(--text-muted)">
+          {isFallback === true || predictionSource === "HEURISTIC_RULE"
+            ? "Nguồn: Quy tắc heuristic (dự phòng), không phải AI production đã được phê duyệt."
+            : predictionSource === "AI_MICROSERVICE"
+              ? "Nguồn: AI microservice"
+              : `Nguồn dự báo: ${predictionSource || "chưa xác định"}`}
+        </p>
+      )}
 
       {/* Progress Bar (calling existing ProgressBar component) */}
       {typeof confidenceScore === "number" && (

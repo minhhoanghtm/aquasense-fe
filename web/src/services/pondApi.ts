@@ -5,6 +5,7 @@ import type { Devices } from "../types/Devices";
 import type { SensorReading } from "../types/SensorReading";
 import { api } from "./api";
 import { getDevices, getDevicesByPondId } from "./deviceApi";
+import { assertBackendPondId } from "../utils/uuid";
 
 export interface ThresholdConfigItem {
   configId: string;
@@ -126,7 +127,7 @@ export const getAllPondsPage = async (
 };
 
 export const getPondById = async (pondId: string): Promise<Pond> => {
-  if (!pondId) throw new Error("ID vuông nuôi không hợp lệ");
+  assertBackendPondId(pondId);
   return normalizePond(await api<Pond>(`/ponds/${pondId}`));
 };
 
@@ -320,6 +321,7 @@ export const getPondsWithDevices = async (): Promise<PondWithDevices[]> => {
 };
 
 export const getSensorReadings = async (pondId: string): Promise<SensorReading[]> => {
+  assertBackendPondId(pondId);
   const devices = await getDevicesByPondId(pondId);
   if (!devices || devices.length === 0) return [];
 
@@ -360,6 +362,7 @@ export const getSensorReadings = async (pondId: string): Promise<SensorReading[]
 };
 
 export const getPondDashboard = async (pondId: string) => {
+  assertBackendPondId(pondId);
   const [pond, devices] = await Promise.all([
     getPondById(pondId),
     getDevicesByPondId(pondId),
@@ -372,6 +375,7 @@ export const getPondDashboard = async (pondId: string) => {
 };
 
 export const getCurrentWaterQuality = async (pondId: string) => {
+  assertBackendPondId(pondId);
   const [sensorReadings, thresholds] = await Promise.all([
     getSensorReadings(pondId),
     getThresholdConfigs(pondId),

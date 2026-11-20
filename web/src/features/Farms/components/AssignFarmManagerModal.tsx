@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { X, ShieldCheck, UserCheck, Search, Loader2, AlertCircle, Building2 } from "lucide-react";
 import type { Farm } from "../../../types/Farm";
 import type { User } from "../../../types/User";
@@ -25,16 +25,7 @@ export const AssignFarmManagerModal: React.FC<AssignFarmManagerModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    if (isOpen && farm) {
-      setSelectedManagerId(farm.ownerId || farm.owner?.userId || "");
-      setError(null);
-      setSearch("");
-      fetchManagers();
-    }
-  }, [isOpen, farm]);
-
-  const fetchManagers = async () => {
+  const fetchManagers = useCallback(async () => {
     setLoadingManagers(true);
     try {
       const res = await getStaffList({ limit: 100 });
@@ -47,7 +38,16 @@ export const AssignFarmManagerModal: React.FC<AssignFarmManagerModalProps> = ({
     } finally {
       setLoadingManagers(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && farm) {
+      setSelectedManagerId(farm.ownerId || farm.owner?.userId || "");
+      setError(null);
+      setSearch("");
+      fetchManagers();
+    }
+  }, [isOpen, farm, fetchManagers]);
 
   if (!isOpen || !farm) return null;
 

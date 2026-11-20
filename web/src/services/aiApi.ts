@@ -24,6 +24,8 @@ export interface AIPrediction {
     riskLabel?: string;
     description?: string;
     model: string;
+    isFallback: boolean;
+    predictionSource: string;
     createdAt: string;
 }
 
@@ -68,30 +70,27 @@ export interface ParameterHealth {
 
 export const getAIPredictions = async (pondId?: string): Promise<AIPrediction[]> => {
     if (!pondId) return [];
+    const raw = await api<RawAiPrediction>(`/predictions/pond/${pondId}/latest`);
 
-    try {
-        const raw = await api<RawAiPrediction>(`/predictions/pond/${pondId}/latest`);
+    if (!raw || !raw.predictionId) return [];
 
-        if (!raw || !raw.predictionId) return [];
-
-        return [{
-            id: raw.predictionId,
-            pondId: raw.pondId,
-            parameterId: "DO / pH",
-            predictedValue: raw.predictedDO,
-            unit: "mg/L",
-            predictionHorizon: 2,
-            predictionTime: raw.predictedTime,
-            confidenceLabel: raw.isFallback ? "ƯỚC TÍNH HEURISTIC" : undefined,
-            riskLevel: raw.riskLevel,
-            riskLabel: raw.riskLevel === "LOW" ? "Rủi ro thấp" : raw.riskLevel === "MEDIUM" ? "Rủi ro trung bình" : "Rủi ro cao",
-            description: `Dự báo sau 2 giờ: DO ${raw.predictedDO} mg/L, pH ${raw.predictedPH}. Điểm rủi ro: ${(raw.riskScore * 100).toFixed(0)}%.`,
-            model: raw.predictionSource,
-            createdAt: raw.predictedTime,
-        }];
-    } catch {
-        return [];
-    }
+    return [{
+        id: raw.predictionId,
+        pondId: raw.pondId,
+        parameterId: "DO / pH",
+        predictedValue: raw.predictedDO,
+        unit: "mg/L",
+        predictionHorizon: 2,
+        predictionTime: raw.predictedTime,
+        confidenceLabel: raw.isFallback ? "ƯỚC TÍNH HEURISTIC" : undefined,
+        riskLevel: raw.riskLevel,
+        riskLabel: raw.riskLevel === "LOW" ? "Rủi ro thấp" : raw.riskLevel === "MEDIUM" ? "Rủi ro trung bình" : "Rủi ro cao",
+        description: `Dự báo sau 2 giờ: DO ${raw.predictedDO} mg/L, pH ${raw.predictedPH}. Điểm rủi ro: ${(raw.riskScore * 100).toFixed(0)}%.`,
+        model: raw.predictionSource,
+        isFallback: raw.isFallback,
+        predictionSource: raw.predictionSource,
+        createdAt: raw.predictedTime,
+    }];
 };
 
 /**
@@ -100,12 +99,16 @@ export const getAIPredictions = async (pondId?: string): Promise<AIPrediction[]>
  */
 export const getPredictionHistory = async (pondId: string, limit: number = 20): Promise<RawAiPrediction[]> => {
     if (!pondId) return [];
-    try {
-        const res = await api<RawAiPrediction[]>(`/predictions/pond/${pondId}/history?limit=${limit}`);
-        return Array.isArray(res) ? res : [];
-    } catch {
-        return [];
+
+    const res = await api<RawAiPrediction[]>(
+        `/predictions/pond/${pondId}/history?limit=${limit}`
+    );
+
+    if (!Array.isArray(res)) {
+        throw new Error("Dữ liệu lịch sử dự báo không hợp lệ.");
     }
+
+    return res;
 };
 
 /**
