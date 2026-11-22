@@ -122,7 +122,11 @@ export default function Alerts() {
                 id: a.id || a.alertId || "",
                 createdAt: a.createdAt,
                 time: formattedTime,
-                title: a.title || a.message || a.metricName || "Cảnh báo chỉ số",
+                // AI-risk alerts carry a concise metricName plus a detailed message.
+                // Keep both visible so the list does not lose the predicted metric.
+                title: a.metricName && (a.title || a.message)
+                    ? `${a.metricName} — ${a.title || a.message}`
+                    : a.title || a.message || a.metricName || "Cảnh báo chỉ số",
                 pondId: pondId,
                 pondName: resolvedPondName,
                 value: a.triggeredValue ?? a.value ?? "",
