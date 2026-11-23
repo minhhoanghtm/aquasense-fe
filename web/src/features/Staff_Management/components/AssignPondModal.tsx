@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { X, Layers, Check, Save, UserMinus, Plus, RotateCcw } from "lucide-react";
+import { X, Layers, Check, Save, UserMinus, Plus, RotateCcw, Search } from "lucide-react";
 import type { User } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import { matchVietnamese } from "../../../utils/textUtils";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface AssignPondModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
   const [initialPondIds, setInitialPondIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (staff) {
@@ -36,8 +39,11 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
         .filter(Boolean);
       setSelectedPondIds(assigned);
       setInitialPondIds(assigned);
+      setSearchQuery("");
     }
   }, [staff, isOpen, ponds]);
+
+  const zIndex = useModalZIndex(isOpen, 100);
 
   if (!isOpen || !staff) return null;
 
@@ -78,7 +84,7 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
       <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--panel-border-strong)] bg-[#07242e]/98 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,212,195,0.15)] text-left flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--divider)] px-6 py-4 bg-[#051c24]">
@@ -163,14 +169,58 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
             </div>
           </div>
 
+          {/* Search box */}
+          <div className="flex items-center gap-2 rounded-xl border border-cyan-800 bg-[#07252f] px-3 py-2 transition-all hover:border-cyan-600 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/40">
+            <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm theo tên hoặc vị trí ao..."
+              className="w-full bg-transparent text-xs text-[var(--text-primary)] outline-none border-none focus:outline-none placeholder:text-[var(--text-muted)]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="text-[var(--text-muted)] hover:text-white cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           {/* Pond List */}
           <div className="grid grid-cols-1 gap-2.5 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
-            {ponds.map((pond) => {
-              const pondKey = pond.pondId || pond.id || "";
-              const isSelected = selectedPondIds.includes(pondKey);
-              const wasInitiallyAssigned = initialPondIds.includes(pondKey);
+            {(() => {
+              const q = searchQuery.trim().toLowerCase();
+              const sorted = [...ponds].sort((a, b) => {
+                const aKey = a.pondId || a.id || "";
+                const bKey = b.pondId || b.id || "";
+                const aAssigned = initialPondIds.includes(aKey) ? 0 : 1;
+                const bAssigned = initialPondIds.includes(bKey) ? 0 : 1;
+                return aAssigned - bAssigned;
+              });
+              const filtered = q
+                ? sorted.filter(
+                    (p) =>
+                      matchVietnamese(p.name || p.pondName, q) ||
+                      matchVietnamese(p.location, q)
+                  )
+                : sorted;
+              if (filtered.length === 0) {
+                return (
+                  <div className="py-8 text-center text-xs text-[var(--text-muted)]">
+                    Không tìm thấy ao nào phù hợp với &ldquo;<span className="text-[var(--accent)]">{searchQuery}</span>&rdquo;
+                  </div>
+                );
+              }
+              return filtered.map((pond) => {
+                const pondKey = pond.pondId || pond.id || "";
+                const isSelected = selectedPondIds.includes(pondKey);
+                const wasInitiallyAssigned = initialPondIds.includes(pondKey);
 
-              return (
+                return (
                 <div
                   key={pondKey}
                   onClick={() => togglePond(pondKey)}
@@ -253,7 +303,8 @@ export const AssignPondModal: React.FC<AssignPondModalProps> = ({
                   </div>
                 </div>
               );
-            })}
+            });
+            })()}
           </div>
         </div>
 

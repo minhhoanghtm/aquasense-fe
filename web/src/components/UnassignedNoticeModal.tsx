@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { logout } from "../services/authApi";
 import { useNavigate } from "react-router-dom";
+import { useModalZIndex } from "../utils/modalStack";
 
 export interface UnassignedNoticeModalProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ export const UnassignedNoticeModal: React.FC<UnassignedNoticeModalProps> = ({
     text: string;
     type: "info" | "warning" | "success";
   } | null>(null);
+
+  const zIndex = useModalZIndex(isOpen, 100);
 
   if (!isOpen) return null;
 
@@ -79,7 +82,7 @@ export const UnassignedNoticeModal: React.FC<UnassignedNoticeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-lg rounded-3xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)]/95 p-6 sm:p-7 shadow-2xl text-left flex flex-col gap-5 relative overflow-hidden backdrop-blur-xl">
         {/* Glow ambient background effects */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />

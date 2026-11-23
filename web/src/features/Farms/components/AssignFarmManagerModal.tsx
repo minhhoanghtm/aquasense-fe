@@ -4,6 +4,7 @@ import type { Farm } from "../../../types/Farm";
 import type { User } from "../../../types/User";
 import { getStaffList } from "../../../services/staffApi";
 import { assignFarmManager } from "../../../services/farmApi";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface AssignFarmManagerModalProps {
   isOpen: boolean;
@@ -49,6 +50,8 @@ export const AssignFarmManagerModal: React.FC<AssignFarmManagerModalProps> = ({
     }
   }, [isOpen, farm, fetchManagers]);
 
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen || !farm) return null;
 
   const filteredManagers = managers.filter(
@@ -77,7 +80,7 @@ export const AssignFarmManagerModal: React.FC<AssignFarmManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-lg rounded-3xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)] p-6 shadow-2xl text-left flex flex-col gap-4 relative max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[var(--divider)]">

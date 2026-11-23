@@ -24,6 +24,18 @@ export interface Farm {
   pondCount?: number;
 }
 
+/** A minimal farm shape for client-side filters derived from already-scoped ponds. */
+export interface FarmFilterOption {
+  farmId: string;
+  farmName: string;
+}
+
+/** A minimal farm shape for client-side filters derived from already-scoped ponds. */
+export interface FarmFilterOption {
+  farmId: string;
+  farmName: string;
+}
+
 export interface CreateFarmPayload {
   farmName: string;
   address?: string;

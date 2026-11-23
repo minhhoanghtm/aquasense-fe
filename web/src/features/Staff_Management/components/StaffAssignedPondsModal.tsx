@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { X, Layers, Search, Droplet, ArrowUpRight } from "lucide-react";
 import type { User } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface StaffAssignedPondsModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export const StaffAssignedPondsModal: React.FC<StaffAssignedPondsModalProps> = (
     );
   }, [assignedPonds, searchTerm]);
 
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen) return null;
 
   const getStatusBadge = (status?: string) => {
@@ -59,7 +62,7 @@ export const StaffAssignedPondsModal: React.FC<StaffAssignedPondsModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-sm animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-[var(--panel-border-strong)] bg-[#07242e] shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,212,195,0.15)] text-left flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--divider)] px-6 py-4 bg-[#051c24]">

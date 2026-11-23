@@ -25,7 +25,7 @@ import {
 } from "../../services/deviceApi";
 import { getFarms } from "../../services/farmApi";
 import type { Devices as DeviceType } from "../../types/Devices";
-import type { Farm } from "../../types/Farm";
+import type { Farm, FarmFilterOption } from "../../types/Farm";
 import {
   CheckCircle2,
   AlertCircle,
@@ -34,7 +34,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { getCurrentUser } from "../../services/authApi";
-import { canManageDevices } from "../../lib/rolePermissions";
+import { canManageDevices, canReadFarmDirectory } from "../../lib/rolePermissions";
 import {
   getDeviceTypeInfo,
   getConnectionStatus,
@@ -50,6 +50,7 @@ export default function Devices() {
   const isManager = roleUpper === "MANAGER";
   const isFarmer = roleUpper === "FARMER";
   const canManage = canManageDevices(roleUpper);
+  const canReadFarms = canReadFarmDirectory(roleUpper);
 
   // Data fetching
   const { ponds, loading: pondsLoading } = usePonds();
@@ -57,9 +58,14 @@ export default function Devices() {
   const { pond, device } = usePond(selectedPondId);
   const { devices, loading: devicesLoading, error: devicesError, refetch } = useDevices();
 
-  // Load farms list for filters & mapping
+  // The Backend limits the farm directory to ADMIN/MANAGER. FARMER filters are
+  // derived below from the ponds already returned by the scoped /ponds API.
   const [farms, setFarms] = useState<Farm[]>([]);
   useEffect(() => {
+    if (!canReadFarms) {
+      return;
+    }
+
     let isMounted = true;
     getFarms({ limit: 100 })
       .then((res) => {
@@ -73,12 +79,29 @@ export default function Devices() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [canReadFarms]);
+
+  const filterFarms = useMemo<FarmFilterOption[]>(() => {
+    if (canReadFarms) {
+      return farms.map(({ farmId, farmName }) => ({ farmId, farmName }));
+    }
+
+    const scopedFarms = new Map<string, FarmFilterOption>();
+    ponds.forEach((pond) => {
+      if (!pond.farmId || scopedFarms.has(pond.farmId)) return;
+      const pondName = pond.pondName || pond.name;
+      scopedFarms.set(pond.farmId, {
+        farmId: pond.farmId,
+        farmName: pondName ? `Trại nuôi của ao ${pondName}` : "Trại nuôi được phân công",
+      });
+    });
+    return [...scopedFarms.values()];
+  }, [canReadFarms, farms, ponds]);
 
   // Farm Map mapping for quick lookup: [farmId -> farmName] and [pondId -> farmName]
   const farmMap = useMemo(() => {
     const map: Record<string, string> = {};
-    farms.forEach((f) => {
+    filterFarms.forEach((f) => {
       if (f.farmId) map[f.farmId] = f.farmName;
     });
     ponds.forEach((p) => {
@@ -88,7 +111,7 @@ export default function Devices() {
       }
     });
     return map;
-  }, [farms, ponds]);
+  }, [filterFarms, ponds]);
 
   // Authorized devices based on role
   const allowedPondIds = useMemo(
@@ -528,7 +551,7 @@ export default function Devices() {
       <DeviceFilterBar
         filters={filters}
         onFilterChange={handleFilterChange}
-        farms={farms}
+        farms={filterFarms}
         ponds={ponds}
         totalResults={filteredAndSortedDevices.length}
         totalDevices={authorizedDevices.length}

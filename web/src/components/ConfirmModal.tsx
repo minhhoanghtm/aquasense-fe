@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, CheckCircle2, Trash2, X, Info } from "lucide-react";
+import { useModalZIndex } from "../utils/modalStack";
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   variant = "warning",
   loading = false,
 }) => {
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen) return null;
 
   const getVariantStyles = () => {
@@ -59,7 +62,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const style = getVariantStyles();
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
       <div className="w-full max-w-md rounded-2xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)] p-6 shadow-2xl text-left flex flex-col gap-4 relative overflow-hidden backdrop-blur-xl">
         {/* Header Icon + Close */}
         <div className="flex items-start justify-between">

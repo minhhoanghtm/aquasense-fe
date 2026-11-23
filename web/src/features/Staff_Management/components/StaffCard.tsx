@@ -17,6 +17,7 @@ import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
 import type { Farm } from "../../../types/Farm";
 import { getRoleLabel } from "../../../lib/rolePermissions";
+import { getCurrentUser } from "../../../services/authApi";
 import StaffAssignedPondsModal from "./StaffAssignedPondsModal";
 
 interface StaffCardProps {
@@ -53,7 +54,10 @@ export const StaffCard: React.FC<StaffCardProps> = ({
   canAssignFarms = false,
 }) => {
   const [isAllPondsModalOpen, setIsAllPondsModalOpen] = useState(false);
+  const currentUser = getCurrentUser();
+  const currentUserId = currentUser?.userId || currentUser?.id;
   const staffId = staff.userId || staff.id;
+  const isSelf = Boolean(currentUserId && staffId && currentUserId === staffId);
   const roleUpper = staff.role?.toUpperCase();
   const isManager = roleUpper === "MANAGER";
   const isAdmin = roleUpper === "ADMIN";
@@ -353,17 +357,23 @@ export const StaffCard: React.FC<StaffCardProps> = ({
             {/* Status toggle switch */}
             {canManage ? <button
               type="button"
+              disabled={isSelf}
               onClick={() => {
+                if (isSelf) return;
                 if (onChangeStatus) {
                   const isActive = staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false);
                   onChangeStatus(staff, isActive ? "INACTIVE" : "ACTIVE");
                 }
               }}
-              className="flex items-center gap-2 cursor-pointer select-none group"
+              className={`flex items-center gap-2 select-none group ${
+                isSelf ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+              }`}
               title={
-                (staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false))
-                  ? "Bấm để chuyển sang Không hoạt động"
-                  : "Bấm để chuyển sang Hoạt động"
+                isSelf
+                  ? "Không thể tự thay đổi trạng thái hoạt động của chính mình"
+                  : (staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false))
+                    ? "Bấm để chuyển sang Không hoạt động"
+                    : "Bấm để chuyển sang Hoạt động"
               }
             >
               <div
@@ -398,16 +408,21 @@ export const StaffCard: React.FC<StaffCardProps> = ({
             <div className="flex items-center gap-1.5">
               {canManage && <button
                 type="button"
-                onClick={() => onToggleLoginLock?.(staff)}
-                className={`p-1.5 rounded-lg flex items-center justify-center transition cursor-pointer ${
-                  staff.isLocked || staff.is_login_locked
-                    ? "bg-rose-950/40 text-rose-400 border border-rose-900/50"
-                    : "bg-[#07252f] text-emerald-400/70 border border-transparent"
+                disabled={isSelf}
+                onClick={() => !isSelf && onToggleLoginLock?.(staff)}
+                className={`p-1.5 rounded-lg flex items-center justify-center transition ${
+                  isSelf
+                    ? "bg-[#07252f] opacity-30 cursor-not-allowed text-gray-500 border border-transparent"
+                    : staff.isLocked || staff.is_login_locked
+                      ? "bg-rose-950/40 text-rose-400 border border-rose-900/50 cursor-pointer"
+                      : "bg-[#07252f] text-emerald-400/70 border border-transparent cursor-pointer"
                 }`}
                 title={
-                  staff.isLocked || staff.is_login_locked
-                    ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
-                    : "Tài khoản không bị khóa đăng nhập"
+                  isSelf
+                    ? "Không thể tự khóa đăng nhập của chính mình"
+                    : staff.isLocked || staff.is_login_locked
+                      ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
+                      : "Tài khoản không bị khóa đăng nhập"
                 }
                 aria-label={staff.isLocked || staff.is_login_locked ? "Mở khóa đăng nhập" : "Khóa đăng nhập"}
               >
@@ -423,9 +438,14 @@ export const StaffCard: React.FC<StaffCardProps> = ({
               </button>
               {canManage && <button
                 type="button"
-                onClick={() => onDelete(staff)}
-                className="p-1.5 rounded-lg bg-[#07252f] text-rose-400 hover:bg-rose-900/40 transition cursor-pointer"
-                title="Xóa nhân viên"
+                disabled={isSelf}
+                onClick={() => !isSelf && onDelete(staff)}
+                className={`p-1.5 rounded-lg bg-[#07252f] transition ${
+                  isSelf
+                    ? "opacity-30 cursor-not-allowed text-gray-500"
+                    : "text-rose-400 hover:bg-rose-900/40 cursor-pointer"
+                }`}
+                title={isSelf ? "Không thể tự xóa tài khoản của chính mình" : "Xóa nhân viên"}
               >
                 <Trash2 size={14} />
               </button>}

@@ -23,6 +23,7 @@ interface StaffToolbarProps {
 
 const roleOptions: DropdownOption[] = [
   { label: "Tất cả vai trò", value: "ALL" },
+  { label: "Quản trị viên", value: "ADMIN" },
   { label: "Quản lý", value: "MANAGER" },
   { label: "Nông dân", value: "FARMER" },
 ];
@@ -141,7 +142,7 @@ export const StaffToolbar: React.FC<StaffToolbarProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Tìm theo tên, email, SĐT..."
+            placeholder="Tìm theo tên, email, SĐT, vai trò, ao/trại..."
             className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-primary)] outline-none border-none focus:outline-none focus:ring-0 focus:border-none focus:bg-transparent shadow-none placeholder:text-[var(--text-muted)]"
           />
           {searchTerm && (

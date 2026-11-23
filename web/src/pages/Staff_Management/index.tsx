@@ -54,6 +54,8 @@ export default function StaffManagement() {
   const {
     staffList,
     filteredStaff,
+    totalCount,
+    filteredCount,
     loading,
     stats,
     searchTerm,
@@ -73,9 +75,16 @@ export default function StaffManagement() {
     reload,
     pagination,
     setPage,
-  } = useStaff();
+    setLimit,
+  } = useStaff({ ponds, farms });
 
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+
+  const handleViewModeChange = (mode: "grid" | "table") => {
+    setViewMode(mode);
+    // Grid: 3 cột × 3 hàng = 9 card; Table: 10 dòng
+    setLimit(mode === "grid" ? 9 : 10);
+  };
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -166,6 +175,12 @@ export default function StaffManagement() {
     }
     const currentUser = getCurrentUser();
     if (!currentUser) return false;
+    const currentId = currentUser.userId || currentUser.id;
+    const targetId = staff.userId || staff.id;
+    if (currentId && targetId && currentId === targetId) {
+      showToast(`Không thể ${actionName} tài khoản của chính mình!`, "error");
+      return false;
+    }
     if (!canManageUser(currentUser.role, staff.role)) {
       showToast(`Bạn không thể ${actionName} tài khoản này!`, "error");
       return false;
@@ -456,7 +471,7 @@ export default function StaffManagement() {
       {/* Toast Notification */}
       {toastMessage && (
         <div
-          className={`fixed top-20 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl border text-xs sm:text-sm font-semibold animate-slideDown backdrop-blur-md ${toastMessage.type === "success"
+          className={`fixed top-20 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl border text-xs sm:text-sm font-semibold animate-slideDown backdrop-blur-md ${toastMessage.type === "success"
               ? "bg-emerald-950/90 text-emerald-200 border-emerald-500/50"
               : toastMessage.type === "error"
                 ? "bg-rose-950/90 text-rose-200 border-rose-500/50"
@@ -494,11 +509,11 @@ export default function StaffManagement() {
         pondFilter={pondFilter}
         onPondFilterChange={setPondFilter}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         onAddNew={handleAddNew}
         ponds={ponds}
-        totalStaff={staffList.length}
-        filteredCount={filteredStaff.length}
+        totalStaff={totalCount}
+        filteredCount={filteredCount}
       />
 
       {/* Staff List View: Grid or Table */}

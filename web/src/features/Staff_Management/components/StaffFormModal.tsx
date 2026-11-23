@@ -4,6 +4,7 @@ import type { User as UserType, Role } from "../../../types/User";
 import type { CreateStaffRequest, UpdateStaffRequest } from "../../../services/staffApi";
 import type { Pond } from "../../../types/Pond";
 import { getCurrentUser } from "../../../services/authApi";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface StaffFormModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
     }
     setErrorMsg("");
   }, [initialData, isOpen]);
+
+  const zIndex = useModalZIndex(isOpen, 100);
 
   if (!isOpen) return null;
 
@@ -108,7 +111,7 @@ export const StaffFormModal: React.FC<StaffFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 animate-fadeIn">
       <div className="w-full max-w-[500px] rounded-[24px] border border-[#134958] bg-[#07242e] shadow-[0_25px_60px_rgba(0,0,0,0.85)] text-left flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-cyan-900/30 shrink-0">
