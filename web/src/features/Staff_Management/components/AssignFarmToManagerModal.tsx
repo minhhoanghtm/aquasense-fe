@@ -4,6 +4,8 @@ import type { User } from "../../../types/User";
 import type { Farm } from "../../../types/Farm";
 import { assignFarmManager } from "../../../services/farmApi";
 import { getCurrentUser } from "../../../services/authApi";
+import { matchVietnamese } from "../../../utils/textUtils";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface AssignFarmToManagerModalProps {
   isOpen: boolean;
@@ -41,6 +43,8 @@ export const AssignFarmToManagerModal: React.FC<AssignFarmToManagerModalProps> =
     }
   }, [isOpen, manager, farms, managerId]);
 
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen || !manager) return null;
 
   const toggleFarm = (farmId: string) => {
@@ -49,11 +53,18 @@ export const AssignFarmToManagerModal: React.FC<AssignFarmToManagerModalProps> =
     );
   };
 
-  const filteredFarms = farms.filter(
-    (f) =>
-      f.farmName?.toLowerCase().includes(search.toLowerCase()) ||
-      f.address?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredFarms = farms
+    .filter(
+      (f) =>
+        matchVietnamese(f.farmName, search) ||
+        matchVietnamese(f.address, search)
+    )
+    .sort((a, b) => {
+      // Trại đã được phân công cho manager này lên trên cùng
+      const aAssigned = initialFarmIds.includes(a.farmId) ? 0 : 1;
+      const bAssigned = initialFarmIds.includes(b.farmId) ? 0 : 1;
+      return aAssigned - bAssigned;
+    });
 
   const handleSave = async () => {
     try {
@@ -86,7 +97,7 @@ export const AssignFarmToManagerModal: React.FC<AssignFarmToManagerModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)] shadow-2xl text-left flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--divider)] px-6 py-4 bg-[var(--panel-bg-dark)]">

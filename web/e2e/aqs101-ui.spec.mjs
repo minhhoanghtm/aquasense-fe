@@ -26,16 +26,16 @@ const errorEnvelope = (status, message) => ({
   path: `/predictions/pond/${pondA.pondId}/history`,
 });
 
-async function installSession(page) {
-  await page.addInitScript(() => {
+async function installSession(page, role = 'ADMIN') {
+  await page.addInitScript((sessionRole) => {
     localStorage.setItem('accessToken', 'aqs101-test-token');
     localStorage.setItem('refreshToken', 'aqs101-test-refresh-token');
     localStorage.setItem('aquasense_user', JSON.stringify({
       id: 'aqs101-test-admin', userId: 'aqs101-test-admin', fullName: 'AQS-101 Test Admin',
-      phoneNumber: '0000000000', role: 'ADMIN', isActive: true,
+      phoneNumber: '0000000000', role: sessionRole, isActive: true,
       mustChangePassword: false, tokenVersion: 1,
     }));
-  });
+  }, role);
 }
 
 async function installMockCore(page, options = {}) {
@@ -52,6 +52,11 @@ async function installMockCore(page, options = {}) {
       return fulfill({ data: ponds, total: ponds.length, page: 1, limit: 100, totalPages: 1 });
     }
     if (pathname === '/alerts') return fulfill({ data: [] });
+    if (pathname === '/farms') {
+      options.onFarmRequest?.(requestUrl.searchParams);
+      const farms = options.farms ?? [];
+      return fulfill({ data: farms, total: farms.length, page: 1, limit: Number(requestUrl.searchParams.get('limit') || 10), totalPages: 1 });
+    }
     if (pathname === '/devices') {
       const pondId = requestUrl.searchParams.get('pondId');
       options.onDeviceRequest?.(pondId);
@@ -207,4 +212,69 @@ test('AQS101-FE-11: shows the verified pond name, two-hour horizon and explicit 
   await expect(page.getByText('Dự báo ngắn hạn · 2 giờ tới')).toBeVisible();
   await expect(page.getByText('Nguồn: Quy tắc heuristic (dự phòng), không phải AI production đã được phê duyệt.')).toBeVisible();
   await expect(page.getByText('24–72 giờ tới')).toHaveCount(0);
+});
+
+test('AQS202-FE-01: FARMER opens /devices without requesting the restricted farm directory', async ({ page }) => {
+  const farmRequests = [];
+  await installSession(page, 'FARMER');
+  await installMockCore(page, {
+    onFarmRequest: (params) => farmRequests.push(params.toString()),
+  });
+
+  await page.goto('/devices');
+  await expect(page.getByText('Cảm biến & Thiết bị')).toBeVisible();
+  await page.waitForTimeout(150);
+  expect(farmRequests).toEqual([]);
+});
+
+test('AQS202-FE-02: ADMIN and MANAGER retain their /devices farm filters', async ({ page }) => {
+  const farm = {
+    farmId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    farmName: 'AQS-202 Farm',
+    ownerId: 'manager-1',
+    address: null,
+    totalArea: null,
+    createdAt: '2026-11-24T00:00:00.000Z',
+    updatedAt: '2026-11-24T00:00:00.000Z',
+  };
+
+  for (const role of ['ADMIN', 'MANAGER']) {
+    const farmRequests = [];
+    await installSession(page, role);
+    await installMockCore(page, {
+      farms: [farm],
+      onFarmRequest: (params) => farmRequests.push(params.get('limit')),
+    });
+
+    await page.goto('/devices');
+    await expect(page.getByText('Cảm biến & Thiết bị')).toBeVisible();
+    await expect.poll(() => farmRequests).toContain('100');
+  }
+});
+
+test('AQS202-FE-03: an unassigned FARMER makes no farm request and sees the assignment state', async ({ page }) => {
+  const farmRequests = [];
+  await installSession(page, 'FARMER');
+  await installMockCore(page, {
+    ponds: [],
+    onFarmRequest: (params) => farmRequests.push(params.toString()),
+  });
+
+  await page.goto('/devices');
+  await expect(page.getByText(/chưa được phân công/i)).toBeVisible();
+  expect(farmRequests).toEqual([]);
+});
+
+test('AQS202-FE-04: FARMER can open /monitoring and /ai-analysis without a farm-directory request', async ({ page }) => {
+  const farmRequests = [];
+  await installSession(page, 'FARMER');
+  await installMockCore(page, {
+    onFarmRequest: (params) => farmRequests.push(params.toString()),
+  });
+
+  await page.goto('/monitoring');
+  await expect(page.getByText('Quản lý vuông nuôi')).toBeVisible();
+  await page.goto('/ai-analysis');
+  await expect(page.getByText('Lịch sử dự báo AI gần nhất')).toBeVisible();
+  expect(farmRequests).toEqual([]);
 });

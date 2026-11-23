@@ -13,6 +13,9 @@ export const hasManagementAccess = (role?: string | null): boolean =>
 export const canManagePonds = hasManagementAccess;
 export const canManageDevices = hasManagementAccess;
 
+/** The Backend exposes the farm directory only to ADMIN and MANAGER. */
+export const canReadFarmDirectory = hasManagementAccess;
+
 /** All roles (Farmer, Manager, Admin) who have access to the device can report broken / faulty devices. */
 export const canReportBrokenDevice = (role?: string | null): boolean => {
   const normalized = (role || "").toUpperCase();

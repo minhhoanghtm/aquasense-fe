@@ -15,6 +15,7 @@ import type { Farm } from "../../../types/Farm";
 import type { Pond } from "../../../types/Pond";
 import { getFarmPonds } from "../../../services/farmApi";
 import { formatVietnamDate } from "../../../utils/date";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface FarmPondsModalProps {
   isOpen: boolean;
@@ -54,6 +55,8 @@ export const FarmPondsModal: React.FC<FarmPondsModalProps> = ({
     }
   }, [isOpen, farm, fetchPonds]);
 
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen || !farm) return null;
 
   const getStatusBadge = (status?: string) => {
@@ -84,7 +87,7 @@ export const FarmPondsModal: React.FC<FarmPondsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--panel-border-strong)] bg-[#07242e]/98 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(45,212,195,0.15)] text-left flex flex-col max-h-[88vh]">
         {/* Header - Edge-to-edge */}
         <div className="flex items-center justify-between border-b border-[var(--divider)] px-6 py-4 bg-[#051c24]">

@@ -16,6 +16,7 @@ import type { User, UserStatus } from "../../../types/User";
 import type { Pond } from "../../../types/Pond";
 import type { Farm } from "../../../types/Farm";
 import { getRoleLabel } from "../../../lib/rolePermissions";
+import { getCurrentUser } from "../../../services/authApi";
 
 interface StaffTableProps {
   staffList: User[];
@@ -50,6 +51,9 @@ export const StaffTable: React.FC<StaffTableProps> = ({
   canManage,
   canAssignFarms = false,
 }) => {
+  const currentUser = getCurrentUser();
+  const currentUserId = currentUser?.userId || currentUser?.id;
+
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
       case "MANAGER":
@@ -116,6 +120,7 @@ export const StaffTable: React.FC<StaffTableProps> = ({
               const mayManage = canManage(staff);
               const statusInfo = getStatusBadge(staff.status);
               const staffId = staff.userId || staff.id;
+              const isSelf = Boolean(currentUserId && staffId && currentUserId === staffId);
               const roleUpper = staff.role?.toUpperCase();
               const isManager = roleUpper === "MANAGER";
               const isAdmin = roleUpper === "ADMIN";
@@ -280,17 +285,23 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                     ) : mayManage ? (
                       <button
                         type="button"
+                        disabled={isSelf}
                         onClick={() => {
+                          if (isSelf) return;
                           if (onChangeStatus) {
                             const isActive = staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false);
                             onChangeStatus(staff, isActive ? "INACTIVE" : "ACTIVE");
                           }
                         }}
-                        className="flex items-center gap-2 cursor-pointer select-none group"
+                        className={`flex items-center gap-2 select-none group ${
+                          isSelf ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                        }`}
                         title={
-                          (staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false))
-                            ? "Bấm để chuyển sang Không hoạt động"
-                            : "Bấm để chuyển sang Hoạt động"
+                          isSelf
+                            ? "Không thể tự thay đổi trạng thái hoạt động của chính mình"
+                            : (staff.status === "ACTIVE" || (!staff.status && staff.isActive !== false))
+                              ? "Bấm để chuyển sang Không hoạt động"
+                              : "Bấm để chuyển sang Hoạt động"
                         }
                       >
                         <div
@@ -351,16 +362,21 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                       <div className="flex items-center justify-end gap-1">
                         {mayManage && <button
                           type="button"
-                          onClick={() => onToggleLoginLock?.(staff)}
-                          className={`p-1.5 rounded-lg flex items-center justify-center transition cursor-pointer ${
-                            staff.isLocked || staff.is_login_locked
-                              ? "text-rose-400 bg-rose-950/40"
-                              : "text-emerald-400/70"
+                          disabled={isSelf}
+                          onClick={() => !isSelf && onToggleLoginLock?.(staff)}
+                          className={`p-1.5 rounded-lg flex items-center justify-center transition ${
+                            isSelf
+                              ? "opacity-30 cursor-not-allowed text-gray-500"
+                              : staff.isLocked || staff.is_login_locked
+                                ? "text-rose-400 bg-rose-950/40 cursor-pointer"
+                                : "text-emerald-400/70 cursor-pointer"
                           }`}
                           title={
-                            staff.isLocked || staff.is_login_locked
-                              ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
-                              : "Tài khoản không bị khóa đăng nhập"
+                            isSelf
+                              ? "Không thể tự khóa đăng nhập của chính mình"
+                              : staff.isLocked || staff.is_login_locked
+                                ? "Tài khoản đang bị khóa do nhập sai mật khẩu nhiều lần"
+                                : "Tài khoản không bị khóa đăng nhập"
                           }
                           aria-label={staff.isLocked || staff.is_login_locked ? "Mở khóa đăng nhập" : "Khóa đăng nhập"}
                         >
@@ -376,9 +392,14 @@ export const StaffTable: React.FC<StaffTableProps> = ({
                         </button>}
                         {mayManage && <button
                           type="button"
-                          onClick={() => onDelete(staff)}
-                          className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-900/40 cursor-pointer"
-                          title="Xóa nhân viên"
+                          disabled={isSelf}
+                          onClick={() => !isSelf && onDelete(staff)}
+                          className={`p-1.5 rounded-lg transition ${
+                            isSelf
+                              ? "opacity-30 cursor-not-allowed text-gray-500"
+                              : "text-rose-400 hover:bg-rose-900/40 cursor-pointer"
+                          }`}
+                          title={isSelf ? "Không thể tự xóa tài khoản của chính mình" : "Xóa nhân viên"}
                         >
                           <Trash2 size={14} />
                         </button>}

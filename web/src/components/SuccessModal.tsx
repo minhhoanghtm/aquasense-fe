@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCircle2, X } from "lucide-react";
+import { useModalZIndex } from "../utils/modalStack";
 
 export interface SuccessModalProps {
   isOpen: boolean;
@@ -16,10 +17,12 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
   message,
   confirmText = "Đóng",
 }) => {
+  const zIndex = useModalZIndex(isOpen, 100);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-sm animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-sm animate-fadeIn">
       <div className="w-full max-w-sm rounded-3xl border border-emerald-500/40 bg-[#07242e] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_30px_rgba(16,185,129,0.2)] text-center flex flex-col items-center gap-4 relative animate-scaleUp">
         {/* Close button top right */}
         <button

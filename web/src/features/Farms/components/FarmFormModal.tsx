@@ -5,6 +5,7 @@ import type { User } from "../../../types/User";
 import { getCurrentUser } from "../../../services/authApi";
 import { getStaffList } from "../../../services/staffApi";
 import Dropdown from "../../../components/Dropdown";
+import { useModalZIndex } from "../../../utils/modalStack";
 
 interface FarmFormModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
   initialData,
   loading = false,
 }) => {
+  const zIndex = useModalZIndex(isOpen, 100);
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "ADMIN";
 
@@ -100,7 +102,7 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
+    <div style={{ zIndex }} className="fixed inset-0 flex items-center justify-center p-4 bg-[#03161e]/85 backdrop-blur-md animate-fadeIn">
       <div className="w-full max-w-lg rounded-3xl border border-[var(--panel-border-strong)] bg-[var(--panel-bg-dark)] p-6 sm:p-7 shadow-2xl text-left flex flex-col gap-5 relative">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[var(--divider)]">

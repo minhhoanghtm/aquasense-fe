@@ -89,7 +89,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full bg-[#061c24] border-b border-[var(--panel-border)]/60 shadow-md">
       {/* ================= HEADER ================= */}
       <div
-        className="relative z-50 flex h-14 sm:h-16 w-full items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 bg-[#061c24]">
+        className="relative z-40 flex h-14 sm:h-16 w-full items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 bg-[#061c24]">
         {/* ================= LOGO ================= */}
         <Link to="/" className="shrink-0">
           <div className="flex shrink-0 items-center gap-2">
@@ -259,7 +259,7 @@ const Header = () => {
       </div>
 
       {/* ================= MOBILE SEARCH ================= */}
-      <div className="relative z-50 px-4 pb-3 sm:px-5 lg:hidden bg-[#061c24]">
+      <div className="relative z-10 px-4 pb-3 sm:px-5 lg:hidden bg-[#061c24]">
         <div className="flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-3 hover:border-cyan-500 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/40 transition-colors">
           <Search size={16} className="shrink-0 text-[var(--text-muted)]" />
           <input

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Dropdown, { type DropdownOption } from "../../components/Dropdown";
 import { DEVICE_TYPES } from "./deviceUtils";
-import type { Farm } from "../../types/Farm";
+import type { FarmFilterOption } from "../../types/Farm";
 import type { Pond } from "../../types/Pond";
 
 export type ViewMode = "table" | "card";
@@ -27,7 +27,7 @@ export interface DeviceFilterValues {
 interface DeviceFilterBarProps {
   filters: DeviceFilterValues;
   onFilterChange: (filters: DeviceFilterValues) => void;
-  farms: Farm[];
+  farms: FarmFilterOption[];
   ponds: Pond[];
   totalResults: number;
   totalDevices: number;
