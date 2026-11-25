@@ -25,6 +25,7 @@ import {
 import {
   getLatestTelemetry,
   getTelemetryHistory,
+  unwrapLatestTelemetryResponse,
 } from "../../services/deviceApi";
 import { formatMetricValue } from "../../utils/formatNumber";
 
@@ -76,8 +77,8 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({
 
         if (!isMounted) return;
 
-        if (latestRes.status === "fulfilled" && latestRes.value?.data) {
-          setLatestData(latestRes.value.data);
+        if (latestRes.status === "fulfilled") {
+          setLatestData(unwrapLatestTelemetryResponse(latestRes.value));
         } else {
           setLatestData(null);
         }
