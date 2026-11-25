@@ -1,6 +1,13 @@
 import type { Devices } from "../types/Devices";
 import { api } from "./api";
+import {
+  unwrapLatestTelemetryResponse,
+  type LatestTelemetryRecord,
+} from "./telemetryResponse";
 import { assertBackendPondId } from "../utils/uuid";
+
+export { unwrapLatestTelemetryResponse };
+export type { LatestTelemetryRecord };
 
 export interface CreateDevicePayload {
   deviceName: string;
@@ -178,8 +185,11 @@ export const reportBrokenDevice = reportDeviceFault;
  * Lấy chỉ số đo đạc mới nhất của thiết bị
  * GET /telemetry/device/:deviceId/latest
  */
-export const getLatestTelemetry = async (deviceId: string) => {
-  return api<{ success: boolean; data: any }>(`/telemetry/device/${deviceId}/latest`);
+export const getLatestTelemetry = async (
+  deviceId: string
+): Promise<LatestTelemetryRecord | null> => {
+  const res = await api<unknown>(`/telemetry/device/${deviceId}/latest`);
+  return unwrapLatestTelemetryResponse(res);
 };
 
 /**
@@ -196,7 +206,7 @@ export const getTelemetryHistory = async (
   if (query.startDate) params.set("startDate", query.startDate);
   if (query.endDate) params.set("endDate", query.endDate);
 
-  return api<{ success: boolean; total: number; page: number; limit: number; data: any[] }>(
+  return api<{ total: number; page: number; limit: number; totalPages?: number; success?: boolean; data: any[] }>(
     `/telemetry/device/${deviceId}/history?${params.toString()}`
   );
 };
