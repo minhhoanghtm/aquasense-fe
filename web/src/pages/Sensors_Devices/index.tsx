@@ -17,6 +17,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { usePonds } from "../../hooks/usePonds";
 import { usePond } from "../../hooks/usePond";
 import { useDevices, invalidateDevicesCache } from "../../hooks/useDevices";
+import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
 import {
   createDevice,
   updateDevice,
@@ -54,9 +55,14 @@ export default function Devices() {
 
   // Data fetching
   const { ponds, loading: pondsLoading } = usePonds();
+  const pondIds = useMemo(
+    () => ponds.map((p) => p.id || p.pondId).filter((id): id is string => Boolean(id)),
+    [ponds],
+  );
   const selectedPondId = ponds.length > 0 ? ponds[0].id || ponds[0].pondId || "" : "";
   const { pond, device } = usePond(selectedPondId);
   const { devices, loading: devicesLoading, error: devicesError, refetch } = useDevices();
+  useTelemetryRealtime(pondIds.length > 0 ? pondIds : (selectedPondId || undefined));
 
   // The Backend limits the farm directory to ADMIN/MANAGER. FARMER filters are
   // derived below from the ponds already returned by the scoped /ponds API.
@@ -174,6 +180,13 @@ export default function Devices() {
     sortBy: "updated_desc",
   });
 
+  const effectiveFilters = useMemo<DeviceFilterValues>(() => {
+    if (!pondsLoading && filters.pondId !== "ALL" && !allowedPondIds.has(filters.pondId)) {
+      return { ...filters, pondId: "ALL" };
+    }
+    return filters;
+  }, [allowedPondIds, filters, pondsLoading]);
+
   const [kpiFilter, setKpiFilter] = useState<KPIFilterType>("ALL");
 
   const handleKpiFilterChange = (newKpi: KPIFilterType) => {
@@ -224,8 +237,8 @@ export default function Devices() {
     let result = [...authorizedDevices];
 
     // 1. Search Query
-    if (filters.search.trim()) {
-      const q = filters.search.trim().toLowerCase();
+    if (effectiveFilters.search.trim()) {
+      const q = effectiveFilters.search.trim().toLowerCase();
       result = result.filter((d) => {
         const name = (d.name || d.deviceName || "").toLowerCase();
         const mac = (d.macAddress || "").toLowerCase();
@@ -247,45 +260,45 @@ export default function Devices() {
     }
 
     // 2. Filter by Farm
-    if (filters.farmId && filters.farmId !== "ALL") {
+    if (effectiveFilters.farmId && effectiveFilters.farmId !== "ALL") {
       result = result.filter((d) => {
         const farmId =
           d.pond?.farmId ||
           (d.pondId &&
             ponds.find((p) => (p.pondId || p.id) === d.pondId)?.farmId);
-        return farmId === filters.farmId;
+        return farmId === effectiveFilters.farmId;
       });
     }
 
     // 3. Filter by Pond
-    if (filters.pondId && filters.pondId !== "ALL") {
-      result = result.filter((d) => d.pondId === filters.pondId);
+    if (effectiveFilters.pondId && effectiveFilters.pondId !== "ALL") {
+      result = result.filter((d) => d.pondId === effectiveFilters.pondId);
     }
 
     // 4. Filter by Device Type
-    if (filters.deviceType && filters.deviceType !== "ALL") {
+    if (effectiveFilters.deviceType && effectiveFilters.deviceType !== "ALL") {
       result = result.filter(
-        (d) => getDeviceTypeInfo(d).key === filters.deviceType
+        (d) => getDeviceTypeInfo(d).key === effectiveFilters.deviceType
       );
     }
 
     // 5. Filter by Connection Status
-    if (filters.connection && filters.connection !== "ALL") {
+    if (effectiveFilters.connection && effectiveFilters.connection !== "ALL") {
       result = result.filter((d) => {
         const conn = getConnectionStatus(d.status);
-        return filters.connection === "ONLINE" ? conn.isOnline : !conn.isOnline;
+        return effectiveFilters.connection === "ONLINE" ? conn.isOnline : !conn.isOnline;
       });
     }
 
     // 6. Filter by Condition / KPI Alert
-    if (filters.condition && filters.condition !== "ALL") {
+    if (effectiveFilters.condition && effectiveFilters.condition !== "ALL") {
       result = result.filter((d) => {
         const cond = getDeviceCondition(
           d.status,
           d.signal_strength,
           d.battery_level
         );
-        return cond.condition === filters.condition;
+        return cond.condition === effectiveFilters.condition;
       });
     } else if (kpiFilter === "ALERT_OR_FAULT") {
       result = result.filter((d) => {
@@ -300,17 +313,17 @@ export default function Devices() {
 
     // 7. Sorting
     result.sort((a, b) => {
-      if (filters.sortBy === "name_asc") {
+      if (effectiveFilters.sortBy === "name_asc") {
         const nameA = a.name || a.deviceName || "";
         const nameB = b.name || b.deviceName || "";
         return nameA.localeCompare(nameB, "vi");
       }
-      if (filters.sortBy === "name_desc") {
+      if (effectiveFilters.sortBy === "name_desc") {
         const nameA = a.name || a.deviceName || "";
         const nameB = b.name || b.deviceName || "";
         return nameB.localeCompare(nameA, "vi");
       }
-      if (filters.sortBy === "status") {
+      if (effectiveFilters.sortBy === "status") {
         const connA = getConnectionStatus(a.status).isOnline ? 1 : 0;
         const connB = getConnectionStatus(b.status).isOnline ? 1 : 0;
         return connB - connA;
@@ -326,7 +339,7 @@ export default function Devices() {
     });
 
     return result;
-  }, [authorizedDevices, filters, kpiFilter, farmMap, ponds]);
+  }, [authorizedDevices, effectiveFilters, kpiFilter, farmMap, ponds]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -549,7 +562,7 @@ export default function Devices() {
 
       {/* Khu vực C – Bộ lọc và tìm kiếm (Filter Bar with View Mode Toggle) */}
       <DeviceFilterBar
-        filters={filters}
+        filters={effectiveFilters}
         onFilterChange={handleFilterChange}
         farms={filterFarms}
         ponds={ponds}

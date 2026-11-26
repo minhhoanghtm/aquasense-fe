@@ -13,6 +13,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { usePonds, invalidatePondsCache } from "../../hooks/usePonds";
 import { usePond } from "../../hooks/usePond";
 import { useWaterQuality } from "../../hooks/useWaterQuality";
+import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
 import {
   getFeedingSchedules,
   createPond,
@@ -31,6 +32,13 @@ import type { User } from "../../types/User";
 import { CheckCircle2, AlertCircle, Search, Plus, Building2 } from "lucide-react";
 import { getCurrentUser } from "../../services/authApi";
 import { canManagePonds } from "../../lib/rolePermissions";
+import {
+  getErrorMessage,
+  isAbortError,
+  isPondResourceRevocationError,
+  isPondRevoked,
+  reportRevokedPond,
+} from "../../services/pondAccessControl";
 
 export const Monitoring = () => {
   useDocumentTitle("Quản lý vuông nuôi");
@@ -127,54 +135,81 @@ export const Monitoring = () => {
   }, []);
 
   useEffect(() => {
-    if (ponds.length === 0) {
-      if (!pondsLoading) {
-        setSelectedPondId("");
-      }
+    if (pondsLoading) return;
+    const validPonds = ponds.filter((p) => !isPondRevoked(p.id || p.pondId));
+    if (validPonds.length === 0) {
+      setSelectedPondId("");
       return;
     }
-    if (!selectedPondId || !ponds.some((p) => p.id === selectedPondId)) {
-      setSelectedPondId(ponds[0].id || "");
+    if (!selectedPondId || isPondRevoked(selectedPondId) || !validPonds.some((p) => (p.id || p.pondId) === selectedPondId)) {
+      setSelectedPondId(validPonds[0].id || validPonds[0].pondId || "");
     }
   }, [ponds, selectedPondId, pondsLoading]);
 
-  const { pond, device, loading: pondLoading } = usePond(selectedPondId);
-  const { waterQuality, loading: waterQualityLoading } = useWaterQuality(selectedPondId);
+  const { pond, device, loading: pondLoading, error: pondError } = usePond(selectedPondId);
+  const { waterQuality, loading: waterQualityLoading, error: waterQualityError } = useWaterQuality(selectedPondId);
+  const selectedPondDeviceIds = useMemo(
+    () => pondDevices.map((d) => d.deviceId || d.id).filter((id): id is string => Boolean(id)),
+    [pondDevices],
+  );
+  useTelemetryRealtime(selectedPondId, selectedPondDeviceIds);
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     setPondDevices([]);
     setFeedingSchedules([]);
     setPondDevicesError(null);
 
-    if (!selectedPondId) return () => { cancelled = true; };
+    if (!selectedPondId || isPondRevoked(selectedPondId)) {
+      return () => {
+        cancelled = true;
+        controller.abort();
+      };
+    }
 
     void (async () => {
       try {
         const [devices, schedules] = await Promise.all([
-          getDevicesByPondId(selectedPondId),
+          getDevicesByPondId(selectedPondId, { signal: controller.signal }),
           getFeedingSchedules(selectedPondId),
         ]);
 
-        if (!cancelled) {
+        if (!cancelled && !isPondRevoked(selectedPondId)) {
           setPondDevices(devices);
           setFeedingSchedules(schedules);
         }
       } catch (error) {
+        if (isAbortError(error) || controller.signal.aborted) return;
         if (!cancelled) {
           setPondDevices([]);
           setFeedingSchedules([]);
-          setPondDevicesError(
-            error instanceof Error
-              ? error.message
-              : `Không thể tải thiết bị cho mã ao ${selectedPondId}.`,
-          );
+          const message = getErrorMessage(error, `Không thể tải thiết bị cho mã ao ${selectedPondId}.`);
+          setPondDevicesError(message);
+          if (isPondResourceRevocationError(error, "http")) {
+            reportRevokedPond(selectedPondId, message);
+          }
         }
       }
     })();
 
-    return () => { cancelled = true; };
+    const handleRevoked = (event: Event) => {
+      const revokedId = (event as CustomEvent<{ pondId?: string; message?: string }>).detail?.pondId;
+      if (revokedId !== selectedPondId) return;
+      controller.abort();
+      setPondDevices([]);
+      setFeedingSchedules([]);
+      setPondDevicesError("Bạn không được phân công cho ao nuôi này!");
+    };
+
+    window.addEventListener("pond-access-revoked", handleRevoked);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.removeEventListener("pond-access-revoked", handleRevoked);
+    };
   }, [selectedPondId]);
 
   // Handlers
@@ -274,9 +309,9 @@ export const Monitoring = () => {
 
       {/* Toolbar: Search, Status filter, Add button */}
       <div className="relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-[var(--panel-bg)] border border-[var(--panel-border)] shadow-sm">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:flex-1 sm:flex-wrap min-w-0">
           {/* Search box with icon */}
-          <div className="flex h-10 flex-1 sm:max-w-xs items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-3 text-xs text-[var(--text-primary)] hover:border-cyan-500 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/40 transition-colors">
+          <div className="flex h-10 w-full sm:w-auto sm:flex-1 sm:max-w-xs shrink-0 items-center gap-2 rounded-xl border border-[var(--panel-border)] bg-[var(--panel-bg-dark)] px-3 text-xs text-[var(--text-primary)] hover:border-cyan-500 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/40 transition-colors">
             <Search size={15} className="shrink-0 text-[var(--text-muted)]" />
             <input
               type="text"
@@ -336,19 +371,19 @@ export const Monitoring = () => {
         <div className="dashboard-card p-6 text-sm text-[var(--text-muted)] text-center">
           Đang tải danh sách vuông nuôi...
         </div>
+      ) : pondsError ? (
+        <div role="alert" className="dashboard-card border-rose-900/50 p-6 text-sm text-rose-300 text-center">
+          Không thể tải danh sách vuông nuôi: {pondsError}
+        </div>
       ) : ponds.length === 0 ? (
         <div className="dashboard-card p-6 text-sm text-[var(--text-muted)] text-center">
           {search || statusFilter || farmFilter ? "Không tìm thấy vuông nuôi phù hợp bộ lọc." : "Bạn chưa được cấp quyền truy cập vuông nuôi nào."}
         </div>
-      ) : pondsError ? (
-        <div className="dashboard-card border-rose-900/50 p-6 text-sm text-rose-300 text-center">
-          Không thể tải danh sách vuông nuôi: {pondsError}
-        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start min-w-0">
             {/* Cột trái: Danh sách vuông & Thiết bị kết nối */}
-            <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-5">
+            <div className="lg:col-span-4 min-w-0 flex flex-col gap-4 sm:gap-5">
               <PondList
                 ponds={ponds}
                 selectedId={selectedPondId}
@@ -370,11 +405,11 @@ export const Monitoring = () => {
             </div>
 
             {/* Cột phải: Thông số chi tiết & Thao tác */}
-            <div className="lg:col-span-8 flex flex-col gap-4 sm:gap-5">
+            <div className="lg:col-span-8 min-w-0 flex flex-col gap-4 sm:gap-5">
               <PondInfo
                 pond={pond}
-                sensorReadings={waterQuality?.sensorReadings}
-                feedingSchedules={feedingSchedules}
+                sensorReadings={pondError || waterQualityError ? [] : waterQuality?.sensorReadings}
+                feedingSchedules={pondError ? [] : feedingSchedules}
                 loadingSensors={waterQualityLoading || pondLoading}
                 onEditPond={canManage ? handleEditPond : undefined}
                 onOpenThresholds={handleOpenThresholds}

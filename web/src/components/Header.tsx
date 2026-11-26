@@ -30,13 +30,28 @@ const Header = () => {
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const seenAlertIds = useRef(new Set<string>());
+  const lastUserIdRef = useRef<string | undefined>(currentUser?.userId);
 
   useEffect(() => {
     const handleStorageUpdate = () => {
-      setCurrentUser(getCurrentUser());
+      const nextUser = getCurrentUser();
+      if (lastUserIdRef.current !== nextUser?.userId) {
+        lastUserIdRef.current = nextUser?.userId;
+        seenAlertIds.current.clear();
+        setNotificationCount(0);
+      }
+      setCurrentUser(nextUser);
+    };
+
+    const handleAuthCleared = () => {
+      lastUserIdRef.current = undefined;
+      seenAlertIds.current.clear();
+      setNotificationCount(0);
+      setCurrentUser(null);
     };
 
     window.addEventListener("storage", handleStorageUpdate);
+    window.addEventListener("auth-cleared", handleAuthCleared);
     const handleAlert = (event: Event) => {
       const customEvent = event as CustomEvent<{ alert?: unknown }>;
       const alert = customEvent?.detail?.alert;
@@ -68,6 +83,7 @@ const Header = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       window.removeEventListener("storage", handleStorageUpdate);
+      window.removeEventListener("auth-cleared", handleAuthCleared);
       window.removeEventListener("alerts-updated", handleAlert);
       document.removeEventListener("mousedown", handleClickOutside);
     };

@@ -99,24 +99,31 @@ export interface PondListQuery {
   farmId?: string;
 }
 
-export const getPondsPage = async (query: PondListQuery = {}): Promise<PaginatedPonds> => {
+export const getPondsPage = async (
+  query: PondListQuery = {},
+  options?: { signal?: AbortSignal },
+): Promise<PaginatedPonds> => {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== "") params.set(key, String(value));
   });
-  const response = await api<{ data: Pond[]; total: number; page: number; limit: number; totalPages: number }>(`/ponds?${params.toString()}`);
+  const response = await api<{ data: Pond[]; total: number; page: number; limit: number; totalPages: number }>(
+    `/ponds?${params.toString()}`,
+    options?.signal ? { signal: options.signal } : undefined,
+  );
   return { ...response, data: response.data.map((pond) => normalizePond(pond)) };
 };
 
 export const getAllPondsPage = async (
   query: Omit<PondListQuery, "page" | "limit"> = {},
+  options?: { signal?: AbortSignal },
 ): Promise<PaginatedPonds> => {
-  const firstPage = await getPondsPage({ ...query, page: 1, limit: 100 });
+  const firstPage = await getPondsPage({ ...query, page: 1, limit: 100 }, options);
   if (firstPage.totalPages <= 1) return firstPage;
 
   const remainingPages = await Promise.all(
     Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      getPondsPage({ ...query, page: index + 2, limit: 100 }),
+      getPondsPage({ ...query, page: index + 2, limit: 100 }, options),
     ),
   );
 
@@ -126,9 +133,9 @@ export const getAllPondsPage = async (
   };
 };
 
-export const getPondById = async (pondId: string): Promise<Pond> => {
+export const getPondById = async (pondId: string, options?: { signal?: AbortSignal }): Promise<Pond> => {
   assertBackendPondId(pondId);
-  return normalizePond(await api<Pond>(`/ponds/${pondId}`));
+  return normalizePond(await api<Pond>(`/ponds/${pondId}`, options?.signal ? { signal: options.signal } : undefined));
 };
 
 export const createPond = async (payload: CreatePondPayload): Promise<Pond> => {
@@ -199,8 +206,11 @@ export const revokePondFromUser = async (pondId: string, userId: string): Promis
 };
 
 // 2. THRESHOLD CONFIGS
-export const getThresholdConfigs = async (pondId: string): Promise<ThresholdConfigItem[]> => {
-  return api<ThresholdConfigItem[]>(`/ponds/${pondId}/thresholds`);
+export const getThresholdConfigs = async (
+  pondId: string,
+  options?: { signal?: AbortSignal },
+): Promise<ThresholdConfigItem[]> => {
+  return api<ThresholdConfigItem[]>(`/ponds/${pondId}/thresholds`, options?.signal ? { signal: options.signal } : undefined);
 };
 
 export const createThresholdConfig = async (
@@ -320,9 +330,12 @@ export const getPondsWithDevices = async (): Promise<PondWithDevices[]> => {
   }));
 };
 
-export const getSensorReadings = async (pondId: string): Promise<SensorReading[]> => {
+export const getSensorReadings = async (
+  pondId: string,
+  options?: { signal?: AbortSignal },
+): Promise<SensorReading[]> => {
   assertBackendPondId(pondId);
-  const devices = await getDevicesByPondId(pondId);
+  const devices = await getDevicesByPondId(pondId, options);
   if (!devices || devices.length === 0) return [];
 
   // Giới hạn tối đa 3 thiết bị tiêu biểu đang Online (hoặc 3 thiết bị đầu tiên) để tránh quá tải request song song
@@ -331,7 +344,10 @@ export const getSensorReadings = async (pondId: string): Promise<SensorReading[]
 
   const histories = await Promise.all(
     targetDevices.map(async (device) => {
-      const res = await api<any>(`/telemetry/device/${device.id}/history?limit=500`);
+      const res = await api<any>(
+        `/telemetry/device/${device.id}/history?limit=500`,
+        options?.signal ? { signal: options.signal } : undefined,
+      );
       const rawData = Array.isArray(res)
         ? res
         : Array.isArray(res?.data)
@@ -361,11 +377,11 @@ export const getSensorReadings = async (pondId: string): Promise<SensorReading[]
   );
 };
 
-export const getPondDashboard = async (pondId: string) => {
+export const getPondDashboard = async (pondId: string, options?: { signal?: AbortSignal }) => {
   assertBackendPondId(pondId);
   const [pond, devices] = await Promise.all([
-    getPondById(pondId),
-    getDevicesByPondId(pondId),
+    getPondById(pondId, options),
+    getDevicesByPondId(pondId, options),
   ]);
 
   return {
@@ -374,11 +390,11 @@ export const getPondDashboard = async (pondId: string) => {
   };
 };
 
-export const getCurrentWaterQuality = async (pondId: string) => {
+export const getCurrentWaterQuality = async (pondId: string, options?: { signal?: AbortSignal }) => {
   assertBackendPondId(pondId);
   const [sensorReadings, thresholds] = await Promise.all([
-    getSensorReadings(pondId),
-    getThresholdConfigs(pondId),
+    getSensorReadings(pondId, options),
+    getThresholdConfigs(pondId, options),
   ]);
 
   return {

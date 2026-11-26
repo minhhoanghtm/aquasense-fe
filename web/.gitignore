@@ -29,6 +29,8 @@ dist-ssr
 *.sln
 *.sw?
 
-#
+# Local environment files (never commit local overrides)
 .env
 .env.local
+.env.staging
+.env.*.local

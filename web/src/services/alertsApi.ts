@@ -48,19 +48,19 @@ export const normalizeAlert = (raw: any): Alerts => {
     };
 };
 
-export const getAlertPondById = async (pondId: string): Promise<Alerts[]> => {
-    const alerts = await getAlerts({ pondId });
+export const getAlertPondById = async (pondId: string, options?: { signal?: AbortSignal }): Promise<Alerts[]> => {
+    const alerts = await getAlerts({ pondId }, options);
     return alerts.filter((alert) => alert.pondId === pondId);
 };
 
-export const getAlerts = async (query?: AlertQuery): Promise<Alerts[]> => {
+export const getAlerts = async (query?: AlertQuery, options?: { signal?: AbortSignal }): Promise<Alerts[]> => {
     const params = new URLSearchParams({ limit: String(query?.limit ?? 500) });
     if (query?.pondId) params.set("pondId", query.pondId);
     if (query?.isResolved !== undefined) params.set("isResolved", String(query.isResolved));
     if (query?.startDate) params.set("startDate", query.startDate);
     if (query?.endDate) params.set("endDate", query.endDate);
 
-    const res = await api<any>(`/alerts?${params.toString()}`);
+    const res = await api<any>(`/alerts?${params.toString()}`, options?.signal ? { signal: options.signal } : undefined);
     // Backend returns the paginated payload inside the common response envelope.
     const rawList = res?.data ?? (Array.isArray(res) ? res : []);
     return Array.isArray(rawList) ? rawList.map(normalizeAlert) : [];

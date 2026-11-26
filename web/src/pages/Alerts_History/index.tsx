@@ -13,16 +13,18 @@ import { resolveAlert } from "../../services/alertsApi";
 import { getCurrentUser } from "../../services/authApi";
 import { formatVietnamDateTime } from "../../utils/date";
 import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
+import { isPondRevoked } from "../../services/pondAccessControl";
 import { CheckCircle2, X, Info } from "lucide-react";
 
 export default function Alerts() {
     useDocumentTitle("Cảnh báo & Lịch sử");
 
     const { ponds } = usePonds();
+    const pondIds = useMemo(() => ponds.map((p) => p.id || p.pondId).filter((id): id is string => Boolean(id)), [ponds]);
     const selectedPondId = ponds.length > 0 ? ponds[0].id : "";
     const { pond, device, devices } = usePond(selectedPondId);
     const { alerts, rules, summary, loading, error, refetch } = useAlertsHistory();
-    useTelemetryRealtime(selectedPondId);
+    useTelemetryRealtime(pondIds.length > 0 ? pondIds : (selectedPondId || undefined));
 
     const currentUser = getCurrentUser();
     const roleUpper = currentUser?.role?.toUpperCase();
@@ -40,8 +42,9 @@ export default function Alerts() {
 
     // Đối với Nông dân, chỉ giữ lại các cảnh báo liên quan đến ao mà nông dân đó thuộc quyền quản lý
     const authorizedAlerts = useMemo(() => {
-        if (!isFarmer) return alerts;
-        return alerts.filter((a) => {
+        const activeAlerts = alerts.filter((a) => !isPondRevoked(a.pondId));
+        if (!isFarmer) return activeAlerts;
+        return activeAlerts.filter((a) => {
             const pId = a.pondId || "";
             return allowedPondIds.has(pId);
         });
@@ -215,8 +218,8 @@ export default function Alerts() {
             )}
 
             {/* Bottom 2-Column Content: Alert List (Left) + Rules & Response Time (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
-                <div className="lg:col-span-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start min-w-0">
+                <div className="lg:col-span-8 min-w-0">
                     <AlertList
                         alerts={formattedAlerts}
                         ponds={pondOptions}
@@ -229,7 +232,7 @@ export default function Alerts() {
                         }}
                     />
                 </div>
-                <div className="lg:col-span-4 flex flex-col gap-3 sm:gap-4">
+                <div className="lg:col-span-4 min-w-0 flex flex-col gap-3 sm:gap-4">
                     <AlertRules rules={rules} />
                     <ResponseTime time={averageResolutionTime} />
                 </div>

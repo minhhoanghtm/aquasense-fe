@@ -193,14 +193,16 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex flex-col justify-between overflow-y-auto bg-transparent text-white font-sans selection:bg-[var(--accent)] selection:text-[var(--text-on-accent)]">
+    <div className="h-dvh w-full relative flex flex-col justify-between overflow-hidden bg-transparent text-white font-sans selection:bg-[var(--accent)] selection:text-[var(--text-on-accent)]">
       {/* Background Glow Effects using App Color Tokens */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[var(--accent)]/10 blur-[160px] pointer-events-none" />
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[var(--accent-bright)]/5 blur-[160px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-teal-500/5 blur-[160px] pointer-events-none" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[var(--accent)]/10 blur-[160px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[var(--accent-bright)]/5 blur-[160px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-teal-500/5 blur-[160px]" />
+      </div>
 
       {/* Top Brand & Status Bar */}
-      <header className="w-full px-6 sm:px-10 lg:px-14 py-4 flex items-center justify-between z-20 shrink-0">
+      <header className="w-full px-6 sm:px-10 lg:px-14 py-3 flex items-center justify-between z-20 shrink-0">
         {/* Left Brand */}
         <Link to="/" className="shrink-0">
           <div className="flex shrink-0 items-center gap-2">
@@ -220,27 +222,27 @@ export const Login: React.FC = () => {
       </header>
 
       {/* Center Main Form Card */}
-      <main className="flex-1 flex items-center justify-center p-4 py-8 z-10">
-        <div className="w-full max-w-[400px] rounded-[32px] border border-[var(--panel-border-strong)] bg-[#051c23]/90 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center transition-all">
+      <main className="flex-1 min-h-0 flex flex-col items-center px-4 py-2 sm:py-3 overflow-y-auto z-10">
+        <div className="my-auto w-full max-w-[400px] rounded-[32px] border border-[var(--panel-border-strong)] bg-[#051c23]/90 backdrop-blur-2xl p-5 sm:p-6 shadow-[0_25px_60px_rgba(0,0,0,0.7)] text-center transition-all">
 
           {/* Centered Wave Icon Badge */}
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_20px_rgba(45,212,195,0.25)]">
-            <WavesHorizontal size={28} />
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--panel-bg)] border border-[var(--panel-border-strong)] text-[var(--accent)] shadow-[0_0_20px_rgba(45,212,195,0.25)]">
+            <WavesHorizontal size={24} />
           </div>
 
           {/* Heading */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-(--text-heading) tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-[26px] font-bold text-(--text-heading) tracking-tight mb-1.5">
             Đăng nhập hệ thống
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xs sm:text-sm text-(--text-muted) mb-5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-(--text-muted) mb-4 leading-relaxed">
             Nhập thông tin tài khoản để truy cập trạm giám sát
           </p>
 
           {/* Error Message */}
           {(errorMessage || errorCode) && (
-            <div className="mb-5 flex items-center gap-2.5 p-3 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs text-left">
+            <div className="mb-4 flex items-center gap-2.5 p-2.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs text-left">
               <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
               <span>
                 {errorCode === 'LOGIN_TEMPORARILY_LOCKED'
@@ -255,11 +257,11 @@ export const Login: React.FC = () => {
           )}
 
           {/* Tabs */}
-          <div className="flex bg-[#04151c] p-1 rounded-xl mb-5 border border-[var(--panel-border-strong)] relative z-20">
+          <div className="flex bg-[#04151c] p-1 rounded-xl mb-4 border border-[var(--panel-border-strong)] relative z-20">
             <button
               type="button"
               onClick={() => { setLoginMethod("PASSWORD"); setErrorMessage(null); setErrorCode(null); }}
-              className={`flex-1 text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer ${loginMethod === "PASSWORD" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
+              className={`flex-1 text-xs font-semibold py-2 rounded-lg transition-colors cursor-pointer ${loginMethod === "PASSWORD" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
                 }`}
             >
               Mật khẩu
@@ -267,7 +269,7 @@ export const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => { setLoginMethod("OTP"); setErrorMessage(null); setErrorCode(null); }}
-              className={`flex-1 text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer ${loginMethod === "OTP" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
+              className={`flex-1 text-xs font-semibold py-2 rounded-lg transition-colors cursor-pointer ${loginMethod === "OTP" ? "bg-[var(--accent)] text-[var(--text-on-accent)]" : "text-(--text-muted) hover:text-white"
                 }`}
             >
               Mã OTP (SMS)
@@ -275,7 +277,7 @@ export const Login: React.FC = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 text-left relative z-20">
+          <form onSubmit={handleSubmit} className="space-y-3 text-left relative z-20">
             {/* Phone Input */}
             {(loginMethod === "PASSWORD" || (loginMethod === "OTP" && otpStep === "PHONE")) && (
               <div className="space-y-1.5 animate-fadeIn">
@@ -291,7 +293,7 @@ export const Login: React.FC = () => {
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     placeholder="0912 345 678"
-                    className="w-full rounded-full border border-white bg-white py-3 pl-12 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
+                    className="w-full rounded-full border border-white bg-white py-2.5 pl-12 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
                     autoComplete="username"
                   />
                 </div>
@@ -321,7 +323,7 @@ export const Login: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full rounded-full border border-white bg-white py-3 pl-12 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
+                    className="w-full rounded-full border border-white bg-white py-2.5 pl-12 pr-12 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:ring-2 focus:ring-[var(--accent)]/50 shadow-inner"
                     autoComplete="current-password"
                   />
                   <button
@@ -412,7 +414,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading || (loginMethod === "PASSWORD" && countdown > 0)}
-              className="w-full mt-2 group relative flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] active:scale-[0.99] py-3 px-6 font-bold text-[var(--text-on-accent)] text-sm shadow-[0_0_20px_rgba(45,212,195,0.35)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full mt-1 group relative flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] active:scale-[0.99] py-2.5 px-6 font-bold text-[var(--text-on-accent)] text-sm shadow-[0_0_20px_rgba(45,212,195,0.35)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -435,8 +437,8 @@ export const Login: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer Fixed to Bottom Edge */}
-      <footer className="absolute bottom-0 left-0 right-0 w-full px-6 sm:px-10 lg:px-14 py-3 z-20 border-t border-[var(--divider)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-(--text-muted) backdrop-blur-md bg-(--bg-primary)/40">
+      {/* Footer at Bottom Edge */}
+      <footer className="w-full px-6 sm:px-10 lg:px-14 py-2.5 z-20 shrink-0 border-t border-[var(--divider)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-(--text-muted) backdrop-blur-md bg-(--bg-primary)/40">
         <div>
           © 2026 AquaSense Smart AgriTech &nbsp;–&nbsp; Chuẩn bảo mật SSL 256-bit
         </div>

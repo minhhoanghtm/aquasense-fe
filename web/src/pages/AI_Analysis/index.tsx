@@ -8,6 +8,7 @@ import Dropdown, { type DropdownOption } from "../../components/Dropdown";
 import { usePonds } from "../../hooks/usePonds";
 import { usePond } from "../../hooks/usePond";
 import { useAIAnalysis } from "../../hooks/useAIAnalysis";
+import { useTelemetryRealtime } from "../../hooks/useTelemetryRealtime";
 import {
     triggerPondPrediction,
     triggerActivePondsNow,
@@ -17,11 +18,18 @@ import {
 import { Sparkles, Play, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "../../services/authApi";
 import { formatVietnamDateTime } from "../../utils/date";
+import {
+    getErrorMessage,
+    isAbortError,
+    isPondResourceRevocationError,
+    isPondRevoked,
+    reportRevokedPond,
+} from "../../services/pondAccessControl";
 
 export default function AIAnalysis() {
     useDocumentTitle("Phân tích AI");
 
-    const { ponds } = usePonds();
+    const { ponds, loading: pondsLoading } = usePonds();
     const [selectedPondId, setSelectedPondId] = useState("");
 
     const pondOptions: DropdownOption[] = useMemo(
@@ -48,6 +56,7 @@ export default function AIAnalysis() {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
     const historyRequestId = useRef(0);
+    const historyAbortRef = useRef<AbortController | null>(null);
     const [triggering, setTriggering] = useState(false);
     const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
@@ -55,13 +64,24 @@ export default function AIAnalysis() {
     const canTrigger = currentUser?.role === "ADMIN" || currentUser?.role === "MANAGER";
 
     useEffect(() => {
-        if (!selectedPondId && ponds.length > 0) {
-            setSelectedPondId(ponds[0].id || "");
+        if (pondsLoading) return;
+        const validPonds = ponds.filter((p) => !isPondRevoked(p.id || p.pondId));
+        if (validPonds.length === 0) {
+            if (selectedPondId) setSelectedPondId("");
+            return;
         }
-    }, [ponds, selectedPondId]);
+        if (!selectedPondId || isPondRevoked(selectedPondId) || !validPonds.some((p) => (p.id || p.pondId) === selectedPondId)) {
+            setSelectedPondId(validPonds[0].id || validPonds[0].pondId || "");
+        }
+    }, [ponds, pondsLoading, selectedPondId]);
 
-    const { pond, device } = usePond(selectedPondId);
+    const { pond, device, devices } = usePond(selectedPondId);
     const { predictions, anomalies, parameterHealth, available } = useAIAnalysis(selectedPondId || undefined);
+    const selectedPondDeviceIds = useMemo(
+        () => devices.map((d) => d.deviceId || d.id).filter((id): id is string => Boolean(id)),
+        [devices],
+    );
+    useTelemetryRealtime(selectedPondId, selectedPondDeviceIds);
 
     const showToast = (text: string, type: "success" | "error" = "success") => {
         setToastMessage({ text, type });
@@ -69,26 +89,31 @@ export default function AIAnalysis() {
     };
 
     const loadHistory = async (pondId: string) => {
-        if (!pondId) return;
+        if (!pondId || isPondRevoked(pondId)) return;
 
         const requestId = ++historyRequestId.current;
+        historyAbortRef.current?.abort();
+        const controller = new AbortController();
+        historyAbortRef.current = controller;
 
         setHistoryLoading(true);
         setHistoryError(null);
         setHistory([]);
 
         try {
-            const data = await getPredictionHistory(pondId, 10);
-            if (requestId === historyRequestId.current) {
+            const data = await getPredictionHistory(pondId, 10, { signal: controller.signal });
+            if (requestId === historyRequestId.current && !isPondRevoked(pondId)) {
                 setHistory(data);
             }
         } catch (err) {
+            if (isAbortError(err) || controller.signal.aborted) return;
             if (requestId === historyRequestId.current) {
-                setHistoryError(
-                    err instanceof Error
-                        ? err.message
-                        : "Không thể tải lịch sử dự báo."
-                );
+                setHistory([]);
+                const message = getErrorMessage(err, "Không thể tải lịch sử dự báo.");
+                setHistoryError(message);
+                if (isPondResourceRevocationError(err, "http")) {
+                    reportRevokedPond(pondId, message);
+                }
             }
         } finally {
             if (requestId === historyRequestId.current) {
@@ -98,14 +123,41 @@ export default function AIAnalysis() {
     };
 
     useEffect(() => {
-        if (selectedPondId) {
-            loadHistory(selectedPondId);
+        if (selectedPondId && !isPondRevoked(selectedPondId)) {
+            void loadHistory(selectedPondId);
         } else {
             historyRequestId.current += 1;
+            historyAbortRef.current?.abort();
             setHistory([]);
             setHistoryError(null);
             setHistoryLoading(false);
         }
+
+        const handlePondRevoked = (event: Event) => {
+            const revokedId = (event as CustomEvent<{ pondId?: string; message?: string }>).detail?.pondId;
+            if (!revokedId || revokedId !== selectedPondId) return;
+            historyRequestId.current += 1;
+            historyAbortRef.current?.abort();
+            setHistory([]);
+            setHistoryError("Bạn không được phân công cho ao nuôi này!");
+            setHistoryLoading(false);
+        };
+
+        const handleAuthCleared = () => {
+            historyRequestId.current += 1;
+            historyAbortRef.current?.abort();
+            setHistory([]);
+            setHistoryError(null);
+            setHistoryLoading(false);
+        };
+
+        window.addEventListener("pond-access-revoked", handlePondRevoked);
+        window.addEventListener("auth-cleared", handleAuthCleared);
+        return () => {
+            historyAbortRef.current?.abort();
+            window.removeEventListener("pond-access-revoked", handlePondRevoked);
+            window.removeEventListener("auth-cleared", handleAuthCleared);
+        };
     }, [selectedPondId]);
 
     const handleTriggerSingle = async () => {
@@ -273,6 +325,7 @@ export default function AIAnalysis() {
                         <table className="w-full text-xs text-left">
                             <thead>
                                 <tr className="border-b border-[var(--panel-border)] text-[var(--text-muted)]">
+                                    <th className="py-2.5 px-3 text-center w-12">STT</th>
                                     <th className="py-2.5 px-3">Thời điểm dự báo</th>
                                     <th className="py-2.5 px-3">Oxy DO (mg/L)</th>
                                     <th className="py-2.5 px-3">Độ pH</th>
@@ -282,8 +335,11 @@ export default function AIAnalysis() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--panel-border)]/40">
-                                {history.map((h) => (
+                                {history.map((h, index) => (
                                     <tr key={h.predictionId} className="hover:bg-white/[0.02] transition-colors">
+                                        <td className="py-2.5 px-3 text-center font-medium text-slate-400">
+                                            {index + 1}
+                                        </td>
                                         <td className="py-2.5 px-3 font-mono text-[var(--text-body)]">
                                             {formatVietnamDateTime(h.predictedTime)}
                                         </td>

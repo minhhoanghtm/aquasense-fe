@@ -68,9 +68,15 @@ export interface ParameterHealth {
     optimal: number;
 }
 
-export const getAIPredictions = async (pondId?: string): Promise<AIPrediction[]> => {
+export const getAIPredictions = async (
+    pondId?: string,
+    options?: { signal?: AbortSignal },
+): Promise<AIPrediction[]> => {
     if (!pondId) return [];
-    const raw = await api<RawAiPrediction>(`/predictions/pond/${pondId}/latest`);
+    const raw = await api<RawAiPrediction>(
+        `/predictions/pond/${pondId}/latest`,
+        options?.signal ? { signal: options.signal } : undefined,
+    );
 
     if (!raw || !raw.predictionId) return [];
 
@@ -97,11 +103,16 @@ export const getAIPredictions = async (pondId?: string): Promise<AIPrediction[]>
  * Lấy lịch sử dự báo AI của ao nuôi
  * GET /predictions/pond/:pondId/history
  */
-export const getPredictionHistory = async (pondId: string, limit: number = 20): Promise<RawAiPrediction[]> => {
+export const getPredictionHistory = async (
+    pondId: string,
+    limit: number = 20,
+    options?: { signal?: AbortSignal },
+): Promise<RawAiPrediction[]> => {
     if (!pondId) return [];
 
     const res = await api<RawAiPrediction[]>(
-        `/predictions/pond/${pondId}/history?limit=${limit}`
+        `/predictions/pond/${pondId}/history?limit=${limit}`,
+        options?.signal ? { signal: options.signal } : undefined,
     );
 
     if (!Array.isArray(res)) {

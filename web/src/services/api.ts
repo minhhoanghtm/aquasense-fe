@@ -1,3 +1,5 @@
+import { getEnv } from "../config/env";
+
 export interface ApiSuccessEnvelope<T> {
   success: true;
   statusCode: number;
@@ -56,10 +58,60 @@ export class ApiError extends Error {
 }
 
 // The backend exposes REST controllers at the origin (Swagger alone is under
-// /api/docs).  Deployments can supply a different origin through Vite env.
-const API_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// /api/docs). Endpoint configuration is validated centrally in src/config/env.ts.
+export const getApiBaseUrl = (): string => getEnv().apiBaseUrl;
 
-export const getApiBaseUrl = (): string => API_URL;
+const getApiTimeoutMs = (): number => getEnv().apiTimeout;
+
+const fetchWithTimeout = async (
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> => {
+  const callerSignal = init.signal;
+  const controller = new AbortController();
+  let timedOut = false;
+
+  const onCallerAbort = () => {
+    controller.abort(callerSignal?.reason);
+  };
+
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      controller.abort(callerSignal.reason);
+    } else {
+      callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+    }
+  }
+
+  const timerId = globalThis.setTimeout(() => {
+    timedOut = true;
+    const timeoutError =
+      typeof DOMException !== "undefined"
+        ? new DOMException(`Request timed out after ${timeoutMs}ms`, "TimeoutError")
+        : new Error(`Request timed out after ${timeoutMs}ms`);
+    controller.abort(timeoutError);
+  }, timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (timedOut) {
+      throw new ApiError(
+        `Yêu cầu quá thời gian chờ (${timeoutMs}ms). Vui lòng thử lại sau.`,
+        408,
+        "REQUEST_TIMEOUT",
+      );
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timerId);
+    callerSignal?.removeEventListener("abort", onCallerAbort);
+  }
+};
 
 export const getAccessToken = (): string | null => {
   return localStorage.getItem("accessToken");
@@ -73,22 +125,32 @@ export const clearAuthStorage = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("aquasense_user");
+  localStorage.removeItem("dashboard:selectedPondId");
   window.dispatchEvent(new Event("storage"));
   window.dispatchEvent(new Event("auth-cleared"));
 };
 
 let refreshPromise: Promise<string> | null = null;
 
+const invalidateAccessToken = () => {
+  localStorage.removeItem("accessToken");
+  window.dispatchEvent(new Event("auth-cleared"));
+};
+
+const clearInvalidSession = () => {
+  clearAuthStorage();
+  if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
+    window.location.href = "/login?expired=1";
+  }
+};
+
 const processTokenRefresh = async (): Promise<string> => {
   const refreshTokenValue = getRefreshToken();
   const token = getAccessToken();
 
   if (!refreshTokenValue || typeof refreshTokenValue !== "string" || refreshTokenValue.trim() === "" || refreshTokenValue === "undefined" || refreshTokenValue === "null") {
-    clearAuthStorage();
-    if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-      window.location.href = "/login?expired=1";
-    }
-    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    clearInvalidSession();
+    throw new ApiError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401, "REFRESH_MISSING");
   }
 
   if (refreshPromise) {
@@ -96,61 +158,74 @@ const processTokenRefresh = async (): Promise<string> => {
   }
 
   refreshPromise = (async () => {
+    let invalidatedByResponse = false;
     try {
-      const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      });
+      const apiBaseUrl = getApiBaseUrl();
+      const refreshRes = await fetchWithTimeout(
+        `${apiBaseUrl}/auth/refresh`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken: refreshTokenValue }),
+        },
+        getApiTimeoutMs(),
+      );
 
       const isCurrentAuthSession = () => getAccessToken() === token && getRefreshToken() === refreshTokenValue;
 
       if (refreshRes.ok) {
         const data = unwrapSuccess<{ accessToken?: string; refreshToken?: string }>(await refreshRes.json());
-        const newAccessToken = data.accessToken;
-        const newRefreshToken = data.refreshToken;
+        const newAccessToken = data?.accessToken;
+        const newRefreshToken = data?.refreshToken;
 
         if (!isCurrentAuthSession()) {
           return getAccessToken() || "";
         }
 
-        if (!newAccessToken || typeof newAccessToken !== "string" || !newRefreshToken || typeof newRefreshToken !== "string") {
-          clearAuthStorage();
-          if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-            window.location.href = "/login?expired=1";
-          }
-          throw new Error("Phản hồi làm mới token không hợp lệ!");
+        if (!data || !newAccessToken || typeof newAccessToken !== "string" || !newRefreshToken || typeof newRefreshToken !== "string") {
+          invalidatedByResponse = true;
+          clearInvalidSession();
+          throw new ApiError("Phản hồi làm mới token không hợp lệ!", 502, "REFRESH_RESPONSE_INVALID");
         }
 
         localStorage.setItem("accessToken", newAccessToken);
         localStorage.setItem("refreshToken", newRefreshToken);
+        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new CustomEvent("auth-token-refreshed", { detail: { accessToken: newAccessToken } }));
         return newAccessToken;
       } else {
         if (!isCurrentAuthSession()) {
           return getAccessToken() || "";
         }
-        if (refreshRes.status >= 400 && refreshRes.status < 500) {
-          clearAuthStorage();
-          if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-            window.location.href = "/login?expired=1";
-          }
-          throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        if ([400, 401, 403].includes(refreshRes.status)) {
+          invalidatedByResponse = true;
+          clearInvalidSession();
+          throw new ApiError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", refreshRes.status, "REFRESH_INVALID");
         }
-        throw new Error("Lỗi máy chủ khi làm mới token. Vui lòng thử lại sau.");
+        throw new ApiError(
+          refreshRes.status === 405
+            ? "Máy chủ chưa cho phép làm mới token. Vui lòng thử lại sau."
+            : "Lỗi máy chủ khi làm mới token. Vui lòng thử lại sau.",
+          refreshRes.status,
+          refreshRes.status === 405 ? "AUTH_ROUTE_UNAVAILABLE" : "REFRESH_SERVER_ERROR",
+        );
       }
     } catch (e) {
+      if (invalidatedByResponse) throw e;
       const isCurrentAuthSession = () => getAccessToken() === token && getRefreshToken() === refreshTokenValue;
       if (!isCurrentAuthSession()) {
         return getAccessToken() || "";
       }
-      // If it's a network error (TypeError from fetch), don't log the user out
-      if (e instanceof TypeError) {
-        throw new Error("Lỗi mạng khi làm mới token. Vui lòng thử lại sau.", { cause: e });
+      if (e instanceof TypeError || (e instanceof ApiError && e.code === "REQUEST_TIMEOUT")) {
+        invalidateAccessToken();
+        if (e instanceof ApiError) throw e;
+        throw new ApiError("Lỗi mạng khi làm mới token. Vui lòng thử lại sau.", 0, "NETWORK_ERROR");
       }
-      clearAuthStorage();
-      if (window.location.pathname !== "/login" && window.location.pathname !== "/forgot-password") {
-        window.location.href = "/login?expired=1";
+      if (e instanceof ApiError && (e.status === 405 || e.status >= 500)) {
+        invalidateAccessToken();
+        throw e;
       }
+      clearInvalidSession();
       throw e instanceof Error ? e : new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     } finally {
       refreshPromise = null;
@@ -169,6 +244,8 @@ export const api = async <T>(
   options?: RequestInit,
   isRetry: boolean = false
 ): Promise<T> => {
+  const apiBaseUrl = getApiBaseUrl();
+  const timeoutMs = getApiTimeoutMs();
   const token = getAccessToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -176,10 +253,14 @@ export const api = async <T>(
     ...(options?.headers as Record<string, string>),
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetchWithTimeout(
+    `${apiBaseUrl}${endpoint}`,
+    {
+      ...options,
+      headers,
+    },
+    timeoutMs,
+  );
 
   // Tự động xử lý khi Token hết hạn (401 Unauthorized)
   if (
@@ -206,10 +287,14 @@ export const api = async <T>(
       ...(options?.headers as Record<string, string>),
     };
 
-    const retryResponse = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: retryHeaders,
-    });
+    const retryResponse = await fetchWithTimeout(
+      `${apiBaseUrl}${endpoint}`,
+      {
+        ...options,
+        headers: retryHeaders,
+      },
+      timeoutMs,
+    );
 
     if (!retryResponse.ok) {
       let errorMessage = `Lỗi yêu cầu API (${retryResponse.status})`;

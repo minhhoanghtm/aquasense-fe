@@ -71,9 +71,16 @@ export const UnassignedNoticeModal: React.FC<UnassignedNoticeModalProps> = ({
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      setFeedback({
+        text: error instanceof Error ? error.message : "Không thể đăng xuất. Vui lòng thử lại.",
+        type: "warning",
+      });
+    }
   };
 
   const handleGoToProfile = () => {

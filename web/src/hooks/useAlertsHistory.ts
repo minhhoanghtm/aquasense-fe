@@ -1,37 +1,74 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Alerts } from "../types/Alerts";
 import { getAlerts, getAlertRules, type AlertRule } from "../services/alertsApi";
+import { getErrorMessage, isAbortError } from "../services/pondAccessControl";
 
 export const useAlertsHistory = () => {
     const [alerts, setAlerts] = useState<Alerts[]>([]);
     const [rules, setRules] = useState<AlertRule[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const requestVersion = useRef(0);
+    const activeController = useRef<AbortController | null>(null);
 
     useEffect(() => {
         const fetchAlertsData = async () => {
+            const requestId = ++requestVersion.current;
+            activeController.current?.abort();
+            const controller = new AbortController();
+            activeController.current = controller;
+
             try {
                 setLoading(true);
                 setError(null);
                 const [alertsData, rulesData] = await Promise.all([
-                    getAlerts(),
+                    getAlerts(undefined, { signal: controller.signal }),
                     getAlertRules(),
                 ]);
 
+                if (controller.signal.aborted || requestId !== requestVersion.current) return;
                 setAlerts(alertsData);
                 setRules(rulesData);
-            } catch (error) {
-                console.error("Lỗi lấy dữ liệu cảnh báo:", error);
+            } catch (err) {
+                if (isAbortError(err) || controller.signal.aborted || requestId !== requestVersion.current) return;
+                console.error("Lỗi lấy dữ liệu cảnh báo:", err);
                 setAlerts([]);
-                setError(error instanceof Error ? error.message : "Không thể tải dữ liệu cảnh báo.");
+                setError(getErrorMessage(err, "Không thể tải dữ liệu cảnh báo."));
             } finally {
-                setLoading(false);
+                if (requestId === requestVersion.current) setLoading(false);
             }
         };
 
-        fetchAlertsData();
+        void fetchAlertsData();
+
+        const handlePondRevoked = (event: Event) => {
+            const revokedPondId = (event as CustomEvent<{ pondId?: string }>).detail?.pondId;
+            if (!revokedPondId) return;
+            setAlerts((prev) => prev.filter((a) => a.pondId !== revokedPondId));
+        };
+
+        const handleAuthCleared = () => {
+            requestVersion.current += 1;
+            activeController.current?.abort();
+            activeController.current = null;
+            setAlerts([]);
+            setRules([]);
+            setError(null);
+            setLoading(false);
+        };
+
         window.addEventListener("alerts-updated", fetchAlertsData);
-        return () => window.removeEventListener("alerts-updated", fetchAlertsData);
+        window.addEventListener("ponds-updated", fetchAlertsData);
+        window.addEventListener("pond-access-revoked", handlePondRevoked);
+        window.addEventListener("auth-cleared", handleAuthCleared);
+
+        return () => {
+            activeController.current?.abort();
+            window.removeEventListener("alerts-updated", fetchAlertsData);
+            window.removeEventListener("ponds-updated", fetchAlertsData);
+            window.removeEventListener("pond-access-revoked", handlePondRevoked);
+            window.removeEventListener("auth-cleared", handleAuthCleared);
+        };
     }, []);
 
     const safeAlerts = Array.isArray(alerts) ? alerts : [];

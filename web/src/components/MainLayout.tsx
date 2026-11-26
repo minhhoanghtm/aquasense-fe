@@ -1,10 +1,12 @@
-import { memo, useEffect, useState, useCallback } from "react";
+import { memo, useEffect, useState, useCallback, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
 import AssignmentEmptyState from "./AssignmentEmptyState";
 import { getCurrentUser } from "../services/authApi";
 import { getPondsPage } from "../services/pondApi";
 import { getFarms } from "../services/farmApi";
+import { SELECTED_POND_STORAGE_KEY } from "../services/pondAccessControl";
+import { useTelemetrySession } from "../hooks/useTelemetryRealtime";
 import { Waves } from "lucide-react";
 import type { User } from "../types/User";
 
@@ -13,8 +15,12 @@ const MainLayout = memo(function MainLayout() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
   const [isUnassigned, setIsUnassigned] = useState(false);
   const [checked, setChecked] = useState(false);
+  const checkVersionRef = useRef(0);
+
+  useTelemetrySession(Boolean(currentUser && checked && !isUnassigned));
 
   const checkAssignments = useCallback(async (): Promise<boolean> => {
+    const version = ++checkVersionRef.current;
     const user = getCurrentUser();
     setCurrentUser(user);
 
@@ -34,7 +40,11 @@ const MainLayout = memo(function MainLayout() {
     try {
       if (role === "FARMER") {
         const res = await getPondsPage({ limit: 1 });
+        if (version !== checkVersionRef.current) return true;
         const hasPonds = (res.total ?? 0) > 0 || (res.data && res.data.length > 0);
+        if (!hasPonds) {
+          localStorage.removeItem(SELECTED_POND_STORAGE_KEY);
+        }
         setIsUnassigned(!hasPonds);
         setChecked(true);
         return hasPonds;
@@ -42,7 +52,11 @@ const MainLayout = memo(function MainLayout() {
 
       if (role === "MANAGER") {
         const farmsRes = await getFarms({ limit: 1 });
+        if (version !== checkVersionRef.current) return true;
         const hasAssignedFarm = (farmsRes.total ?? 0) > 0 || farmsRes.data.length > 0;
+        if (!hasAssignedFarm) {
+          localStorage.removeItem(SELECTED_POND_STORAGE_KEY);
+        }
         setIsUnassigned(!hasAssignedFarm);
         setChecked(true);
         return hasAssignedFarm;
@@ -51,22 +65,33 @@ const MainLayout = memo(function MainLayout() {
       console.warn("Lỗi kiểm tra phân công quản trị:", err);
     }
 
-    setChecked(true);
+    if (version === checkVersionRef.current) {
+      setChecked(true);
+    }
     return true;
   }, []);
 
   useEffect(() => {
-    checkAssignments();
+    void checkAssignments();
 
     const handleUpdate = () => {
-      checkAssignments();
+      void checkAssignments();
+    };
+
+    const handleAuthCleared = () => {
+      checkVersionRef.current += 1;
+      setCurrentUser(null);
+      setIsUnassigned(false);
+      setChecked(true);
     };
 
     window.addEventListener("ponds-updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
+    window.addEventListener("auth-cleared", handleAuthCleared);
     return () => {
       window.removeEventListener("ponds-updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener("auth-cleared", handleAuthCleared);
     };
   }, [checkAssignments]);
 

@@ -1,5 +1,5 @@
 import type { User, AuthResponse } from "../types/User";
-import { ApiError, api, clearAuthStorage, getRefreshToken, forceRefreshToken } from "./api";
+import { ApiError, api, clearAuthStorage, getAccessToken, getRefreshToken, forceRefreshToken } from "./api";
 
 const AUTH_USER_KEY = "aquasense_user";
 const AUTH_TOKEN_KEY = "accessToken";
@@ -261,6 +261,9 @@ export const changePassword = async (
 export const logout = async (): Promise<void> => {
   const storedRefreshToken = getRefreshToken();
   if (!storedRefreshToken) {
+    if (getAccessToken()) {
+      throw new ApiError("Thiếu refresh token; chưa thể xác nhận đăng xuất trên máy chủ.", 400, "REFRESH_MISSING");
+    }
     clearAuthStorage();
     return;
   }

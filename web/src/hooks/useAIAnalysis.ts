@@ -11,6 +11,13 @@ import {
     type ParameterHealth,
 } from "../services/aiApi";
 import { ApiError } from "../services/api";
+import {
+    getErrorMessage,
+    isAbortError,
+    isPondResourceRevocationError,
+    isPondRevoked,
+    reportRevokedPond,
+} from "../services/pondAccessControl";
 
 export type PredictionAvailability =
     | "READY"
@@ -41,18 +48,36 @@ export const useAIAnalysis = (pondId?: string, includeParameterHealth: boolean =
     const [predictionAvailability, setPredictionAvailability] = useState<PredictionAvailability>("READY");
 
     useEffect(() => {
-        if (!pondId) {
+        if (!pondId || isPondRevoked(pondId)) {
             setPredictions([]);
             setRecommendations([]);
             setAnomalies([]);
             setParameterHealth([]);
+            setError(pondId && isPondRevoked(pondId) ? "Bạn không được phân công cho ao nuôi này!" : null);
             setLoading(false);
             setPredictionAvailability("READY");
             return;
         }
 
         let cancelled = false;
+        let requestVersion = 0;
+        let activeController: AbortController | null = null;
+
+        const abortCurrent = () => {
+            if (activeController) {
+                activeController.abort();
+                activeController = null;
+            }
+        };
+
         const fetchAIData = async () => {
+            if (cancelled || isPondRevoked(pondId)) return;
+
+            const requestId = ++requestVersion;
+            abortCurrent();
+            const controller = new AbortController();
+            activeController = controller;
+
             try {
                 setError(null);
                 setPredictionAvailability("READY");
@@ -65,31 +90,76 @@ export const useAIAnalysis = (pondId?: string, includeParameterHealth: boolean =
                     ? getParameterHealth()
                     : Promise.resolve([] as ParameterHealth[]);
                 const [preds, recs, anoms, params] = await Promise.all([
-                    getAIPredictions(pondId),
+                    getAIPredictions(pondId, { signal: controller.signal }),
                     getAIRecommendations(pondId),
                     getAnomalies(pondId),
                     parameterHealthRequest,
                 ]);
 
-                if (!cancelled) {
+                if (!cancelled && requestId === requestVersion && !isPondRevoked(pondId)) {
                     setPredictions(preds);
                     setRecommendations(recs);
                     setAnomalies(anoms);
                     setParameterHealth(params);
                 }
-            } catch (error) {
-                console.error("Lỗi lấy dữ liệu AI:", error);
-                if (!cancelled) {
-                    setPredictionAvailability(predictionAvailabilityFromError(error));
-                    setError(error instanceof Error ? error.message : "Không thể tải dữ liệu AI.");
+            } catch (err) {
+                if (isAbortError(err) || controller.signal.aborted) return;
+                console.error("Lỗi lấy dữ liệu AI:", err);
+                if (!cancelled && requestId === requestVersion) {
+                    setPredictions([]);
+                    setRecommendations([]);
+                    setAnomalies([]);
+                    setParameterHealth([]);
+                    setPredictionAvailability(predictionAvailabilityFromError(err));
+                    const message = getErrorMessage(err, "Không thể tải dữ liệu AI.");
+                    setError(message);
+                    if (isPondResourceRevocationError(err, "http")) {
+                        reportRevokedPond(pondId, message);
+                    }
                 }
             } finally {
-                if (!cancelled) setLoading(false);
+                if (!cancelled && requestId === requestVersion) setLoading(false);
             }
         };
 
         fetchAIData();
-        return () => { cancelled = true; };
+
+        const handlePondRevoked = (event: Event) => {
+            const detail = (event as CustomEvent<{ pondId?: string; message?: string }>).detail;
+            if (detail?.pondId !== pondId) return;
+            requestVersion += 1;
+            abortCurrent();
+            setPredictions([]);
+            setRecommendations([]);
+            setAnomalies([]);
+            setParameterHealth([]);
+            setLoading(false);
+            setPredictionAvailability("AI_UNAVAILABLE");
+            setError(detail?.message || "Bạn không được phân công cho ao nuôi này!");
+        };
+
+        const handleAuthCleared = () => {
+            requestVersion += 1;
+            abortCurrent();
+            setPredictions([]);
+            setRecommendations([]);
+            setAnomalies([]);
+            setParameterHealth([]);
+            setError(null);
+            setLoading(false);
+            setPredictionAvailability("READY");
+        };
+
+        window.addEventListener("pond-access-revoked", handlePondRevoked);
+        window.addEventListener("auth-cleared", handleAuthCleared);
+
+        return () => {
+            cancelled = true;
+            requestVersion += 1;
+            abortCurrent();
+            window.removeEventListener("pond-access-revoked", handlePondRevoked);
+            window.removeEventListener("auth-cleared", handleAuthCleared);
+        };
     }, [includeParameterHealth, pondId]);
 
     return {

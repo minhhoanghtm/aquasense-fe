@@ -35,7 +35,8 @@ const normalizeDevice = (d: any): Devices => ({
 });
 
 export const getDevices = async (
-  query: { pondId?: string; status?: string; search?: string; page?: number; limit?: number } = {}
+  query: { pondId?: string; status?: string; search?: string; page?: number; limit?: number } = {},
+  options?: { signal?: AbortSignal },
 ): Promise<Devices[]> => {
   if (query.pondId !== undefined) {
     assertBackendPondId(query.pondId);
@@ -49,7 +50,7 @@ export const getDevices = async (
       params.set(key, String(value));
     }
   });
-  const res = await api<any>(`/devices?${params.toString()}`);
+  const res = await api<any>(`/devices?${params.toString()}`, options?.signal ? { signal: options.signal } : undefined);
   let rawList = Array.isArray(res) ? res : res?.data || [];
 
   // If query did not specify a specific page and there are multiple pages, load all pages
@@ -58,7 +59,7 @@ export const getDevices = async (
     for (let p = 2; p <= res.totalPages; p++) {
       const nextParams = new URLSearchParams(params);
       nextParams.set("page", String(p));
-      remainingPromises.push(api<any>(`/devices?${nextParams.toString()}`));
+      remainingPromises.push(api<any>(`/devices?${nextParams.toString()}`, options?.signal ? { signal: options.signal } : undefined));
     }
     const additionalPages = await Promise.all(remainingPromises);
     for (const pageRes of additionalPages) {
@@ -70,9 +71,9 @@ export const getDevices = async (
   return rawList.map(normalizeDevice);
 };
 
-export const getDevicesByPondId = async (pondId: string): Promise<Devices[]> => {
+export const getDevicesByPondId = async (pondId: string, options?: { signal?: AbortSignal }): Promise<Devices[]> => {
   assertBackendPondId(pondId);
-  return getDevices({ pondId });
+  return getDevices({ pondId }, options);
 };
 
 export const getDeviceById = async (id: string): Promise<Devices | null> => {
